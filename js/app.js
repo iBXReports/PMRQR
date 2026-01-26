@@ -44,9 +44,66 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     checkSession();
 
-    // ... (Login Handler) ...
+    // Login Handler
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const btn = loginForm.querySelector('button');
 
-    // ... (Scanner Logic) ...
+        btn.disabled = true;
+        btn.innerText = "Verificando...";
+
+        const result = await window.DB.login(user, pass);
+
+        if (result.success) {
+            if (result.role === 'admin') {
+                window.location.href = 'admin/admin.html';
+            } else {
+                location.reload();
+            }
+        } else {
+            alert(result.message);
+            btn.disabled = false;
+            btn.innerText = "Ingresar";
+        }
+    });
+
+    // --- Scanner Logic ---
+    const html5QrCode = new Html5Qrcode("reader");
+    const readerElem = document.getElementById('reader');
+    const scanActions = document.getElementById('scanActions');
+    const movementForm = document.getElementById('movementForm');
+
+    // Camera Scan
+    document.getElementById('btnScanCamera').addEventListener('click', () => {
+        readerElem.classList.remove('hidden');
+        document.getElementById('stopScan').classList.remove('hidden');
+        document.getElementById('btnScanCamera').classList.add('hidden');
+        document.getElementById('btnScanFile').classList.add('hidden');
+
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess,
+            (error) => { /* ignore failures */ }
+        ).catch(err => alert("Error iniciando cámara: " + err));
+    });
+
+    document.getElementById('stopScan').addEventListener('click', () => {
+        html5QrCode.stop().then(() => resetScanUI());
+    });
+
+    // File Scan
+    document.getElementById('btnScanFile').addEventListener('click', () => document.getElementById('qrFileInput').click());
+
+    document.getElementById('qrFileInput').addEventListener('change', e => {
+        if (e.target.files.length == 0) return;
+        const imageFile = e.target.files[0];
+        html5QrCode.scanFile(imageFile, true)
+            .then(decodedText => onScanSuccess(decodedText))
+            .catch(err => alert("No se detectó QR en la imagen"));
+    });
 
     function onScanSuccess(decodedText, decodedResult) {
         // Stop scanning if camera running
