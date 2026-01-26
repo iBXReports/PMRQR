@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRCARGO - Cargo Mobility</title>
+    <!-- Bootstrap CSS -->
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .login-card {
+            max-width: 400px;
+            margin: 80px auto;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .scanner-card {
+            max-width: 600px;
+            margin: 20px auto;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #0d6efd;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-custom {
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Auth Section -->
+    <div id="authSection" class="container">
+        <div class="card login-card p-4">
+            <div class="card-body">
+                <div class="brand-logo"><i class="fas fa-plane-departure"></i> QRCARGO</div>
+                <h5 class="text-center text-muted mb-4">Acceso de Agentes</h5>
+
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Usuario</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="username" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-custom w-100">Ingresar</button>
+                    <!-- <div class="text-center mt-3"><a href="#" id="toggleRegister">Registrar nueva cuenta</a></div> -->
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Section -->
+    <div id="appSection" class="container hidden">
+        <nav class="navbar navbar-light bg-white shadow-sm mb-4 rounded-bottom">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h1 text-primary"><i class="fas fa-plane"></i> QRCARGO</span>
+                <div class="d-flex align-items-center">
+                    <span class="me-3 fw-bold" id="userDisplay">Agente</span>
+                    <button class="btn btn-outline-danger btn-sm" onclick="window.DB.logout()"><i
+                            class="fas fa-sign-out-alt"></i></button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="card scanner-card">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h4 class="text-center fw-bold">Registrar Movimiento</h4>
+            </div>
+            <div class="card-body">
+                <!-- Scan Actions -->
+                <div id="scanActions" class="d-grid gap-3">
+                    <button class="btn btn-primary btn-custom btn-lg" id="btnScanCamera">
+                        <i class="fas fa-camera mb-1"></i><br>Escanear QR
+                    </button>
+                    <button class="btn btn-light btn-custom text-start border" id="btnScanFile">
+                        <i class="fas fa-file-image text-muted me-2"></i> Subir imagen QR
+                    </button>
+                    <input type="file" id="qrFileInput" accept="image/*" class="hidden">
+
+                    <div id="reader" class="hidden bg-dark"></div>
+                    <button id="stopScan" class="btn btn-secondary hidden mt-2">Detener Escaneo</button>
+                </div>
+
+                <!-- Form -->
+                <form id="movementForm" class="hidden mt-4">
+                    <div class="alert alert-info py-2">
+                        <i class="fas fa-info-circle"></i> Silla detectada: <strong id="detectedCode">SILLA-XXX</strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Origen (Ubicación actual)</label>
+                        <select class="form-select" id="origin" required>
+                            <option value="" selected disabled>Seleccione...</option>
+                            <option value="Terminal Nacional - Puerta 10">Terminal Nacional - Puerta 10</option>
+                            <option value="Terminal Internacional - Check-in">Terminal Internacional - Check-in</option>
+                            <option value="Sala de Embarque">Sala de Embarque</option>
+                            <option value="Llegadas Nacionales">Llegadas Nacionales</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Destino (Hacia donde va)</label>
+                        <input type="text" class="form-control" id="destination" placeholder="Ej: Puerta 5, Sala VIP..."
+                            required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Ubicación Final (Donde se deja)</label>
+                        <input type="text" class="form-control" id="finalLocation"
+                            placeholder="Ej: Bodega 2, Pasillo..." required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-custom">Confirmar Movimiento</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="resetApp()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <script src="js/supabase_client.js?v=1.1"></script>
+    <script src="js/app.js?v=1.1"></script>
+</body>
+
+</html>
