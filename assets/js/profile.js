@@ -1,5 +1,5 @@
 import { supabase } from './client.js';
-import { showError, showSuccess, applyPerformanceMode } from './common.js';
+import { showError, showSuccess, applyPerformanceMode, applyTheme } from './common.js';
 
 const avatarInput = document.getElementById('avatar-input');
 const avatarPreview = document.getElementById('avatar-preview');
@@ -21,9 +21,12 @@ async function init() {
     currentUser = session.user;
 
     // 2. Load Data
-    await loadProfile();
+    const { data } = await loadProfile(); // We need data for topbar too
 
-    // 3. Init Toggle State
+    // 3. Setup Topbar
+    setupTopbar(data); // Pass profile data explicitly
+
+    // 4. Init Toggle State
     const currentMode = localStorage.getItem('performanceMode');
     const toggle = document.getElementById('lite-mode-toggle');
     if (toggle) toggle.checked = (currentMode === 'lite');
@@ -39,11 +42,94 @@ async function init() {
     if (avatarInput) avatarInput.addEventListener('change', uploadAvatar);
     if (profileForm) profileForm.addEventListener('submit', updateProfile);
 
-    // Logout
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.href = 'index.html';
-    });
+    // Logout (Handled by setupTopbar now, but keeping for safely if old buttons exist)
+    const oldLogout = document.getElementById('logout-btn');
+    if (oldLogout) {
+        oldLogout.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.href = 'index.html';
+        });
+    }
+}
+
+function setupTopbar(profileData) {
+    const userNav = document.getElementById('user-nav-container');
+    const userNameEl = document.getElementById('nav-user-name');
+    const userAvatarEl = document.getElementById('nav-user-avatar');
+    const adminLink = document.getElementById('nav-admin-link');
+    const logoutBtn = document.getElementById('nav-logout-btn');
+    const themeBtn = document.getElementById('nav-theme-toggle');
+
+    if (!currentUser) return;
+
+    // 1. Show Container
+    if (userNav) userNav.classList.remove('hidden');
+
+    // 2. Set Info
+    const displayName = profileData?.full_name || currentUser.email.split('@')[0];
+    if (userNameEl) userNameEl.textContent = displayName;
+
+    // Avatar Logic
+    if (userAvatarEl) {
+        if (profileData && profileData.avatar_url) {
+            userAvatarEl.src = profileData.avatar_url;
+        } else {
+            userAvatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=6366f1&color=fff&size=128`;
+        }
+    }
+
+    // 3. Admin Link Visibility
+    const allowedRoles = ['CDO', 'Supervisor', 'Administrador'];
+    const userRole = profileData?.role || '';
+    const hasAccess = allowedRoles.some(r => r.toLowerCase() === userRole.toLowerCase());
+
+    if (hasAccess && adminLink) {
+        adminLink.classList.remove('hidden');
+    } else if (adminLink) {
+        adminLink.classList.add('hidden');
+    }
+
+    // 4. Bind Actions
+    if (logoutBtn) {
+        const newLogout = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newLogout, logoutBtn);
+        newLogout.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        });
+    }
+
+    if (themeBtn) {
+        const newThemeBtn = themeBtn.cloneNode(true);
+        themeBtn.parentNode.replaceChild(newThemeBtn, themeBtn);
+        newThemeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const current = localStorage.getItem('theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+        });
+    }
+
+    // 5. Click Toggle for Dropdown
+    const dropdown = document.querySelector('.user-dropdown');
+    if (dropdown) {
+        const newDropdown = dropdown.cloneNode(true);
+        dropdown.parentNode.replaceChild(newDropdown, dropdown);
+
+        newDropdown.onclick = (e) => {
+            if (e.target.closest('.dropdown-content')) return;
+            e.stopPropagation();
+            newDropdown.classList.toggle('active');
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!newDropdown.contains(e.target)) {
+                newDropdown.classList.remove('active');
+            }
+        });
+    }
 }
 
 async function loadProfile() {
@@ -99,8 +185,11 @@ async function loadProfile() {
             }
         });
 
+        return { data }; // Return data for init usage
+
     } catch (err) {
         showError('Error al cargar perfil: ' + err.message);
+        return { data: null };
     }
 }
 

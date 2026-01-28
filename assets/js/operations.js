@@ -1,6 +1,6 @@
 
 import { supabase } from './client.js';
-import { showError, showSuccess } from './common.js';
+import { showError, showSuccess, applyTheme } from './common.js';
 
 // DOM Elements
 const viewScan = document.getElementById('view-scan');
@@ -32,13 +32,17 @@ async function init() {
     }
     currentUser = session.user;
 
-    // Fetch Extended Profile (Role, Team)
+    // 2. Fetch Extended Profile (Role, Team)
+    // Wait for profile data BEFORE setting up the topbar to avoid "Cargando..." state
     await fetchUserProfile();
 
-    // 2. Check for Active Operation
+    // 3. Setup Topbar (User Info) - Now we have data (or null)
+    setupTopbar();
+
+    // 3. Check for Active Operation
     await checkActiveOperation();
 
-    // 3. Listeners
+    // 4. Listeners
     window.addEventListener('qr-scanned', handleAssetScan);
     window.addEventListener('qr-return-scanned', handleReturnScan);
 
@@ -103,6 +107,101 @@ async function fetchUserProfile() {
         }
     } catch (e) {
         console.error("Profile fetch error", e);
+    }
+}
+
+function setupTopbar() {
+    const userNav = document.getElementById('user-nav-container');
+    const userNameEl = document.getElementById('nav-user-name');
+    const userAvatarEl = document.getElementById('nav-user-avatar');
+    const adminLink = document.getElementById('nav-admin-link');
+    const logoutBtn = document.getElementById('nav-logout-btn');
+    const themeBtn = document.getElementById('nav-theme-toggle');
+
+    if (!currentUser) return; // If no user, do nothing (nav is hidden by default)
+
+    // 1. Show Container
+    if (userNav) userNav.classList.remove('hidden');
+
+    // 2. Set Info
+    // Helper to get name
+    const getName = () => {
+        if (userProfile && userProfile.full_name) return userProfile.full_name;
+        if (currentUser.email) return currentUser.email.split('@')[0];
+        return "Usuario";
+    };
+
+    const displayName = getName();
+    if (userNameEl) userNameEl.textContent = displayName;
+
+    // Avatar Logic
+    if (userAvatarEl) {
+        // If profile has specific avatar, use it. Otherwise use UI Avatars.
+        if (userProfile && userProfile.avatar_url) {
+            userAvatarEl.src = userProfile.avatar_url;
+        } else {
+            userAvatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=6366f1&color=fff&size=128`;
+        }
+    }
+
+    // 3. Admin Link Visibility
+    const allowedRoles = ['CDO', 'Supervisor', 'Administrador'];
+    const userRole = userProfile?.role || '';
+    const hasAccess = allowedRoles.some(r => r.toLowerCase() === userRole.toLowerCase());
+
+    if (hasAccess && adminLink) {
+        adminLink.classList.remove('hidden');
+    } else if (adminLink) {
+        adminLink.classList.add('hidden');
+    }
+
+    // 4. Bind Actions
+    if (logoutBtn) {
+        // Clone to ensure clean listeners
+        const newLogout = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newLogout, logoutBtn);
+        newLogout.addEventListener('click', async (e) => {
+            e.stopPropagation(); // Prevent closing dropdown immediately
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        });
+    }
+
+    if (themeBtn) {
+        const newThemeBtn = themeBtn.cloneNode(true);
+        themeBtn.parentNode.replaceChild(newThemeBtn, themeBtn);
+
+        newThemeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const current = localStorage.getItem('theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            console.log("Toggling theme to:", next); // Debug
+            applyTheme(next);
+        });
+    }
+
+    // 5. Click Toggle for Dropdown
+    const dropdown = document.querySelector('.user-dropdown');
+    if (dropdown) {
+        // Remove old listeners to avoid duplicates
+        const newDropdown = dropdown.cloneNode(true);
+        dropdown.parentNode.replaceChild(newDropdown, dropdown);
+
+        // Toggle on click
+        newDropdown.onclick = (e) => {
+            // Prevent triggering if clicking inside the dropdown content itself (links/buttons)
+            if (e.target.closest('.dropdown-content')) return;
+            e.stopPropagation(); // Stop bubbling to document
+            newDropdown.classList.toggle('active');
+        };
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!newDropdown.contains(e.target)) {
+                newDropdown.classList.remove('active');
+            }
+        });
     }
 }
 
