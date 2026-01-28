@@ -103,51 +103,72 @@
 
             // 2. Generate Cards
             assets.forEach(asset => {
-                // Determine icon based on type (visual fluff)
-                let iconClass = 'fa-wheelchair';
-                const typeLower = (asset.type || '').toLowerCase();
-                if (typeLower.includes('carrito')) iconClass = 'fa-car';
-                if (typeLower.includes('oruga')) iconClass = 'fa-truck-monster'; // approximated
+                // Match the new sticker design
+                // Format Type
+                let typeDisplay = (asset.type || 'Equipo').toUpperCase();
 
-                // URL Structure: https://ibxreports.github.io/PMRQR/index.html?silla=ID
-                const targetUrl = `https://ibxreports.github.io/PMRQR/index.html?silla=${asset.code}`;
+                // Format Code: "Carrito01" -> "Carrito 01"
+                // Or just use the code directly if it's already spaced.
+                // Regex insert space between letters and numbers if missing
+                const codeDisplay = asset.code.replace(/([a-zA-Z])(\d)/, '$1 $2');
 
-                // Create Card Element
+                // QR Data: Use stored start_link or fallback
+                const qrData = asset.start_link || `https://ibxreports.github.io/PMRQR/index.html?silla=${asset.code}`;
+
+                // Create Card Element with Sticker Style
                 const card = document.createElement('div');
-                card.className = 'qr-card bg-white p-4 rounded-lg shadow flex flex-col items-center justify-center border border-gray-200 relative overflow-hidden';
+                card.className = 'qr-sticker';
+                // Inline styles to match the exact print look from Admin
+                // We use a class 'qr-sticker' which we will define in <style> or inline, 
+                // but since we are replacing the loop, let's just use the classes if we add CSS check below.
+                // Wait, Generador.html uses Tailwind. I can use Tailwind classes to approximate or
+                // just inject the same CSS styles in the head.
+                // Let's use Tailwind for simplicity but mimicking the layout.
 
                 card.innerHTML = `
-                    <div class="w-full flex justify-between items-center mb-2 px-1">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${asset.type || 'EQ'}</span>
-                        <div class="h-2 w-2 rounded-full relative ${asset.status === 'available' ? 'bg-green-500' : 'bg-gray-300'}"></div>
-                    </div>
-                    
-                    <div id="qr-${asset.id}" class="bg-white p-1 mb-3"></div>
-                    
-                    <h3 class="text-xl font-extrabold text-gray-800 tracking-tight">${asset.code}</h3>
-                    <p class="text-xs text-gray-400 mt-1 font-mono break-all text-center px-2" style="font-size: 0.6rem;">${targetUrl}</p>
+                   <div class="flex flex-col items-center justify-between h-full w-full">
+                        <div class="font-extrabold text-lg uppercase text-gray-900 text-center leading-tight mb-2">
+                            ${typeDisplay}
+                        </div>
+                        
+                        <div id="qr-${asset.id}" class="flex-grow flex items-center justify-center mb-2"></div>
+                        
+                        <div class="font-bold text-xl text-gray-800 mb-1">
+                            ${codeDisplay}
+                        </div>
+                        
+                        <div class="font-extrabold text-sm uppercase text-gray-700 tracking-wider">
+                            CARGOMOBILITY
+                        </div>
+                   </div>
                 `;
+
+                // Add specific styling class to card
+                card.style.background = "white";
+                card.style.border = "2px solid #e5e7eb";
+                card.style.borderRadius = "16px";
+                card.style.padding = "20px 10px";
+                card.style.aspectRatio = "0.8";
+                card.style.textAlign = "center";
 
                 container.appendChild(card);
 
                 // Generate QR Code
-                // We wrap in a requestAnimationFrame to ensure DOM is ready, though appending strictly works too.
-                // Using setTimeout 0 to push to next tick just in case layout needs to settle
                 setTimeout(() => {
                     const qrContainer = document.getElementById(`qr-${asset.id}`);
                     if (qrContainer) {
                         try {
                             new QRCode(qrContainer, {
-                                text: targetUrl,
-                                width: 128,
-                                height: 128,
+                                text: qrData,
+                                width: 140, // Slightly larger
+                                height: 140,
                                 colorDark: "#000000",
                                 colorLight: "#ffffff",
-                                correctLevel: QRCode.CorrectLevel.M // Medium correction usually enough
+                                correctLevel: QRCode.CorrectLevel.M
                             });
                         } catch (e) {
                             console.error("QR Error", e);
-                            qrContainer.innerText = "Error QR";
+                            qrContainer.innerText = "Error";
                         }
                     }
                 }, 0);

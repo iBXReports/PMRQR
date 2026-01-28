@@ -31,11 +31,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 3. Global Listeners
     window.switchTab = switchTab;
 
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        await supabase.auth.signOut();
-        window.location.href = '../login.html';
-    });
+    // Setup Admin Dropdown
+    setupAdminDropdown();
 });
+
+function setupAdminDropdown() {
+    const dropdown = document.getElementById('admin-user-dropdown');
+    const themeBtn = document.getElementById('admin-theme-toggle');
+    const logoutBtn = document.getElementById('admin-logout-btn');
+    const sidebarLogout = document.getElementById('logout-btn');
+
+    // Dropdown Toggle
+    if (dropdown) {
+        dropdown.addEventListener('click', (e) => {
+            if (e.target.closest('.dropdown-content')) return;
+            e.stopPropagation();
+            dropdown.classList.toggle('active');
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('active');
+            }
+        });
+    }
+
+    // Theme Toggle
+    if (themeBtn) {
+        themeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+    }
+
+    // Logout (dropdown)
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await supabase.auth.signOut();
+            window.location.href = '../login.html';
+        });
+    }
+
+    // Logout (sidebar)
+    if (sidebarLogout) {
+        sidebarLogout.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.href = '../login.html';
+        });
+    }
+}
 
 function updateUIProfile(profile) {
     if (!profile) return;
@@ -292,7 +342,7 @@ async function loadActivityHistory(page = 0) {
                 <td><strong>${op.assets?.code || '???'}</strong></td>
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <img src="${op.profiles?.avatar_url || 'https://via.placeholder.com/24'}" style="width:24px; height:24px; border-radius:50%;">
+                        <img src="${op.profiles?.avatar_url || '../assets/imagenes/avatarcargo.png'}" style="width:24px; height:24px; border-radius:50%;">
                         <span>${op.profiles?.full_name || op.profiles?.username}</span>
                     </div>
                 </td>
@@ -445,7 +495,7 @@ function loadLiveOperations() {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="display:flex; align-items:center; gap:0.5rem;">
-                        <img src="${profile.avatar_url || 'https://via.placeholder.com/30'}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
+                        <img src="${profile.avatar_url || '../assets/imagenes/avatarcargo.png'}" style="width:30px; height:30px; border-radius:50%; object-fit:cover;">
                         <span style="font-weight:600; font-size:0.9rem;">${profile.full_name || profile.username || 'Agente'}</span>
                     </td>
                     <td>${team}</td>
@@ -529,6 +579,54 @@ async function loadAssets() {
 
         const opsMap = {};
         if (activeOps) activeOps.forEach(op => opsMap[op.asset_id] = op);
+
+        // --- CALCULATE STATS ---
+        const stats = {
+            total: assets.length,
+            available: 0,
+            in_use: 0,
+            maintenance: 0,
+            damaged: 0,
+            lost: 0
+        };
+        const categoryCount = {};
+
+        assets.forEach(a => {
+            // Status counts
+            if (a.status === 'available') stats.available++;
+            else if (a.status === 'in_use') stats.in_use++;
+            else if (a.status === 'maintenance') stats.maintenance++;
+            else if (a.status === 'damaged') stats.damaged++;
+            else if (a.status === 'lost') stats.lost++;
+
+            // Category counts
+            const cat = (a.type || 'Otro').toLowerCase();
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+        });
+
+        // Update Stat Cards
+        const setTextIfExists = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = val;
+        };
+        setTextIfExists('asset-stat-total', stats.total);
+        setTextIfExists('asset-stat-available', stats.available);
+        setTextIfExists('asset-stat-inuse', stats.in_use);
+        setTextIfExists('asset-stat-maintenance', stats.maintenance);
+        setTextIfExists('asset-stat-damaged', stats.damaged);
+        setTextIfExists('asset-stat-lost', stats.lost);
+
+        // Update Category Pills
+        const catContainer = document.getElementById('assets-category-stats');
+        if (catContainer) {
+            catContainer.innerHTML = '';
+            Object.entries(categoryCount).forEach(([cat, count]) => {
+                const pill = document.createElement('span');
+                pill.style.cssText = 'background: var(--primary-color); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: inline-flex; gap: 6px; align-items: center;';
+                pill.innerHTML = `<span style="text-transform: capitalize;">${cat}</span> <strong>${count}</strong>`;
+                catContainer.appendChild(pill);
+            });
+        }
 
         tbody.innerHTML = '';
         if (!assets || assets.length === 0) {
@@ -636,7 +734,7 @@ function loadUsers() {
 
             tr.innerHTML = `
                 <td>
-                    <img src="${user.avatar_url || 'https://via.placeholder.com/40'}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
+                    <img src="${user.avatar_url || '../assets/imagenes/avatarcargo.png'}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
                 </td>
                 <td>
                     <div style="font-weight:600;">${user.full_name || user.username || 'Sin Nombre'}</div>

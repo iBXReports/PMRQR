@@ -54,7 +54,7 @@ async function handleLoggedInState(user) {
     } catch (e) { }
 
     const displayName = profile.full_name || profile.username || 'Usuario';
-    const avatar = profile.avatar_url || 'https://via.placeholder.com/40';
+    const avatar = profile.avatar_url || 'assets/imagenes/avatarcargo.png';
     const cleanRole = (profile.role || 'agente').toLowerCase();
 
     // Check for admin/supervisor permissions

@@ -12,6 +12,103 @@
             font-family: 'Outfit', sans-serif;
         }
 
+        /* Modern User Dropdown */
+        .user-dropdown {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 30px;
+            transition: background 0.2s ease;
+        }
+
+        .user-dropdown:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 120%;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            min-width: 260px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            animation: fadeInDown 0.2s ease-out;
+            padding: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-content a,
+        .dropdown-content button {
+            color: var(--text-color);
+            padding: 14px 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            background: transparent;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-content a:hover,
+        .dropdown-content button:hover {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            transform: translateX(5px);
+            color: var(--primary-color);
+        }
+
+        .dropdown-content .logout-btn:hover {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, rgba(244, 63, 94, 0.1) 100%);
+            color: #ef4444;
+        }
+
+        .dropdown-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .user-dropdown.active .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.05);
+            margin: 8px 10px;
+        }
+
+        [data-theme="dark"] .dropdown-divider {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         .profile-header {
             display: flex;
             flex-direction: column;
@@ -121,19 +218,18 @@
                 </div>
 
                 <!-- Avatar -->
-                <img id="nav-user-avatar" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
-                    alt="Avatar"
+                <img id="nav-user-avatar" src="assets/imagenes/avatarcargo.png" alt="Avatar"
                     style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;">
 
                 <!-- Dropdown Menu -->
                 <div class="dropdown-content">
-                    <a href="index.html"><i class="fas fa-home"></i> Volver a Inicio</a>
-                    <a href="admin/admin.html" id="nav-admin-link" class="hidden"><i class="fas fa-shield-alt"></i>
+                    <a href="index.html"><span class="dropdown-icon">🏠</span> Volver a Inicio</a>
+                    <a href="admin/admin.html" id="nav-admin-link" class="hidden"><span class="dropdown-icon">🛡️</span>
                         Panel Admin</a>
-                    <button id="nav-theme-toggle"><i class="fas fa-moon"></i> Tema Claro/Oscuro</button>
-                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 5px 0;"></div>
-                    <button id="nav-logout-btn" style="color: #ef4444;"><i class="fas fa-sign-out-alt"></i> Cerrar
-                        Sesión</button>
+                    <button id="nav-theme-toggle"><span class="dropdown-icon">🌓</span> Cambiar Tema</button>
+                    <div class="dropdown-divider"></div>
+                    <button id="nav-logout-btn" class="logout-btn" style="color: #ef4444;"><span
+                            class="dropdown-icon">🚪</span> Cerrar Sesión</button>
                 </div>
             </div>
         </div>
@@ -149,7 +245,7 @@
             <!-- Header / Avatar -->
             <div class="profile-header">
                 <div class="avatar-container">
-                    <img id="avatar-preview" src="https://via.placeholder.com/150" alt="Avatar" class="avatar">
+                    <img id="avatar-preview" src="assets/imagenes/avatarcargo.png" alt="Avatar" class="avatar">
                     <label for="avatar-input" class="avatar-upload" title="Cambiar Foto">
                         📷
                     </label>

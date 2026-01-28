@@ -400,6 +400,103 @@
             border: 1px solid rgba(255, 255, 255, 0.2) !important;
         }
 
+        /* --- USER DROPDOWN STYLES --- */
+        .user-dropdown {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 30px;
+            transition: background 0.2s ease;
+        }
+
+        .user-dropdown:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 120%;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            min-width: 260px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            animation: fadeInDown 0.2s ease-out;
+            padding: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-content a,
+        .dropdown-content button {
+            color: var(--text-color);
+            padding: 14px 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            background: transparent;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-content a:hover,
+        .dropdown-content button:hover {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            transform: translateX(5px);
+            color: var(--primary-color);
+        }
+
+        .dropdown-content .logout-btn:hover {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, rgba(244, 63, 94, 0.1) 100%);
+            color: #ef4444;
+        }
+
+        .dropdown-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .user-dropdown.active .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.05);
+            margin: 8px 10px;
+        }
+
+        [data-theme="dark"] .dropdown-divider {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         /* --- RESPONSIVE MOBILE & TABLET FIXES --- */
         @media (max-width: 1024px) {
 
@@ -641,12 +738,27 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <button id="theme-toggle" class="theme-toggle">🌙</button>
-                <div style="text-align: right; display: none; @media(min-width: 768px){display:block;}">
-                    <h4 id="admin-name" style="margin:0; font-size: 0.9rem;">Admin</h4>
-                    <span style="font-size: 0.7rem; opacity: 0.7;">Administrador</span>
+                <div class="user-dropdown" id="admin-user-dropdown">
+                    <!-- Name -->
+                    <div style="text-align: right;">
+                        <span id="admin-name"
+                            style="display: block; font-weight: 700; color: var(--primary-color); font-size: 0.9rem;">Admin</span>
+                    </div>
+
+                    <!-- Avatar -->
+                    <img id="admin-avatar" src="../assets/imagenes/avatarcargo.png" alt="Avatar"
+                        style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;">
+
+                    <!-- Dropdown Menu -->
+                    <div class="dropdown-content">
+                        <a href="perfil.html"><span class="dropdown-icon">😎</span>Mi Perfil</a>
+                        <a href="../index.html"><span class="dropdown-icon">🏠</span>Ir a Inicio</a>
+                        <button id="admin-theme-toggle"><span class="dropdown-icon">🌓</span> Cambiar Tema</button>
+                        <div class="dropdown-divider"></div>
+                        <button id="admin-logout-btn" class="logout-btn" style="color: #ef4444;"><span
+                                class="dropdown-icon">🚪</span> Cerrar Sesión</button>
+                    </div>
                 </div>
-                <img id="admin-avatar" src="https://via.placeholder.com/40" class="user-avatar" alt="Admin">
             </div>
         </header>
 
@@ -835,6 +947,43 @@
                         <button class="btn" style="width: auto;" onclick="openAssetModal()">+ Crear Equipo</button>
                     </div>
                 </div>
+
+                <!-- ASSET STATS DASHBOARD -->
+                <div id="assets-stats-container" class="stats-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 2rem; gap: 1rem;">
+                    <!-- Category Counts (Generated by JS) -->
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #6366f1;">
+                        <h4 id="asset-stat-total" style="font-size: 1.8rem; margin: 0;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">Total Equipos</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #22c55e;">
+                        <h4 id="asset-stat-available" style="font-size: 1.8rem; margin: 0; color: #22c55e;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">✅ Disponibles</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #3b82f6;">
+                        <h4 id="asset-stat-inuse" style="font-size: 1.8rem; margin: 0; color: #3b82f6;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">🏃 En Uso</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #f59e0b;">
+                        <h4 id="asset-stat-maintenance" style="font-size: 1.8rem; margin: 0; color: #f59e0b;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">🛠️ Mantención</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #ef4444;">
+                        <h4 id="asset-stat-damaged" style="font-size: 1.8rem; margin: 0; color: #ef4444;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">⚠️ Dañados</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #a855f7;">
+                        <h4 id="asset-stat-lost" style="font-size: 1.8rem; margin: 0; color: #a855f7;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">❌ Extraviados</p>
+                    </div>
+                </div>
+
+                <!-- Category Breakdown -->
+                <div id="assets-category-stats"
+                    style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <!-- JS will inject category pills here -->
+                </div>
+
                 <div style="overflow-x: auto;">
                     <table id="assets-table">
                         <thead>
@@ -1171,6 +1320,16 @@
                         <option value="carrito">Carrito de Golf</option>
                         <option value="oruga">Silla Oruga</option>
                     </select>
+                </div>
+
+                <!-- Asset Quantity Field (For Bulk Creation) -->
+                <div id="crud-quantity-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Cantidad a Crear</label>
+                    <input type="number" id="crud-quantity" class="input-style" style="border: 1px solid #ccc;" min="1"
+                        value="1" placeholder="1">
+                    <small style="opacity: 0.7; font-size: 0.8rem; display: block; margin-top: 4px;">
+                        Se generarán automáticamente (Ej: SILLA-01, SILLA-02...)
+                    </small>
                 </div>
 
                 <!-- Asset Status Field (Only for Equipo) -->

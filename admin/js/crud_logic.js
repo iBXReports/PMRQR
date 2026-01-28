@@ -12,7 +12,7 @@ const SETTINGS_CONFIG = {
     'gate': { table: 'locations', label: 'Gates Salida', filter: { type: 'gate' }, hasTerminal: true, hiddenType: 'gate' },
     'gate_arrival': { table: 'locations', label: 'Gates Arribo', filter: { type: 'gate_arrival' }, hasTerminal: true, hiddenType: 'gate_arrival' },
     'bridge': { table: 'locations', label: 'Puentes', filter: { type: 'bridge' }, hasTerminal: true, hiddenType: 'bridge' },
-    'asset_categories': { table: 'asset_categories', label: 'Categorías Equipo' },
+    'asset_categories': { table: 'asset_categories', label: 'Categorías Equipo', isCategory: true },
     'assets': { table: 'assets', label: 'Equipo', isAsset: true },
     'profiles': { table: 'profiles', label: 'Usuario', isProfile: true, hasLogo: true }
 };
@@ -31,6 +31,52 @@ window.loadSettingTable = async function (type, title) {
     const container = document.getElementById('settings-cards-container');
     if (!container) return;
 
+    const crudHeader = document.querySelector('#settings-crud-container > div'); // The header div with title and add button
+    const bulkBtnId = 'btn-bulk-delete';
+    const bulkPrintId = 'btn-bulk-print';
+    let bulkBtn = document.getElementById(bulkBtnId);
+    let bulkPrintBtn = document.getElementById(bulkPrintId);
+
+    if (type === 'assets') {
+        // Delete Button
+        if (!bulkBtn) {
+            bulkBtn = document.createElement('button');
+            bulkBtn.id = bulkBtnId;
+            bulkBtn.className = 'btn';
+            bulkBtn.style.width = 'auto';
+            bulkBtn.style.padding = '0.5rem 1rem';
+            bulkBtn.style.marginRight = '10px';
+            bulkBtn.style.background = '#ef4444'; // Red
+            bulkBtn.style.display = 'none'; // Hidden initially
+            bulkBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar (0)';
+            bulkBtn.onclick = deleteBulkAssets;
+
+            const addBtn = crudHeader.querySelector('button');
+            crudHeader.insertBefore(bulkBtn, addBtn);
+        }
+
+        // Print Button
+        if (!bulkPrintBtn) {
+            bulkPrintBtn = document.createElement('button');
+            bulkPrintBtn.id = bulkPrintId;
+            bulkPrintBtn.className = 'btn';
+            bulkPrintBtn.style.width = 'auto';
+            bulkPrintBtn.style.padding = '0.5rem 1rem';
+            bulkPrintBtn.style.marginRight = '10px';
+            bulkPrintBtn.style.background = '#6366f1'; // Indigo
+            bulkPrintBtn.style.display = 'none'; // Hidden initially
+            bulkPrintBtn.innerHTML = '<i class="fas fa-print"></i> Imprimir (0)';
+            bulkPrintBtn.onclick = printBulkAssets;
+
+            const addBtn = crudHeader.querySelector('button');
+            crudHeader.insertBefore(bulkPrintBtn, addBtn);
+        }
+
+    } else {
+        if (bulkBtn) bulkBtn.remove();
+        if (bulkPrintBtn) bulkPrintBtn.remove();
+    }
+
     container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 2rem; opacity: 0.5;">Cargando...</div>';
 
     // Fetch Data
@@ -43,6 +89,19 @@ window.loadSettingTable = async function (type, title) {
     }
 
     const { data, error } = await query;
+
+    // If Asset Categories, also fetch counts
+    let assetCounts = {};
+    if (type === 'asset_categories' && !error) {
+        const { data: allAssets } = await supabase.from('assets').select('type');
+        if (allAssets) {
+            allAssets.forEach(a => {
+                const t = (a.type || '').toLowerCase();
+                assetCounts[t] = (assetCounts[t] || 0) + 1;
+            });
+        }
+    }
+
     if (error) {
         console.error(error);
         container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color: red; padding: 2rem;">Error cargando datos</div>';
@@ -112,6 +171,13 @@ window.loadSettingTable = async function (type, title) {
                     <span class="info-label">Terminal</span>
                     <span class="info-value">${item.terminal || '-'}</span>
                 </div>` : ''}
+                ${config.isCategory ? `
+                <div class="card-info-item" style="grid-column: 1 / -1;">
+                    <span class="info-label">Equipos Registrados</span>
+                    <span class="info-value" style="font-weight: 800; font-size: 1.2rem;">
+                        ${assetCounts[(item.name || '').toLowerCase()] || 0}
+                    </span>
+                </div>` : ''}
                 ${config.isAsset ? `
                 <div class="card-info-item">
                     <span class="info-label">Tipo</span>
@@ -131,7 +197,16 @@ window.loadSettingTable = async function (type, title) {
                 </div>` : ''}
             </div>
             <div class="card-footer">
+                ${config.isAsset ? `
+                <div style="display: flex; align-items: center; gap: 10px; margin-right: auto;">
+                    <input type="checkbox" class="bulk-check" value="${item.id}" onchange="toggleBulkSelect()" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span style="font-size: 0.8rem; opacity: 0.7;">Select</span>
+                </div>` : ''}
                 <div class="action-group">
+                    ${config.isAsset ? `
+                    <button class="btn-action btn-whatsapp" title="Imprimir QR" onclick="printAssetQR('${safeItem}')" style="background:var(--primary-color); color:white; border:none;">
+                        <i class="fas fa-qrcode"></i>
+                    </button>` : ''}
                     <button class="btn-action btn-edit" title="Editar" onclick="openCrudModal('${safeItem}')">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -171,6 +246,8 @@ window.openCrudModal = function (itemJson) {
     const qrPreview = document.getElementById('crud-qr-preview');
     const assetStatusField = document.getElementById('crud-asset-status-field');
     const assetStatusInput = document.getElementById('crud-asset-status');
+    const quantityField = document.getElementById('crud-quantity-field');
+    const quantityInput = document.getElementById('crud-quantity');
 
     extraField.style.display = 'none';
     extraInput.required = false;
@@ -180,6 +257,7 @@ window.openCrudModal = function (itemJson) {
     if (qrField) qrField.style.display = 'none';
     if (qrPreview) qrPreview.style.display = 'none';
     if (assetStatusField) assetStatusField.style.display = 'none';
+    if (quantityField) quantityField.style.display = 'none';
 
     const userFields = document.getElementById('crud-user-fields');
     if (userFields) userFields.style.display = 'none';
@@ -198,6 +276,12 @@ window.openCrudModal = function (itemJson) {
         if (assetTypeField) assetTypeField.style.display = 'block';
         if (qrField) qrField.style.display = 'block';
         if (assetStatusField) assetStatusField.style.display = 'block';
+
+        // Show quantity only for new creates
+        if (!itemJson && quantityField) {
+            quantityField.style.display = 'block';
+            quantityInput.value = 1;
+        }
 
         // QR Preview Logic
         if (qrInput) {
@@ -344,6 +428,7 @@ document.getElementById('crud-form').addEventListener('submit', async (e) => {
     const logoFile = document.getElementById('crud-logo-file')?.files[0];
     const assetType = document.getElementById('crud-asset-type')?.value || 'silla';
     const qrFile = document.getElementById('crud-qr-file')?.files[0];
+    const quantity = parseInt(document.getElementById('crud-quantity')?.value || '1');
 
     // 1. Handle File Upload if present (Logos)
     if (logoFile) {
@@ -427,26 +512,88 @@ document.getElementById('crud-form').addEventListener('submit', async (e) => {
         delete payload.logo_url;
     }
 
-    let error;
-    if (id) {
-        // Update
-        ({ error } = await supabase.from(config.table).update(payload).eq('id', id));
-    } else {
-        // Insert
-        ({ error } = await supabase.from(config.table).insert(payload));
-    }
+    // BULK OR SINGLE LOGIC
+    let error = null;
 
-    if (error) {
-        alert('Error: ' + error.message);
-    } else {
-        closeCrudModal();
-        if (currentSettingsType === 'assets') {
-            if (typeof window.loadAssets === 'function') window.loadAssets();
-        } else if (currentSettingsType === 'profiles') {
-            if (typeof window.loadUsers === 'function') window.loadUsers();
+    try {
+        console.log(`Processing: Asset=${config.isAsset}, ID=${id}, Quantity=${quantity}`);
+
+        if (config.isAsset && !id && quantity > 1) {
+            // --- BULK CREATION ---
+            const payloads = [];
+
+            let prefix = name;
+            let startNum = 1;
+            let padding = 2; // Default 01
+
+            const match = name.match(/(\d+)$/);
+            if (match) {
+                prefix = name.substring(0, match.index);
+                startNum = parseInt(match[0], 10);
+                padding = match[0].length;
+            }
+
+            // Loop to generate payloads
+            for (let i = 0; i < quantity; i++) {
+                const currentNum = startNum + i;
+                const numStr = String(currentNum).padStart(padding, '0');
+                const finalName = prefix + numStr;
+
+                // Clone base payload
+                const currentPayload = { ...payload };
+                currentPayload.code = finalName;
+
+                // Dynamic Type Key
+                let typeKey = 'SILLA';
+                const lowerType = assetType.toLowerCase();
+                if (lowerType.includes('golf')) typeKey = 'GOLF';
+                else if (lowerType.includes('duplex')) typeKey = 'DUPLEX';
+                else if (lowerType.includes('oruga')) typeKey = 'ORUGA';
+
+                // Re-calculate Base URL since previous decl was block scoped, or define it globally.
+                // Best practice: define it once. But since we are patching:
+                const baseUrl = window.location.origin + window.location.pathname.replace('admin/admin.html', 'index.html');
+
+                currentPayload.start_link = `${baseUrl}?silla=INICIO${typeKey}-${numStr}`;
+                currentPayload.return_link = `${baseUrl}?silla=DEVOL${typeKey}-${numStr}`;
+
+                payloads.push(currentPayload);
+            }
+
+            console.log("Bulk Payloads:", payloads); // Debug
+            const response = await supabase.from(config.table).insert(payloads);
+            error = response.error;
+
         } else {
-            loadSettingTable(currentSettingsType);
+            // --- SINGLE OPERATION ---
+            if (id) {
+                const response = await supabase.from(config.table).update(payload).eq('id', id);
+                error = response.error;
+            } else {
+                const response = await supabase.from(config.table).insert(payload);
+                error = response.error;
+            }
         }
+
+        if (error) {
+            console.error("Supabase Error:", error);
+            alert('Error al guardar: ' + error.message);
+        } else {
+            closeCrudModal();
+            if (currentSettingsType === 'assets') {
+                if (typeof window.loadAssets === 'function') window.loadAssets();
+            } else if (currentSettingsType === 'profiles') {
+                if (typeof window.loadUsers === 'function') window.loadUsers();
+            } else {
+                loadSettingTable(currentSettingsType);
+            }
+            // Show success toast or alert (optional)
+            // alert('Guardado correctamente'); 
+        }
+
+    } catch (err) {
+        console.error("JS Exception:", err);
+        alert('Ocurrió un error inesperado: ' + err.message);
     }
 });
 
@@ -456,6 +603,204 @@ window.deleteSetting = async function (id) {
     const { error } = await supabase.from(config.table).delete().eq('id', id);
     if (error) alert('Error: ' + error.message);
     else loadSettingTable(currentSettingsType);
+}
+
+// --- BULK DELETE LOGIC ---
+window.toggleBulkSelect = function () {
+    const checks = document.querySelectorAll('.bulk-check:checked');
+    const btn = document.getElementById('btn-bulk-delete');
+    const printBtn = document.getElementById('btn-bulk-print');
+
+    if (checks.length > 0) {
+        if (btn) {
+            btn.style.display = 'inline-block';
+            btn.innerHTML = `<i class="fas fa-trash-alt"></i> Eliminar (${checks.length})`;
+        }
+        if (printBtn) {
+            printBtn.style.display = 'inline-block';
+            printBtn.innerHTML = `<i class="fas fa-print"></i> Imprimir (${checks.length})`;
+        }
+    } else {
+        if (btn) btn.style.display = 'none';
+        if (printBtn) printBtn.style.display = 'none';
+    }
+}
+
+window.printBulkAssets = function () {
+    const checks = document.querySelectorAll('.bulk-check:checked');
+    if (checks.length === 0) return;
+
+    // We need data, but checking checks only gives ID.
+    // We need to find the assets. We can grab them from DOM or fetch.
+    // DOM is unsafe if paginated (not yet paginated).
+    // Let's fetch all assets or find in current Data (not easily stored globally here).
+    // Easiest: From the card input? No.
+    // Let's just fetch them by ID from Supabase for correctness.
+    const ids = Array.from(checks).map(c => c.value);
+
+    supabase.from('assets').select('*').in('id', ids).then(({ data }) => {
+        if (data) printAssets(data);
+    });
+}
+
+window.printAssetQR = function (safeItem) {
+    const item = JSON.parse(decodeURIComponent(safeItem));
+    printAssets([item]);
+}
+
+window.printAssets = function (assets) {
+    if (!assets || assets.length === 0) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert("Por favor habilita las ventanas emergentes para imprimir.");
+        return;
+    }
+
+    const cards = assets.map(asset => {
+        // Format Type: "CARRITO DE GOLF"
+        let typeDisplay = (asset.type || 'Equipo').toUpperCase();
+
+        // Format Name: "Carrito 01" (Keep as is or Capitalize?)
+        // User asked for "Carrito 01". If name is "carrito01", maybe prettify?
+        // Assuming asset.code is "Carrito01" or similar.
+        // Let's trust asset.code but maybe add a space if missing?
+        // Logic: if "Carrito01" -> "Carrito 01"
+        const codeDisplay = asset.code.replace(/([a-zA-Z])(\d)/, '$1 $2');
+
+        // QR URL - Use start_link or return_link? Usually Start Link for "Scan to Usage".
+        const qrData = asset.start_link || 'NO_LINK';
+
+        return `
+            <div class="qr-sticker">
+                <div class="sticker-header">${typeDisplay}</div>
+                <div class="sticker-qr">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}" alt="QR">
+                </div>
+                <div class="sticker-code">${codeDisplay}</div>
+                <div class="sticker-footer">CARGOMOBILITY</div>
+            </div>
+        `;
+    }).join('');
+
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Imprimir Pases QR</title>
+            <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+            <style>
+                body {
+                    font-family: 'Outfit', sans-serif;
+                    background: #f3f4f6;
+                    padding: 20px;
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    gap: 20px;
+                    margin: 0;
+                }
+                .qr-sticker {
+                    background: white;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 16px;
+                    padding: 20px 10px;
+                    text-align: center;
+                    width: 100%;
+                    max-width: 220px;
+                    box-sizing: border-box;
+                    page-break-inside: avoid;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: space-between;
+                    aspect-ratio: 0.8; 
+                }
+                .sticker-header {
+                    font-weight: 800;
+                    font-size: 1rem;
+                    text-transform: uppercase;
+                    color: #111827;
+                    margin-bottom: 10px;
+                    line-height: 1.2;
+                }
+                .sticker-qr {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin-bottom: 5px;
+                }
+                .sticker-qr img {
+                    width: 120px;
+                    height: 120px;
+                    object-fit: contain;
+                }
+                .sticker-code {
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    color: #1f2937; /* Dark Grey */
+                    margin-bottom: 5px;
+                }
+                .sticker-footer {
+                    font-weight: 800;
+                    font-size: 0.9rem;
+                    text-transform: uppercase;
+                    color: #374151;
+                    letter-spacing: 0.5px;
+                }
+                @media print {
+                    body {
+                        background: none;
+                        display: block; /* Grid in print can vary, mostly inline-block or stick to grid */
+                    }
+                    .qr-sticker {
+                        border: 1px solid #ccc; /* Thinner border for print */
+                        float: left;
+                        margin: 10px;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            ${cards}
+            <script>
+                window.onload = function() {
+                    // Auto print? Maybe just let user view.
+                    // window.print();
+                }
+            </script>
+        </body>
+        </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+}
+
+window.deleteBulkAssets = async function () {
+    const checks = document.querySelectorAll('.bulk-check:checked');
+    if (checks.length === 0) return;
+
+    if (!confirm(`¿Estás SEGURO de eliminar ${checks.length} equipos? Esta acción no se puede deshacer.`)) return;
+
+    const ids = Array.from(checks).map(c => c.value);
+
+    // 1. Delete associated ops
+    const { error: opError } = await supabase.from('operations').delete().in('asset_id', ids);
+    if (opError) {
+        alert('Error borrando historial: ' + opError.message);
+        return;
+    }
+
+    // 2. Delete assets
+    const { error } = await supabase.from('assets').delete().in('id', ids);
+    if (error) {
+        alert('Error borrando equipos: ' + error.message);
+    } else {
+        // alert('Equipos eliminados correctamente.');
+        if (typeof window.loadAssets === 'function') window.loadAssets(); // Refresh main assets view if needed relative to context
+        loadSettingTable('assets'); // Refresh table
+    }
 }
 
 // Auto load default if switched to settings (can be hooked into switchTab or init)

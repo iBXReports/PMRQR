@@ -140,7 +140,7 @@ function setupTopbar() {
         if (userProfile && userProfile.avatar_url) {
             userAvatarEl.src = userProfile.avatar_url;
         } else {
-            userAvatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=6366f1&color=fff&size=128`;
+            userAvatarEl.src = 'assets/imagenes/avatarcargo.png';
         }
     }
 
@@ -155,44 +155,17 @@ function setupTopbar() {
         adminLink.classList.add('hidden');
     }
 
-    // 4. Bind Actions
-    if (logoutBtn) {
-        // Clone to ensure clean listeners
-        const newLogout = logoutBtn.cloneNode(true);
-        logoutBtn.parentNode.replaceChild(newLogout, logoutBtn);
-        newLogout.addEventListener('click', async (e) => {
-            e.stopPropagation(); // Prevent closing dropdown immediately
-            await supabase.auth.signOut();
-            window.location.href = 'login.html';
-        });
-    }
-
-    if (themeBtn) {
-        const newThemeBtn = themeBtn.cloneNode(true);
-        themeBtn.parentNode.replaceChild(newThemeBtn, themeBtn);
-
-        newThemeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const current = localStorage.getItem('theme') || 'light';
-            const next = current === 'dark' ? 'light' : 'dark';
-            console.log("Toggling theme to:", next); // Debug
-            applyTheme(next);
-        });
-    }
-
-    // 5. Click Toggle for Dropdown
+    // 5. Click Toggle for Dropdown (Must clone first to attach events properly)
     const dropdown = document.querySelector('.user-dropdown');
     if (dropdown) {
-        // Remove old listeners to avoid duplicates
+        // Clone entire dropdown to remove old listeners
         const newDropdown = dropdown.cloneNode(true);
         dropdown.parentNode.replaceChild(newDropdown, dropdown);
 
         // Toggle on click
         newDropdown.onclick = (e) => {
-            // Prevent triggering if clicking inside the dropdown content itself (links/buttons)
             if (e.target.closest('.dropdown-content')) return;
-            e.stopPropagation(); // Stop bubbling to document
+            e.stopPropagation();
             newDropdown.classList.toggle('active');
         };
 
@@ -202,6 +175,29 @@ function setupTopbar() {
                 newDropdown.classList.remove('active');
             }
         });
+
+        // Re-query elements INSIDE the cloned dropdown and attach listeners
+        const clonedLogout = newDropdown.querySelector('#nav-logout-btn');
+        const clonedTheme = newDropdown.querySelector('#nav-theme-toggle');
+
+        if (clonedLogout) {
+            clonedLogout.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await supabase.auth.signOut();
+                window.location.href = 'login.html';
+            });
+        }
+
+        if (clonedTheme) {
+            clonedTheme.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const current = localStorage.getItem('theme') || 'light';
+                const next = current === 'dark' ? 'light' : 'dark';
+                console.log("Toggling theme to:", next);
+                applyTheme(next);
+            });
+        }
     }
 }
 

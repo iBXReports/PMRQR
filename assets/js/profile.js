@@ -74,7 +74,7 @@ function setupTopbar(profileData) {
         if (profileData && profileData.avatar_url) {
             userAvatarEl.src = profileData.avatar_url;
         } else {
-            userAvatarEl.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=6366f1&color=fff&size=128`;
+            userAvatarEl.src = 'assets/imagenes/avatarcargo.png';
         }
     }
 
@@ -89,46 +89,47 @@ function setupTopbar(profileData) {
         adminLink.classList.add('hidden');
     }
 
-    // 4. Bind Actions
-    if (logoutBtn) {
-        const newLogout = logoutBtn.cloneNode(true);
-        logoutBtn.parentNode.replaceChild(newLogout, logoutBtn);
-        newLogout.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            await supabase.auth.signOut();
-            window.location.href = 'login.html';
-        });
-    }
-
-    if (themeBtn) {
-        const newThemeBtn = themeBtn.cloneNode(true);
-        themeBtn.parentNode.replaceChild(newThemeBtn, themeBtn);
-        newThemeBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const current = localStorage.getItem('theme') || 'light';
-            const next = current === 'dark' ? 'light' : 'dark';
-            applyTheme(next);
-        });
-    }
-
-    // 5. Click Toggle for Dropdown
+    // 4. Clone Dropdown and Setup Events
     const dropdown = document.querySelector('.user-dropdown');
     if (dropdown) {
         const newDropdown = dropdown.cloneNode(true);
         dropdown.parentNode.replaceChild(newDropdown, dropdown);
 
+        // Toggle on click
         newDropdown.onclick = (e) => {
             if (e.target.closest('.dropdown-content')) return;
             e.stopPropagation();
             newDropdown.classList.toggle('active');
         };
 
+        // Close when clicking outside
         document.addEventListener('click', (e) => {
             if (!newDropdown.contains(e.target)) {
                 newDropdown.classList.remove('active');
             }
         });
+
+        // Re-query elements INSIDE the cloned dropdown
+        const clonedLogout = newDropdown.querySelector('#nav-logout-btn');
+        const clonedTheme = newDropdown.querySelector('#nav-theme-toggle');
+
+        if (clonedLogout) {
+            clonedLogout.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await supabase.auth.signOut();
+                window.location.href = 'login.html';
+            });
+        }
+
+        if (clonedTheme) {
+            clonedTheme.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const current = localStorage.getItem('theme') || 'light';
+                const next = current === 'dark' ? 'light' : 'dark';
+                applyTheme(next);
+            });
+        }
     }
 }
 
