@@ -1,6 +1,5 @@
-
 import { supabase } from './client.js';
-import { showError, showSuccess } from './common.js';
+import { showError, showSuccess, applyPerformanceMode } from './common.js';
 
 const avatarInput = document.getElementById('avatar-input');
 const avatarPreview = document.getElementById('avatar-preview');
@@ -24,7 +23,19 @@ async function init() {
     // 2. Load Data
     await loadProfile();
 
-    // 3. Attach Listeners
+    // 3. Init Toggle State
+    const currentMode = localStorage.getItem('performanceMode');
+    const toggle = document.getElementById('lite-mode-toggle');
+    if (toggle) toggle.checked = (currentMode === 'lite');
+
+    // Make toggle global
+    window.toggleLiteMode = function (el) {
+        const newMode = el.checked ? 'lite' : 'normal';
+        applyPerformanceMode(newMode);
+        // showSuccess(newMode === 'lite' ? 'Modo Rapidez activado' : 'Modo Normal activado');
+    };
+
+    // 4. Attach Listeners
     if (avatarInput) avatarInput.addEventListener('change', uploadAvatar);
     if (profileForm) profileForm.addEventListener('submit', updateProfile);
 

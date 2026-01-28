@@ -100,43 +100,6 @@ async function fetchUserProfile() {
 
         if (data) {
             userProfile = data;
-            // Update Nav with Avatar
-            const userNavContainer = document.querySelector('.nav-links');
-            const avatarUrl = data.avatar_url || 'https://via.placeholder.com/30';
-
-            // Apply Flex Styles to Parent
-            userNavContainer.style.display = 'flex';
-            userNavContainer.style.alignItems = 'center';
-            userNavContainer.style.gap = '15px';
-
-            const currentTheme = document.body.getAttribute('data-theme') || 'light';
-            const themeEmoji = currentTheme === 'dark' ? '☀️' : '🌙';
-
-            const isAdminRole = ['CDO', 'Supervisor', 'Jefe', 'Admin'].includes(data.role);
-            const adminBtn = isAdminRole ? `
-                <a href="admin/admin.html" style="text-decoration: none;">
-                    <button style="background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white; border: none; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 4px 10px rgba(99, 102, 241, 0.3);">
-                        🛡️ Admin
-                    </button>
-                </a>
-            ` : '';
-
-            userNavContainer.innerHTML = `
-                <button id="theme-toggle" class="theme-toggle" style="margin:0;">${themeEmoji}</button>
-                ${adminBtn}
-                <a href="profile.html" style="display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text-color); background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 20px;">
-                    <img src="${avatarUrl}" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;">
-                    <span style="font-weight: 600;">${data.username || 'Agente'}</span>
-                </a>
-
-                <button id="logout-btn-nav" style="background: transparent; border: 1px solid var(--secondary-color); color: var(--secondary-color); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin:0;">Salir</button>
-            `;
-
-            // Re-attach listeners
-            document.getElementById('logout-btn-nav').addEventListener('click', async () => {
-                await supabase.auth.signOut();
-                window.location.href = 'login.html';
-            });
         }
     } catch (e) {
         console.error("Profile fetch error", e);

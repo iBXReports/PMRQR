@@ -41,7 +41,37 @@ window.addEventListener('storage', (e) => {
     if (e.key === 'theme') {
         applyTheme(e.newValue);
     }
+    if (e.key === 'performanceMode') {
+        applyPerformanceMode(e.newValue);
+    }
 });
+
+// Lite Theme (Performance Mode)
+export function applyPerformanceMode(mode) {
+    // mode: 'lite' or 'normal'
+    if (!mode) mode = localStorage.getItem('performanceMode') || 'normal';
+
+    if (mode === 'lite') {
+        document.body.classList.add('lite-mode');
+        // Ensure the CSS is loaded if not present (mainly for index.html)
+        if (!document.getElementById('lite-theme-css')) {
+            const link = document.createElement('link');
+            link.id = 'lite-theme-css';
+            link.rel = 'stylesheet';
+            const isInsideAdmin = window.location.pathname.includes('/admin/');
+            link.href = (isInsideAdmin ? '../' : '') + 'assets/css/lite-theme.css';
+            document.head.appendChild(link);
+        }
+    } else {
+        document.body.classList.remove('lite-mode');
+        const link = document.getElementById('lite-theme-css');
+        if (link) link.remove();
+    }
+    localStorage.setItem('performanceMode', mode);
+}
+
+// Initial apply
+applyPerformanceMode();
 
 // Common UI Utils
 export function showError(message) {

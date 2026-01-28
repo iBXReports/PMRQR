@@ -71,9 +71,31 @@
             gap: 1.5rem;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
+
+            /* 1. ANIMATION NUKE */
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+
+            .float-anim {
+                transform: none !important;
+            }
+
+            /* 2. LAYOUT */
             .grid-2 {
                 grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .glass {
+                padding: 1.5rem !important;
             }
         }
     </style>
@@ -115,6 +137,73 @@
             </div>
 
             <form id="profile-form">
+                <!-- Performance Settings -->
+                <div
+                    style="background: rgba(99, 102, 241, 0.05); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.2); margin-bottom: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h4 style="margin: 0 0 0.5rem 0; color: var(--primary-color);">🚀 Modo Rapidez (Tema Ligero)
+                            </h4>
+                            <p style="margin: 0; font-size: 0.85rem; opacity: 0.8;">
+                                Desactiva animaciones y transparencias para mejorar la velocidad en móviles.
+                                Ideal si sientes la web lenta.
+                            </p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="lite-mode-toggle" onchange="toggleLiteMode(this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <style>
+                            .toggle-switch {
+                                position: relative;
+                                display: inline-block;
+                                width: 56px;
+                                height: 30px;
+                                flex-shrink: 0;
+                            }
+
+                            .toggle-switch input {
+                                opacity: 0;
+                                width: 0;
+                                height: 0;
+                            }
+
+                            .toggle-slider {
+                                position: absolute;
+                                cursor: pointer;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                bottom: 0;
+                                background-color: #ccc;
+                                border-radius: 30px;
+                                transition: 0.3s;
+                            }
+
+                            .toggle-slider:before {
+                                position: absolute;
+                                content: "";
+                                height: 22px;
+                                width: 22px;
+                                left: 4px;
+                                bottom: 4px;
+                                background-color: white;
+                                border-radius: 50%;
+                                transition: 0.3s;
+                                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                            }
+
+                            .toggle-switch input:checked+.toggle-slider {
+                                background: linear-gradient(135deg, #6366f1, #a855f7);
+                            }
+
+                            .toggle-switch input:checked+.toggle-slider:before {
+                                transform: translateX(26px);
+                            }
+                        </style>
+                    </div>
+                </div>
+
                 <h3 class="section-title">👤 Información Personal</h3>
 
                 <div class="grid-2">

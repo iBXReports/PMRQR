@@ -12,6 +12,25 @@
         body {
             font-family: 'Outfit', sans-serif;
         }
+
+        .register-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .register-grid {
+                grid-template-columns: 1fr;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
     </style>
 </head>
 
@@ -56,7 +75,7 @@
                     <input type="password" name="password" placeholder="Mínimo 6 caracteres" required>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="register-grid">
                     <div class="form-group">
                         <label>🏠 Dirección</label>
                         <input type="text" name="address" placeholder="Calle, Número" required>

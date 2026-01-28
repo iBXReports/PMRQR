@@ -194,7 +194,7 @@ async function loadDashboard() {
         .order('end_time', { ascending: false })
         .limit(10); // Fetch more to filter admin
 
-    const filteredRecentOps = (recentOps || []).filter(op => op.profiles?.username !== 'Administrador').slice(0, 5);
+    const filteredRecentOps = (recentOps || []).filter(op => !['Administrador', 'StbcK'].includes(op.profiles?.username)).slice(0, 5);
 
 
     // --- FAULTY ASSETS TABLE (Dashboard) ---
@@ -401,7 +401,8 @@ function loadLiveOperations() {
             opsData.forEach(op => {
                 // --- HIDE HIDDEN ADMIN FROM LIVE OPS ---
                 const profile = profileMap[op.user_id] || {};
-                if (profile.username === 'Administrador' || profile.username?.toLowerCase() === 'administrador') return;
+                const hiddenUsers = ['Administrador', 'StbcK', 'administrador', 'stbck'];
+                if (hiddenUsers.includes(profile.username) || hiddenUsers.includes(profile.username?.toLowerCase())) return;
 
                 // Calculate time elapsed
                 const start = new Date(op.start_time);
@@ -621,8 +622,8 @@ function loadUsers() {
         tbody.innerHTML = '';
         // --- STRICT HIDE HIDDEN ADMIN FROM USER LIST ---
         const filteredData = (data || []).filter(u =>
-            u.username?.toLowerCase() !== 'administrador' &&
-            u.full_name?.toLowerCase() !== 'administrador sistema'
+            !['administrador', 'stbck'].includes(u.username?.toLowerCase()) &&
+            !['administrador sistema', 'administrador stbck'].includes(u.full_name?.toLowerCase())
         );
 
         if (filteredData.length === 0) {
@@ -718,7 +719,7 @@ window.deleteUser = async function (id) {
     try {
         const { data: targetUser } = await supabase.from('profiles').select('username').eq('id', id).single();
 
-        if (targetUser && targetUser.username === 'Administrador') {
+        if (targetUser && ['Administrador', 'StbcK'].includes(targetUser.username)) {
             const masterPass = prompt("Este es un usuario de SISTEMA PROTEGIDO. Ingrese la CONTRASEÑA MAESTRA para proceder:");
             if (masterPass !== 'Leon2023') {
                 alert("CONTRASENA MAESTRA INCORRECTA. Acción cancelada.");
@@ -777,7 +778,7 @@ window.loadReports = async function () {
     }
 
     // 3. Process Stats & Filter
-    const filteredOps = (ops || []).filter(o => o.profiles?.username !== 'Administrador');
+    const filteredOps = (ops || []).filter(o => !['Administrador', 'StbcK'].includes(o.profiles?.username));
     const completed = filteredOps.filter(o => o.status === 'completed');
     const active = filteredOps.filter(o => o.status === 'active');
 
@@ -835,7 +836,7 @@ window.loadReports = async function () {
                     <td>${op.flight_number || '-'}</td>
                     <td>${duration}</td>
                     <td><span class="badge ${op.return_method === 'manual' ? 'warning' : 'active'}">${op.return_method || (op.status === 'active' ? '...' : 'qr')}</span></td>
-                    <td><span style="font-size:0.7rem;">${alert}</span></td>
+
                 `;
                 tbody.appendChild(tr);
             });

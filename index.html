@@ -3,10 +3,20 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Operaciones | PMRQR</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Check Performance Mode Immediately -->
+    <script>
+        (function () {
+            const mode = localStorage.getItem('performanceMode');
+            if (mode === 'lite') {
+                document.write('<link rel="stylesheet" href="assets/css/lite-theme.css" id="lite-theme-css">');
+                document.documentElement.classList.add('lite-mode'); // Use HTML tag for faster painting
+            }
+        })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
@@ -14,6 +24,54 @@
         body {
             font-family: 'Outfit', sans-serif;
         }
+
+        /* Nav Dropdown */
+        .user-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: var(--card-bg);
+            min-width: 200px;
+            box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            margin-top: 10px;
+        }
+
+        .dropdown-content a,
+        .dropdown-content button {
+            color: var(--text-color);
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            width: 100%;
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .dropdown-content a:hover,
+        .dropdown-content button:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .user-dropdown:hover .dropdown-content,
+        .user-dropdown.active .dropdown-content {
+            display: block;
+        }
+
 
         .timer-display {
             font-size: 4rem;
@@ -59,7 +117,21 @@
         }
 
         /* Mobile Specifics */
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
+
+            /* 1. ANIMATION NUKE */
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+
+            .float-anim {
+                transform: none !important;
+            }
+
+            /* 2. LAYOUT */
             .hero-title {
                 font-size: 2rem;
             }
@@ -70,6 +142,15 @@
 
             .grid-2 {
                 grid-template-columns: 1fr;
+            }
+
+            /* Override inline padding for glass containers */
+            .glass[style*="padding: 3rem"] {
+                padding: 1.5rem !important;
+            }
+
+            .desktop-only {
+                display: none !important;
             }
         }
     </style>
@@ -176,7 +257,6 @@
                     <select name="team" class="input-style" required>
                         <option value="Team OLA">Team OLA</option>
                         <option value="Team Latam">Team Latam</option>
-                        <option value="Team SKY">Team SKY</option>
                     </select>
                 </div>
 

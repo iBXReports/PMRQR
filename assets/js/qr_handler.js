@@ -73,23 +73,51 @@ window.startCameraScan = async function (target = 'asset') {
         container.style.display = 'block';
 
         const tick = () => {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                canvas.height = video.videoHeight;
-                canvas.width = video.videoWidth;
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (!videoStream) return; // Stop if stream closed
 
-                if (code) {
-                    const eventName = currentScanTarget === 'return' ? 'qr-return-scanned' : 'qr-scanned';
-                    window.dispatchEvent(new CustomEvent(eventName, {
-                        detail: {
-                            code: code.data,
-                            target: currentScanTarget
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                // Optimization: Limit canvas size for scanning. 
+                // Full resolution is too heavy for JS QR on mobile.
+                const MAX_WIDTH = 500;
+                let scale = 1;
+
+                if (video.videoWidth > MAX_WIDTH) {
+                    scale = MAX_WIDTH / video.videoWidth;
+                }
+
+                // Set canvas to scaled size (or full size if small)
+                // Actually, for display we might want full res, but for scanning we typically want speed.
+                // Let's keep display canvas full res if we want a nice preview, but draw to a smaller offscreen canvas?
+                // Or just resize the main canvas. Resizing main canvas is efficient.
+                canvas.width = video.videoWidth * scale;
+                canvas.height = video.videoHeight * scale;
+
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Optimization: Throttle Scanning (e.g. every 200ms) to save battery/CPU
+                // We use a global or attached property to track last scan
+                const now = Date.now();
+                if (!window.lastScanTime || (now - window.lastScanTime > 200)) {
+                    window.lastScanTime = now;
+
+                    try {
+                        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                        if (code) {
+                            const eventName = currentScanTarget === 'return' ? 'qr-return-scanned' : 'qr-scanned';
+                            window.dispatchEvent(new CustomEvent(eventName, {
+                                detail: {
+                                    code: code.data,
+                                    target: currentScanTarget
+                                }
+                            }));
+                            stopCameraScan();
+                            return;
                         }
-                    }));
-                    stopCameraScan();
-                    return;
+                    } catch (e) {
+                        console.warn('QR processing error', e);
+                    }
                 }
             }
             if (videoStream) requestAnimationFrame(tick);
