@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | PMRQR</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass">
+        <div class="logo">
+            <img src="assets/imagenes/logocargo.png" alt="PMRQR Logo">
+        </div>
+        <div class="nav-links">
+            <button id="theme-toggle" class="theme-toggle">🌙</button>
+            <a href="register.html">Crear Cuenta</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="auth-container glass float-anim" style="margin-top: 5rem;">
+            <h2 style="text-align: center; color: var(--accent-color);">Bienvenido de nuevo 👋</h2>
+            <p style="text-align: center; margin-bottom: 2rem; opacity: 0.7;">Inicia sesión para continuar.</p>
+
+            <div id="error-alert" class="alert alert-error hidden"></div>
+            <div id="success-alert" class="alert alert-success hidden"></div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label>👤 Usuario o Correo</label>
+                    <input type="text" id="identifier" placeholder="Tu usuario o email" required>
+                </div>
+
+                <div class="form-group">
+                    <label>🔑 Contraseña</label>
+                    <input type="password" id="password" placeholder="Tu contraseña" required>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn"
+                    style="background: linear-gradient(135deg, #6366f1, #a855f7); margin-bottom: 1rem;">
+                    🚀 Entrar al Sistema
+                </button>
+                <div id="loader" class="loader hidden"></div>
+            </form>
+
+            <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                <!-- Botón Registrarse (Colorido) -->
+                <button class="btn" onclick="window.location.href='register.html'"
+                    style="background: linear-gradient(135deg, #ec4899, #8b5cf6); text-transform: none; letter-spacing: 0;">
+                    📝 ¿No tienes cuenta? Regístrate aquí
+                </button>
+
+                <!-- Botón Recuperación (Colorido) -->
+                <button onclick="window.location.href='recovery.html'" class="btn"
+                    style="background: linear-gradient(135deg, #f59e0b, #ef4444); text-transform: none; letter-spacing: 0;">
+                    🔓 Olvidé mi Usuario o Contraseña
+                </button>
+
+                <!-- Botón Guía (Colorido) -->
+                <button onclick="openGuide()" class="btn"
+                    style="background: linear-gradient(135deg, #10b981, #3b82f6); text-transform: none; letter-spacing: 0;">
+                    📖 Guía: ¿Cómo iniciar sesión?
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Guía de Inicio de Sesión (Modal) -->
+    <div id="guide-modal" class="modal-overlay"
+        style="display: none; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; backdrop-filter: blur(5px);">
+        <div class="glass"
+            style="max-width: 450px; width: 90%; padding: 2rem; border-radius: 20px; position: relative; color: white;">
+            <button onclick="closeGuide()"
+                style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            <h3 style="margin-top: 0; color: var(--accent-light);">📖 Guía de Inicio de Sesión</h3>
+            <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
+                <div style="display: flex; gap: 1rem;">
+                    <div
+                        style="background: var(--primary-color); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 800;">
+                        1</div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 4px;">Identificación Dual</strong>
+                        <span style="font-size: 0.9rem; opacity: 0.8;">Puedes usar tu <strong>nombre de usuario</strong>
+                            (ej: <code>juanp</code>) o tu <strong>correo electrónico</strong> registrado.</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div
+                        style="background: var(--primary-color); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 800;">
+                        2</div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 4px;">Seguridad</strong>
+                        <span style="font-size: 0.9rem; opacity: 0.8;">Ingresa tu contraseña con cuidado. Recuerda que
+                            el sistema distingue entre mayúsculas y minúsculas.</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <div
+                        style="background: var(--primary-color); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 800;">
+                        3</div>
+                    <div>
+                        <strong style="display: block; margin-bottom: 4px;">Acceso Directo</strong>
+                        <span style="font-size: 0.9rem; opacity: 0.8;">Una vez dentro, el sistema te redirigirá
+                            automáticamente a tu panel de control según tu rol (Agente o Supervisor).</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn" onclick="closeGuide()" style="margin-top: 2rem; width: 100%;">Entendido</button>
+        </div>
+    </div>
+
+    <script>
+        function openGuide() {
+            document.getElementById('guide-modal').style.display = 'flex';
+        }
+        function closeGuide() {
+            document.getElementById('guide-modal').style.display = 'none';
+        }
+    </script>
+
+    <footer class="app-footer">
+        CREADO CON <span>❤️</span> POR IAN SAAVEDRA PARA CARGOMOBILITY
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="assets/js/client.js"></script>
+    <script type="module" src="assets/js/common.js"></script>
+    <script type="module" src="assets/js/auth.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soporte & Diagnóstico | PMRQR</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0f172a;
+            color: white;
+            padding: 2rem;
+        }
+
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .test-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-ok {
+            background: #059669;
+            color: white;
+        }
+
+        .status-error {
+            background: #dc2626;
+            color: white;
+        }
+
+        .status-warning {
+            background: #d97706;
+            color: white;
+        }
+
+        .status-pending {
+            background: #4b5563;
+            color: white;
+        }
+
+        .log-area {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 1rem;
+            border-radius: 8px;
+            height: 200px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            border: 1px solid #333;
+        }
+
+        .sql-suggest {
+            background: #1e293b;
+            border-left: 4px solid #6366f1;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .btn-run {
+            background: linear-gradient(135deg, #6366f1, #a855f7);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            font-size: 1.1rem;
+        }
+
+        .btn-run:hover {
+            transform: scale(1.02);
+        }
+
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .test-item:last-child {
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="test-container">
+        <h1 style="text-align: center; margin-bottom: 2rem;">🛠️ Diagnóstico del Sistema</h1>
+
+        <div class="test-card">
+            <button class="btn-run" onclick="runDiagnostics()">EJECUTAR TEST COMPLETO 🚀</button>
+        </div>
+
+        <!-- CONEXIÓN -->
+        <div class="test-card">
+            <h3>📡 Conexión con Supabase</h3>
+            <div id="test-connection" class="test-item">
+                <span>Verificando API y Cliente...</span>
+                <span class="status-pill status-pending">PENDIENTE</span>
+            </div>
+        </div>
+
+        <!-- BASE DE DATOS -->
+        <div class="test-card">
+            <h3>🗄️ Estructura de Base de Datos (SQL Tester)</h3>
+            <div id="db-tests">
+                <!-- Dynamic items -->
+                <div class="test-item"><span>Cargando esquema requerido...</span></div>
+            </div>
+
+            <div id="sql-fix-container" class="sql-suggest">
+                <h4 style="color: #6366f1;"><i class="fas fa-terminal"></i> Queries faltantes detectadas:</h4>
+                <p style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 10px;">Copia y pega esto en el SQL Editor de
+                    Supabase:</p>
+                <pre id="sql-content"
+                    style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 4px; border: 1px solid #444; color: #fbbf24;"></pre>
+                <button class="btn btn-secondary" onclick="copySql()"
+                    style="margin-top: 10px; width: auto; font-size: 0.8rem;">Copiar SQL</button>
+            </div>
+        </div>
+
+        <!-- LOG COMPLETO -->
+        <div class="test-card">
+            <h3>📝 Registro de Depuración (Console Log)</h3>
+            <div id="log-area" class="log-area">Esperando inicio de pruebas...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './assets/js/client.js';
+
+        const logArea = document.getElementById('log-area');
+        const sqlContainer = document.getElementById('sql-fix-container');
+        const sqlContent = document.getElementById('sql-content');
+
+        function log(msg, type = 'info') {
+            const span = document.createElement('div');
+            const colors = { info: '#0f0', error: '#f44', warn: '#f90' };
+            span.style.color = colors[type];
+            span.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logArea.appendChild(span);
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[TEST] ${msg}`);
+        }
+
+        const SCHEMA_REQUIRED = {
+            tables: ['profiles', 'assets', 'operations', 'reports', 'locations', 'airlines', 'asset_categories'],
+            columns: {
+                profiles: ['username', 'role', 'team', 'cert_golf', 'phone'],
+                assets: ['code', 'status', 'type', 'qr_url'],
+                operations: ['user_id', 'asset_id', 'status', 'return_photo_url'],
+                reports: ['asset_code', 'report_category', 'photo_url']
+            }
+        };
+
+        window.runDiagnostics = async () => {
+            log("Iniciando diagnóstico completo...", 'info');
+            logArea.innerHTML = '';
+            sqlContainer.style.display = 'none';
+            let missingQueries = "";
+
+            // 1. Test Supabase Connection
+            const connItem = document.getElementById('test-connection');
+            try {
+                const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
+                if (error) throw error;
+                connItem.innerHTML = `<span>Conectado a la Base de Datos</span> <span class="status-pill status-ok">OK</span>`;
+                log("Conexión con Supabase establecida correctamente.");
+            } catch (e) {
+                connItem.innerHTML = `<span>Error de Conexión</span> <span class="status-pill status-error">FALLÓ</span>`;
+                log("Error de conexión: " + e.message, 'error');
+                return;
+            }
+
+            // 2. SQL Schema Tester
+            const dbContainer = document.getElementById('db-tests');
+            dbContainer.innerHTML = '';
+
+            // Let's check tables one by one
+            for (const table of SCHEMA_REQUIRED.tables) {
+                const item = document.createElement('div');
+                item.className = 'test-item';
+                item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-pending">REVISANDO...</span>`;
+                dbContainer.appendChild(item);
+
+                try {
+                    // Try selecting a single row or just checking if it exists
+                    const { error } = await supabase.from(table).select('*').limit(1);
+
+                    if (error) {
+                        if (error.code === '42P01') { // undefined_table
+                            item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-error">FALTA</span>`;
+                            log(`La tabla '${table}' no existe en la base de datos.`, 'error');
+                            missingQueries += `-- Crear tabla ${table} (Estructura base sugerida)\nCREATE TABLE public.${table} (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, created_at timestamp with time zone DEFAULT now());\n\n`;
+                        } else {
+                            log(`Error al verificar tabla ${table}: ${error.message}`, 'error');
+                            item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-warning">ERROR</span>`;
+                        }
+                    } else {
+                        item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-ok">OK</span>`;
+                        log(`Tabla '${table}' encontrada.`);
+
+                        // Check columns if table exists
+                        if (SCHEMA_REQUIRED.columns[table]) {
+                            for (const col of SCHEMA_REQUIRED.columns[table]) {
+                                const colItem = document.createElement('div');
+                                colItem.className = 'test-item';
+                                colItem.style.paddingLeft = '30px';
+                                colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-pending">REVISANDO...</span>`;
+                                dbContainer.appendChild(colItem);
+
+                                // Test column by selecting it specifically
+                                const { error: colErr } = await supabase.from(table).select(col).limit(1);
+                                if (colErr && colErr.code === '42703') { // undefined_column
+                                    colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-error">FALTA</span>`;
+                                    log(`La columna '${col}' falta en la tabla '${table}'.`, 'error');
+                                    missingQueries += `-- Añadir columna ${col} a ${table}\nALTER TABLE public.${table} ADD COLUMN IF NOT EXISTS ${col} text;\n\n`;
+                                } else if (colErr) {
+                                    colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-warning">ALERTA</span>`;
+                                } else {
+                                    colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-ok">OK</span>`;
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    log(`Excepción al revisar '${table}': ${e.message}`, 'error');
+                }
+            }
+
+            if (missingQueries) {
+                sqlContainer.style.display = 'block';
+                sqlContent.textContent = missingQueries;
+                log("Se detectaron fallos en el esquema. Generando sugerencias SQL.", 'warn');
+            } else {
+                log("Esquema verificado. Todo parece estar en orden.", 'info');
+            }
+
+            log("Pruebas finalizadas. Revise los estados individuales arriba.", 'info');
+        };
+
+        window.copySql = () => {
+            navigator.clipboard.writeText(sqlContent.textContent);
+            alert("SQL Copiado");
+        }
+    </script>
+
+</body>
+
+</html>

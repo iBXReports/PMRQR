@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Mantenimiento | PMRQR</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        body {
+            font-family: monospace;
+        }
+
+        .console {
+            background: #1e1e1e;
+            color: #10b981;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 200px;
+            overflow-y: auto;
+            margin-top: 1rem;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container" style="max-width: 800px;">
+        <h1 style="text-align: center; margin-bottom: 2rem;">🛠️ Consola de Sistema</h1>
+
+        <div class="glass" style="padding: 2rem;">
+            <h3>1. Base de Datos</h3>
+            <p>Copia el siguiente código SQL y ejecútalo en el <a
+                    href="https://supabase.com/dashboard/project/plpnypzesupfczxrzgwb/editor" target="_blank"
+                    style="color: var(--secondary-color);">Editor SQL de Supabase</a> para crear las tablas necesarias.
+            </p>
+
+            <textarea id="sql-code"
+                style="width: 100%; height: 200px; background: rgba(0,0,0,0.2); color: var(--text-color); border: 1px solid var(--card-border); border-radius: 8px; padding: 1rem; margin-top: 1rem;"
+                readonly></textarea>
+
+            <button onclick="copySql()" class="btn" style="margin-top: 1rem; background: var(--secondary-color);">Copiar
+                SQL</button>
+
+            <hr style="margin: 2rem 0; border: 0; border-top: 1px solid var(--card-border);">
+
+            <h3>2. Verificación de Estado</h3>
+            <button id="check-btn" class="btn" style="margin-top: 1rem;">Verificar Conexión y Tablas</button>
+
+            <div id="console-output" class="console">Esperando diagnóstico...</div>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        CREADO CON <span>❤️</span> POR IAN SAAVEDRA PARA CARGOMOBILITY
+    </footer>
+
+    <script type="module">
+        import { supabase } from './assets/js/client.js';
+
+        // Load SQL file text
+        fetch('db_schema.sql')
+            .then(response => response.text())
+            .then(text => {
+                document.getElementById('sql-code').value = text;
+            })
+            .catch(err => console.error('Error loading SQL', err));
+
+        window.copySql = function () {
+            const copyText = document.getElementById("sql-code");
+            copyText.select();
+            document.execCommand("copy");
+            alert("SQL copiado al portapapeles! Ahora pégalo en Supabase.");
+        }
+
+        const consoleOut = document.getElementById('console-output');
+        function log(msg, type = 'info') {
+            const line = document.createElement('div');
+            line.textContent = `> ${msg}`;
+            if (type === 'error') line.style.color = '#ef4444';
+            if (type === 'success') line.style.color = '#3b82f6';
+            consoleOut.appendChild(line);
+            consoleOut.scrollTop = consoleOut.scrollHeight;
+        }
+
+        document.getElementById('check-btn').addEventListener('click', async () => {
+            log('Iniciando diagnóstico...', 'info');
+
+            // Check connection
+            try {
+                const start = performance.now();
+                const { data, error } = await supabase.from('app_settings').select('*').limit(1);
+                const end = performance.now();
+
+                if (error) {
+                    // Check if error is "relation does not exist" which means table missing
+                    if (error.message.includes('relation "public.app_settings" does not exist')) {
+                        log('❌ Error Critico: La tabla "app_settings" no existe.', 'error');
+                        log('⚠️ Ejecuta el Script SQL en Supabase para solucionar esto.', 'error');
+                    } else if (error.code === 'PGRST301') {
+                        // RLS denial often looks like this or empty data, but let's see. 
+                        // Actually select * on valid table with no rows returns [] and no error.
+                        // Pgrst errors usually mean schema issues or connection.
+                        log(`❌ Error de conexión: ${error.message}`, 'error');
+                    } else {
+                        log(`❌ Error: ${error.message}`, 'error');
+                    }
+                } else {
+                    log(`✅ Conexión con Supabase Exitosa (${Math.round(end - start)}ms)`, 'success');
+                    log('✅ Tabla app_settings detectada.', 'success');
+                }
+
+                // Check Profiles
+                const { error: profileError } = await supabase.from('profiles').select('count').limit(1);
+                if (profileError) {
+                    if (profileError.message.includes('does not exist')) {
+                        log('❌ Tabla "profiles" FALTANTE.', 'error');
+                    } else {
+                        log(`⚠️ Problema con profiles: ${profileError.message}`, 'error');
+                    }
+                } else {
+                    log('✅ Tabla profiles detectada.', 'success');
+                }
+
+            } catch (err) {
+                log(`❌ Excepción: ${err.message}`, 'error');
+            }
+        });
+    </script>
+</body>
+
+</html>

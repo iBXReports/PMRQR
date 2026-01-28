@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de QRs - PMRQR</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        .qr-card {
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white;
+            }
+
+            .qr-card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-8 min-h-screen">
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 no-print gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800">Generador de Códigos QR</h1>
+                <p class="text-gray-600 mt-1">Genera automáticamente los QRs para todos los equipos registrados.</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="admin/admin.html"
+                    class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition">
+                    Volver al Admin
+                </a>
+                <button onclick="window.print()"
+                    class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Imprimir / PDF
+                </button>
+            </div>
+        </header>
+
+        <div id="qr-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <!-- Loading State -->
+            <div class="col-span-full flex flex-col items-center justify-center py-12 text-gray-500">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p>Cargando equipos desde Supabase...</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from './assets/js/client.js';
+
+        async function loadQRs() {
+            const container = document.getElementById('qr-container');
+
+            // 1. Fetch assets sorted by Code
+            const { data: assets, error } = await supabase
+                .from('assets')
+                .select('*')
+                .order('code', { ascending: true });
+
+            if (error) {
+                console.error('Error fetching assets:', error);
+                container.innerHTML = `
+                    <div class="col-span-full bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                        <strong class="font-bold">Error!</strong>
+                        <span class="block sm:inline">No se pudieron cargar los equipos: ${error.message}</span>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!assets || assets.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-500 bg-white rounded-lg shadow">
+                        <p class="text-xl">No hay equipos registrados en el sistema.</p>
+                        <p class="mt-2 text-sm">Ve al panel de administración para agregar equipos.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Clear loading
+            container.innerHTML = '';
+
+            // 2. Generate Cards
+            assets.forEach(asset => {
+                // Determine icon based on type (visual fluff)
+                let iconClass = 'fa-wheelchair';
+                const typeLower = (asset.type || '').toLowerCase();
+                if (typeLower.includes('carrito')) iconClass = 'fa-car';
+                if (typeLower.includes('oruga')) iconClass = 'fa-truck-monster'; // approximated
+
+                // URL Structure: https://ibxreports.github.io/PMRQR/index.html?silla=ID
+                const targetUrl = `https://ibxreports.github.io/PMRQR/index.html?silla=${asset.code}`;
+
+                // Create Card Element
+                const card = document.createElement('div');
+                card.className = 'qr-card bg-white p-4 rounded-lg shadow flex flex-col items-center justify-center border border-gray-200 relative overflow-hidden';
+
+                card.innerHTML = `
+                    <div class="w-full flex justify-between items-center mb-2 px-1">
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${asset.type || 'EQ'}</span>
+                        <div class="h-2 w-2 rounded-full relative ${asset.status === 'available' ? 'bg-green-500' : 'bg-gray-300'}"></div>
+                    </div>
+                    
+                    <div id="qr-${asset.id}" class="bg-white p-1 mb-3"></div>
+                    
+                    <h3 class="text-xl font-extrabold text-gray-800 tracking-tight">${asset.code}</h3>
+                    <p class="text-xs text-gray-400 mt-1 font-mono break-all text-center px-2" style="font-size: 0.6rem;">${targetUrl}</p>
+                `;
+
+                container.appendChild(card);
+
+                // Generate QR Code
+                // We wrap in a requestAnimationFrame to ensure DOM is ready, though appending strictly works too.
+                // Using setTimeout 0 to push to next tick just in case layout needs to settle
+                setTimeout(() => {
+                    const qrContainer = document.getElementById(`qr-${asset.id}`);
+                    if (qrContainer) {
+                        try {
+                            new QRCode(qrContainer, {
+                                text: targetUrl,
+                                width: 128,
+                                height: 128,
+                                colorDark: "#000000",
+                                colorLight: "#ffffff",
+                                correctLevel: QRCode.CorrectLevel.M // Medium correction usually enough
+                            });
+                        } catch (e) {
+                            console.error("QR Error", e);
+                            qrContainer.innerText = "Error QR";
+                        }
+                    }
+                }, 0);
+            });
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', loadQRs);
+    </script>
+</body>
+
+</html>

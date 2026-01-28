@@ -4,323 +4,472 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QRCARGO - Admin Panel</title>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
-        rel="stylesheet">
-    <!-- Bootstrap CSS -->
-    <link href="../css/bootstrap.css" rel="stylesheet">
-    <!-- Icons -->
+    <title>Administración | PMRQR</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
         :root {
-            --primary: #0f172a;
-            /* Navy */
-            --secondary: #d97706;
-            /* Gold */
-            --bg: #f3f4f6;
-            --white: #ffffff;
-            --text: #374151;
-            --text-light: #9ca3af;
-            --danger: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --sidebar-width: 260px;
+            --sidebar-width: 240px;
+            --header-height: 80px;
+            --sidebar-bg: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
+        }
+
+        [data-theme="dark"] {
+            --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
             min-height: 100vh;
-            overflow-x: hidden;
+            display: flex;
             margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            /* Prevent horizontal scroll */
+            overflow-y: auto;
+            /* Allow vertical scroll naturally */
         }
 
-        /* Sidebar */
+        /* --- SIDEBAR --- */
         .sidebar {
             width: var(--sidebar-width);
-            background: var(--primary);
-            color: var(--white);
+            background: var(--sidebar-bg);
             position: fixed;
+            top: 0;
+            left: 0;
             height: 100vh;
+            z-index: 1000;
+            color: white;
             display: flex;
             flex-direction: column;
-            padding: 1rem;
-            z-index: 1000;
+            align-items: stretch;
+            padding: 1.5rem 1rem;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
             overflow-y: auto;
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            scrollbar-width: thin;
         }
 
-        .brand {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--white);
-            margin-bottom: 2rem;
+        .sidebar-logo {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            padding: 0 0.5rem;
-        }
-
-        .brand span {
-            color: var(--secondary);
-        }
-
-        /* Accordion Styles Override */
-        .accordion-item {
-            background-color: transparent;
-            border: none;
-        }
-
-        .accordion-button {
-            background-color: transparent;
-            color: #94a3b8;
-            font-size: 0.8rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            padding: 0.75rem 0.5rem;
-            box-shadow: none !important;
-        }
-
-        .accordion-button:not(.collapsed) {
-            background-color: transparent;
-            color: var(--white);
-            box-shadow: none;
-        }
-
-        .accordion-button::after {
-            filter: invert(1) grayscale(100%) brightness(200%);
-            transform: scale(0.7);
-        }
-
-        .accordion-body {
-            padding: 0.5rem 0;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.6rem 0.75rem;
-            color: #cbd5e1;
-            text-decoration: none;
-            border-radius: 6px;
-            margin-bottom: 0.25rem;
-            transition: 0.2s;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--white);
-        }
-
-        .nav-link i,
-        .nav-link span.emoji {
-            width: 24px;
+            gap: 10px;
+            margin-bottom: 2.5rem;
             text-align: center;
-            font-size: 1.1rem;
         }
 
-        /* Main Content */
+        .sidebar-logo img {
+            width: 200px;
+            height: auto;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+        }
+
+        .sidebar-logo span {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 0.5rem;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 15px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            text-align: left;
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            backdrop-filter: blur(5px);
+            transform: translateY(-2px);
+        }
+
+        .nav-item i {
+            font-size: 1.2rem;
+            width: 25px;
+            text-align: center;
+        }
+
+        .nav-item span {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0 10px;
+            box-sizing: border-box;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1rem;
+        }
+
+        /* --- MAIN CONTENT --- */
         .main-content {
             margin-left: var(--sidebar-width);
             flex: 1;
-            display: flex;
-            flex-direction: column;
+            padding: 2rem;
             width: calc(100% - var(--sidebar-width));
+            box-sizing: border-box;
         }
 
-        /* Topbar */
-        .topbar {
-            height: 70px;
-            background: var(--white);
+        /* Header */
+        .mini-table {
+            width: 100%;
+            font-size: 0.8rem;
+            border-collapse: collapse;
+        }
+
+        .mini-table th {
+            text-align: left;
+            padding: 12px 8px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mini-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+
+        .mini-table tr:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .admin-header {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 0 2rem;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             position: sticky;
-            top: 0;
-            z-index: 999;
+            top: 1rem;
+            z-index: 100;
         }
 
-        .clock {
-            font-weight: 600;
-            color: var(--primary);
-            font-size: 1.1rem;
+        [data-theme="dark"] .admin-header {
+            background: rgba(17, 24, 39, 0.8);
+            border-color: rgba(255, 255, 255, 0.05);
         }
 
-        .user-menu {
+        .header-left {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
 
-        .logout-btn {
-            color: var(--danger);
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
+        .menu-toggle {
+            display: none;
+            /* Desktop default */
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
             cursor: pointer;
         }
 
-        /* Content Area */
-        .page-content {
-            padding: 2rem;
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
         }
 
-        /* Utilities */
-        .card {
-            background: var(--white);
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
-            border: none;
+        /* --- CARDS & GRID --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
 
         .stat-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
+            padding: 1.5rem;
             display: flex;
             align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-info h3 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--text-color), var(--primary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .stat-icon {
             width: 50px;
             height: 50px;
-            border-radius: 10px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: white;
             font-size: 1.5rem;
-            margin-right: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
 
-        .bg-blue-light {
-            background: #e0f2fe;
-            color: #0284c7;
+        /* --- CERTIFICATION BADGES --- */
+        .cert-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+            margin: 2px;
+            white-space: nowrap;
         }
 
-        .bg-green-light {
-            background: #dcfce7;
-            color: #16a34a;
+        .cert-badge.inactive {
+            background: rgba(156, 163, 175, 0.1);
+            color: #9ca3af;
+            border-color: rgba(156, 163, 175, 0.2);
+            opacity: 0.5;
         }
 
-        .bg-purple-light {
-            background: #f3e8ff;
-            color: #9333ea;
+        .cert-badge.inactive:hover {
+            opacity: 1;
+            background: rgba(156, 163, 175, 0.2);
         }
 
-        /* Sidebar Scrollbar */
-        .sidebar::-webkit-scrollbar {
+        /* Golf: Emerald */
+        .cert-badge.cert-golf.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Duplex: Amber */
+        .cert-badge.cert-duplex.active {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+        }
+
+        /* Oruga: Indigo */
+        .cert-badge.cert-oruga.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+        }
+
+        .cert-badge:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .cert-badge:active {
+            transform: translateY(0);
+        }
+
+        /* --- POPUP MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.75) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
+            z-index: 10000 !important;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex !important;
+            opacity: 1;
+        }
+
+        .modal-card {
+            background: white !important;
+            color: #1f2937 !important;
+            width: 95% !important;
+            max-width: 500px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            padding: 2rem !important;
+            border-radius: 24px !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        /* Scrollbar personalizada para el modal */
+        .modal-card::-webkit-scrollbar {
             width: 6px;
         }
 
-        .sidebar::-webkit-scrollbar-track {
+        .modal-card::-webkit-scrollbar-track {
             background: transparent;
         }
 
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
+        .modal-card::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 10px;
         }
 
-
-
-        /* --- Modern Content Styles (Added) --- */
-
-        /* Custom Badges with Gradients */
-        .badge-naranja {
-            background: linear-gradient(135deg, #f97316, #ea580c) !important;
-            color: white;
-            box-shadow: 0 2px 4px rgba(249, 115, 22, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        [data-theme="dark"] .modal-card::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
         }
 
-        .badge-ola {
-            background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-            color: white;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
         }
 
-        .badge-latam {
-            background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-            color: white;
-            box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        [data-theme="dark"] .modal-card {
+            background: #111827 !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
         }
 
-        .badge-avail {
-            background: linear-gradient(135deg, #10b981, #059669) !important;
-            color: white;
-            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        [data-theme="dark"] .modal-card label {
+            color: rgba(255, 255, 255, 0.9) !important;
         }
 
-        /* Modern Buttons */
-        .btn-modern {
-            border: none;
-            border-radius: 8px;
-            padding: 8px 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        [data-theme="dark"] .modal-card .input-style {
+            background: #1f2937 !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
         }
 
-        .btn-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        [data-theme="dark"] .modal-card h3 {
+            color: #818cf8 !important;
+            /* Lighter indigo for better contrast in dark */
         }
 
-        .btn-modern-primary {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
+        [data-theme="dark"] .modal-card .btn-secondary {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
         }
 
-        /* Table Enhancements */
-        .custom-table thead th {
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            color: #64748b;
-        }
-
-        .table-hover tbody tr {
-            transition: transform 0.2s, background-color 0.2s;
-        }
-
-        .table-hover tbody tr:hover {
-            background-color: rgba(59, 130, 246, 0.05);
-            /* Light blue tint */
-            transform: scale(1.005);
-            z-index: 10;
-            position: relative;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
+        /* --- RESPONSIVE MOBILE --- */
         @media (max-width: 768px) {
             .sidebar {
-                margin-left: calc(var(--sidebar-width) * -1);
-                transition: all 0.3s;
+                transform: translateX(-100%);
+                width: 260px;
+                /* Wider sidebar on mobile for better touch */
+                align-items: flex-start;
+                padding-left: 2rem;
+                padding-right: 2rem;
             }
 
-            .sidebar.active {
-                margin-left: 0;
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 10px 0 50px rgba(0, 0, 0, 0.5);
+            }
+
+            /* ... existing mobile styles ... */
+            .sidebar-logo {
+                flex-direction: row;
+                gap: 1rem;
+            }
+
+            .sidebar-logo span {
+                font-size: 1.2rem;
+            }
+
+            .nav-menu {
+                padding: 0;
+            }
+
+            .nav-item {
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 1rem;
+                padding: 1rem;
+                text-align: left;
+            }
+
+            .nav-item i {
+                margin-bottom: 0;
+            }
+
+            .nav-item span {
+                font-size: 1rem;
             }
 
             .main-content {
                 margin-left: 0;
+                padding: 1rem;
+                width: 100%;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .admin-header {
+                padding: 0.8rem 1rem;
+                top: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .admin-header h1 {
+                font-size: 1.1rem !important;
+            }
+
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                min-width: 32px;
             }
         }
     </style>
@@ -328,438 +477,678 @@
 
 <body>
 
+    <!-- Mobile Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-        <a href="#" class="brand">QRCARGO <span>Admin</span></a>
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-logo">
+            <img src="../assets/imagenes/logocargo.png" alt="Logo">
+            <span>PMRQR</span>
+        </div>
 
-        <div class="accordion" id="sidebarAccordion">
+        <div class="nav-menu">
+            <a href="#" class="nav-item active" onclick="switchTab('dashboard')">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('operations')">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Monitor</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('assets')">
+                <i class="fas fa-wheelchair"></i>
+                <span>Equipo</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('users')">
+                <i class="fas fa-users"></i>
+                <span>Usuarios</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('reports')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reportes</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('registros')">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Registros</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('settings')">
+                <i class="fas fa-cog"></i>
+                <span>Ajustes</span>
+            </a>
+        </div>
 
-            <!-- 1. HOME -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="headingHome">
-                    <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseHome" aria-expanded="true" aria-controls="collapseHome">
-                        🏠 HOME
-                    </button>
-                </h2>
-                <div id="collapseHome" class="accordion-collapse collapse show" aria-labelledby="headingHome">
-                    <div class="accordion-body">
-                        <a href="#" class="nav-link active" onclick="loadView('dashboard')">
-                            <span class="emoji">📊</span> Dashboard
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('resumen')">
-                            <span class="emoji">�</span> Resumen General
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('notas')">
-                            <span class="emoji">📝</span> Notas
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('movimientos')">
-                            <span class="emoji">📋</span> Movimientos
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. CARGOMOBILITY -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="headingCargo">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseCargo" aria-expanded="false" aria-controls="collapseCargo">
-                        ♿ CARGOMOBILITY
-                    </button>
-                </h2>
-                <div id="collapseCargo" class="accordion-collapse collapse" aria-labelledby="headingCargo">
-                    <div class="accordion-body">
-                        <a href="#" class="nav-link" onclick="loadView('adminsillas')">
-                            <span class="emoji">💺</span> Sillas & Carros
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('adminagentes')">
-                            <span class="emoji">👥</span> Agentes
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('terminales')">
-                            <span class="emoji">🏢</span> Terminales
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('mantenciones')">
-                            <span class="emoji">🔧</span> Mantenciones
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. SISTEMA -->
-            <div class="accordion-item">
-                <h2 class="accordion-header" id="headingSystem">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#collapseSystem" aria-expanded="false" aria-controls="collapseSystem">
-                        ⚙️ SISTEMA
-                    </button>
-                </h2>
-                <div id="collapseSystem" class="accordion-collapse collapse" aria-labelledby="headingSystem">
-                    <div class="accordion-body">
-                        <a href="#" class="nav-link" onclick="loadView('adminconfig')">
-                            <span class="emoji">🔧</span> Ajustes
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('registros')">
-                            <span class="emoji">📜</span> Registros
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('adminops')">
-                            <span class="emoji">🚀</span> Operación
-                        </a>
-                        <a href="#" class="nav-link" onclick="loadView('admindb')">
-                            <span class="emoji">�</span> Base de Datos
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-4 px-3">
-                <a href="#" class="nav-link text-danger fw-bold" onclick="window.DB.logout()">
-                    <span class="emoji">🚪</span> Cerrar Sesión
-                </a>
-            </div>
-
+        <div class="sidebar-footer">
+            <a href="../index.html" class="nav-item">
+                <i class="fas fa-arrow-left"></i>
+                <span>App Principal</span>
+            </a>
+            <a href="#" class="nav-item" id="logout-btn"
+                style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); margin-top: 1rem;">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Salir</span>
+            </a>
         </div>
     </aside>
 
+    <!-- Main Content -->
     <main class="main-content">
-        <div class="topbar">
-            <div class="d-flex align-items-center">
-                <button class="btn btn-light d-md-none me-3" id="sidebarCollapse"><i class="fas fa-bars"></i></button>
-                <h2 id="pageTitle" style="font-size: 1.25rem;">Panel de Administración</h2>
+
+        <!-- Header -->
+        <header class="admin-header glass">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title">
+                    <h1 style="font-size: 1.5rem; margin:0;" id="page-title">Dashboard</h1>
+                </div>
             </div>
 
-            <div class="user-menu">
-                <div class="clock" id="liveClock">00:00:00</div>
-                <div style="width:1px; height:20px; background:#e5e7eb;"></div>
-                <span class="fw-bold text-dark">Admin</span>
-                <a href="#" class="logout-btn" onclick="window.DB.logout()">Salir <i
-                        class="fas fa-sign-out-alt"></i></a>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button id="theme-toggle" class="theme-toggle">🌙</button>
+                <div style="text-align: right; display: none; @media(min-width: 768px){display:block;}">
+                    <h4 id="admin-name" style="margin:0; font-size: 0.9rem;">Admin</h4>
+                    <span style="font-size: 0.7rem; opacity: 0.7;">Administrador</span>
+                </div>
+                <img id="admin-avatar" src="https://via.placeholder.com/40" class="user-avatar" alt="Admin">
+            </div>
+        </header>
+
+        <!-- 1. DASHBOARD -->
+        <div id="view-dashboard" class="content-view">
+            <div class="stats-grid">
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-active-ops">0</h3>
+                        <p style="margin:0;">Activas</p>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                        <i class="fas fa-running"></i>
+                    </div>
+                </div>
+                <div class="glass stat-card float-anim" style="animation-delay: 0.1s;">
+                    <div class="stat-info">
+                        <h3 id="stat-available-assets">0</h3>
+                        <p style="margin:0;">Disponibles</p>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #34d399);">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                </div>
+                <div class="glass stat-card float-anim" style="animation-delay: 0.2s;">
+                    <div class="stat-info">
+                        <h3 id="stat-total-today">0</h3>
+                        <p style="margin:0;">Total Hoy</p>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+                <div class="glass stat-card float-anim" style="animation-delay: 0.3s;">
+                    <div class="stat-info">
+                        <h3 id="stat-faulty">0</h3>
+                        <p style="margin:0;">Con Falla</p>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #f87171);">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content Split -->
+            <div class="glass content-section" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>⚠️ Equipos con Falla o en Mantenimiento</h3>
+                    <button class="btn btn-secondary" style="width: auto; padding: 0.4rem 1rem; font-size: 0.8rem;"
+                        onclick="switchTab('reports')">Ver Detalles</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="faulty-assets-dashboard-table" class="mini-table">
+                        <thead>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Categoría</th>
+                                <th>Estado</th>
+                                <th>Fecha Reporte</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" style="text-align: center; padding: 1rem; opacity: 0.5;">Cargando
+                                    información...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="glass content-section" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>📋 Actividad Reciente</h3>
+                    <button class="btn btn-secondary" style="width: auto; padding: 0.4rem 1rem; font-size: 0.8rem;"
+                        onclick="switchTab('activity-history')">Ver Todo</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="recent-ops-table">
+                        <thead>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Agente</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem;">Cargando datos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3>⚡ Acciones Rápidas</h3>
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <button class="btn" onclick="switchTab('settings')">🔧 Configuración General</button>
+                    <button class="btn btn-secondary" onclick="switchTab('assets')">➕ Gestión de Equipo</button>
+                </div>
             </div>
         </div>
 
-        <div class="page-content" id="mainView">
-
-            <!-- Modern Hero Dashboard -->
-            <div class="card border-0 mb-4 overflow-hidden text-white shadow-lg"
-                style="background: linear-gradient(120deg, #1e293b 0%, #0f172a 100%); border-radius: 20px;">
-                <div class="card-body p-5 position-relative">
-                    <div class="position-absolute end-0 bottom-0 p-4 opacity-10">
-                        <i class="fas fa-chart-line fa-10x"></i>
-                    </div>
-                    <div class="d-flex flex-column justify-content-center position-relative" style="z-index:2;">
-                        <h1 class="display-5 fw-bold mb-2">👋 Hola, Admin</h1>
-                        <p class="lead opacity-75 mb-4">Bienvenido al panel de control de QRCARGO. Aquí tienes un
-                            resumen de hoy.</p>
-                        <div class="d-flex gap-3">
-                            <button class="btn btn-light fw-bold px-4 py-2 rounded-pill shadow-sm text-primary"
-                                onclick="loadView('adminsillas')"><i class="fas fa-wheelchair me-2"></i> Ver
-                                Activos</button>
-                            <button class="btn btn-outline-light fw-bold px-4 py-2 rounded-pill"
-                                onclick="loadView('registros')"><i class="fas fa-list me-2"></i> Ver
-                                Movimientos</button>
-                        </div>
-                    </div>
+        <!-- 1.1 ACTIVITY HISTORY (View All) -->
+        <div id="view-activity-history" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h3>📜 Historial de Operaciones Completadas</h3>
+                    <button class="btn btn-secondary" style="width: auto;" onclick="switchTab('dashboard')">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </button>
                 </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="history-ops-table">
+                        <thead>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Agente</th>
+                                <th style="min-width: 200px;">Recorrido</th>
+                                <th>Fecha y Hora Fin</th>
+                                <th>Duración</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center" style="padding: 2rem;">Cargando historial...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="history-pagination"
+                    style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 2rem;"></div>
             </div>
-
-            <!-- Modern Stats Grid -->
-            <div class="row g-4 mb-4">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm p-3 h-100"
-                        style="background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%); border-radius: 16px;">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center"
-                                style="width:50px;height:50px;font-size:1.5rem;">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="ms-3">
-                                <h6 class="text-muted text-uppercase mb-0 fw-bold" style="font-size:0.8rem;">Usuarios
-                                </h6>
-                                <span class="badge bg-primary bg-opacity-10 text-primary">+2 nuevos</span>
-                            </div>
-                        </div>
-                        <h2 class="fw-bold mb-0" id="statUsers">-</h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm p-3 h-100"
-                        style="background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); border-radius: 16px;">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center"
-                                style="width:50px;height:50px;font-size:1.5rem;">
-                                <i class="fas fa-chair"></i>
-                            </div>
-                            <div class="ms-3">
-                                <h6 class="text-muted text-uppercase mb-0 fw-bold" style="font-size:0.8rem;">Activos
-                                    Totales</h6>
-                                <span class="badge bg-success bg-opacity-10 text-success">En línea</span>
-                            </div>
-                        </div>
-                        <h2 class="fw-bold mb-0" id="statChairs">-</h2>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-sm p-3 h-100"
-                        style="background: linear-gradient(135deg, #faf5ff 0%, #ffffff 100%); border-radius: 16px;">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="rounded-circle bg-purple-light text-purple d-flex align-items-center justify-content-center"
-                                style="width:50px;height:50px;font-size:1.5rem; color:#9333ea;">
-                                <i class="fas fa-exchange-alt"></i>
-                            </div>
-                            <div class="ms-3">
-                                <h6 class="text-muted text-uppercase mb-0 fw-bold" style="font-size:0.8rem;">Movimientos
-                                </h6>
-                                <span class="badge bg-secondary bg-opacity-10 text-dark">Hoy</span>
-                            </div>
-                        </div>
-                        <h2 class="fw-bold mb-0" id="statLogs">-</h2>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Shortcuts -->
-            <div class="row g-3">
-                <div class="col-6 col-md-3">
-                    <button
-                        class="btn btn-white w-100 p-3 shadow-sm border-0 d-flex flex-column align-items-center gap-2 rounded-4"
-                        onclick="loadView('notes')">
-                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle text-warning"><i
-                                class="fas fa-sticky-note fa-lg"></i></div>
-                        <span class="fw-bold text-dark small">Notas</span>
-                    </button>
-                </div>
-                <div class="col-6 col-md-3">
-                    <button
-                        class="btn btn-white w-100 p-3 shadow-sm border-0 d-flex flex-column align-items-center gap-2 rounded-4"
-                        onclick="loadView('adminconfig')">
-                        <div class="bg-danger bg-opacity-10 p-3 rounded-circle text-danger"><i
-                                class="fas fa-cog fa-lg"></i></div>
-                        <span class="fw-bold text-dark small">Config</span>
-                    </button>
-                </div>
-                <div class="col-6 col-md-3">
-                    <button
-                        class="btn btn-white w-100 p-3 shadow-sm border-0 d-flex flex-column align-items-center gap-2 rounded-4"
-                        onclick="window.print()">
-                        <div class="bg-info bg-opacity-10 p-3 rounded-circle text-info"><i
-                                class="fas fa-print fa-lg"></i></div>
-                        <span class="fw-bold text-dark small">Reporte</span>
-                    </button>
-                </div>
-                <div class="col-6 col-md-3">
-                    <button
-                        class="btn btn-white w-100 p-3 shadow-sm border-0 d-flex flex-column align-items-center gap-2 rounded-4"
-                        onclick="loadView('help')">
-                        <div class="bg-dark bg-opacity-10 p-3 rounded-circle text-dark"><i
-                                class="fas fa-question fa-lg"></i></div>
-                        <span class="fw-bold text-dark small">Ayuda</span>
-                    </button>
-                </div>
-            </div>
-
         </div>
+
+        <!-- 2. LIVE MONITOR (Operations) -->
+        <div id="view-operations" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3>📡 Monitor de Operaciones en Vivo</h3>
+                <p style="margin-bottom: 2rem; opacity: 0.7;">Visualización en tiempo real de todos los traslados en
+                    curso.</p>
+
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="live-ops-table" style="width: 100%; min-width: 1000px;">
+                        <thead>
+                            <tr>
+                                <th>Agente</th>
+                                <th>Team</th>
+                                <th>Servicio</th>
+                                <th>Tipo</th>
+                                <th>Terminal</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Gate</th>
+                                <th>Aerolínea</th>
+                                <th>Vuelo</th>
+                                <th>Tiempo</th>
+                                <th>Acción</th>
+                                <th>Devolución</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Javascript will inject rows here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. EQUIPO (ASSETS) MANAGEMENT -->
+        <div id="view-assets" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>♿ Gestión de Equipo</h3>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-secondary" style="width: auto;"
+                            onclick="window.location.href='../Generador.html'">
+                            <i class="fas fa-qrcode"></i> Generador QRs
+                        </button>
+                        <button class="btn" style="width: auto;" onclick="openAssetModal()">+ Crear Equipo</button>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="assets-table">
+                        <thead>
+                            <tr>
+                                <th>Código / QR</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Ubicación</th>
+
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. USERS -->
+        <div id="view-users" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>👥 Usuarios y Permisos</h3>
+                </div>
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="users-table" class="mini-table" style="width: 100%; font-size: 0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Nombre Completo</th>
+                                <th>Rol / Cargo</th>
+                                <th>Team</th>
+                                <th>Cursos y Permisos</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Comuna</th>
+                                <th>Dirección</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 2rem; opacity: 0.5;">Cargando
+                                    usuarios...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. REPORTS -->
+        <div id="view-reports" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <h3>📊 Centro de Reportes y Estadísticas</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="report-period" class="input-style" style="width: auto; padding: 0.5rem;">
+                            <option value="today">Hoy</option>
+                            <option value="weekly">Esta Semana</option>
+                            <option value="monthly">Este Mes</option>
+                            <option value="all">Todo el Historial</option>
+                        </select>
+                        <select id="export-format" class="input-style"
+                            style="width: auto; padding: 0.5rem; background: var(--secondary-color); color: white; border:none;">
+                            <option value="xlsx">Formato XLSX (Excel)</option>
+                            <option value="xls">Formato XLS (Antiguo)</option>
+                            <option value="csv">Formato CSV (Comas)</option>
+                            <option value="ods">Formato ODS (LibreOffice)</option>
+                        </select>
+                        <button class="btn" style="width: auto; padding: 0.5rem 1rem;" onclick="exportReports()">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Summary Row -->
+                <div class="stats-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 2rem;">
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-total">0</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Operaciones</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-avg">0 min</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Tiempo Promedio</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-manual" style="color: var(--secondary-color);">0</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Dev. Manuales</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-diff" style="color: #ef4444;">0</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Lugar Diferente</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <!-- Ranking Agents -->
+                    <div class="glass" style="padding: 1rem;">
+                        <h5 style="margin-top:0;"><i class="fas fa-hourglass-half"></i> Agentes con mayor demora
+                            (Promedio)</h5>
+                        <div style="overflow-x: auto;">
+                            <table id="table-slowest-agents" class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Agente</th>
+                                        <th>Tiempo Promedio</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Non Returned -->
+                    <div class="glass" style="padding: 1rem;">
+                        <h5 style="margin-top:0;"><i class="fas fa-exclamation-circle"></i> Equipos no devueltos
+                            (Activos)</h5>
+                        <div style="overflow-x: auto;">
+                            <table id="table-unreturned" class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Equipo</th>
+                                        <th>Agente</th>
+                                        <th>Inicio</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Faulty / Lost Assets -->
+                <div class="glass" style="padding: 1rem; margin-bottom: 2rem;">
+                    <h5 style="margin-top:0;"><i class="fas fa-tools"></i> Informe de Fallas y Equipos Extraviados</h5>
+                    <div style="overflow-x: auto;">
+                        <table id="table-faulty-assets" class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Categoría</th>
+                                    <th>Estado Actual</th>
+                                    <th>Última Actividad</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <h5 style="margin-bottom: 1rem;">Detalle de Operaciones en el Periodo</h5>
+                    <table id="table-reports-detail">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Agente</th>
+                                <th>Team</th>
+                                <th>Equipo</th>
+                                <th>Tipo</th>
+                                <th>Terminal</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Puerta</th>
+                                <th>Aerolínea</th>
+                                <th>Vuelo</th>
+                                <th>🕒 min</th>
+                                <th>Método</th>
+                                <th>Alerta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="8" style="text-align:center; padding: 2rem;">Generando reporte...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. SETTINGS -->
+        <div id="view-settings" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3>⚙️ Ajustes de Base de Datos</h3>
+                <p style="margin-bottom: 2rem;">Gestiona las listas desplegables y configuraciones globales.</p>
+
+                <!-- Settings Sub-Nav Card Grid -->
+                <div class="settings-nav-cards">
+                    <div class="nav-card active" onclick="loadSettingTable('airlines', 'Aerolíneas')">
+                        <span class="nav-card-emoji">✈️</span>
+                        <span class="nav-card-label">Aerolíneas</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('origin', 'Orígenes')">
+                        <span class="nav-card-emoji">🛫</span>
+                        <span class="nav-card-label">Orígenes</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('destination', 'Destinos')">
+                        <span class="nav-card-emoji">🛬</span>
+                        <span class="nav-card-label">Destinos</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('gate', 'Gates Salida')">
+                        <span class="nav-card-emoji">🚪</span>
+                        <span class="nav-card-label">Gates Salida</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('gate_arrival', 'Gates Arribo')">
+                        <span class="nav-card-emoji">📥</span>
+                        <span class="nav-card-label">Gates Arribo</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('bridge', 'Puentes')">
+                        <span class="nav-card-emoji">🌉</span>
+                        <span class="nav-card-label">Puentes</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('assets', 'Equipo')">
+                        <span class="nav-card-emoji">♿</span>
+                        <span class="nav-card-label">Equipo</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('asset_categories', 'Categorías Equipo')">
+                        <span class="nav-card-emoji">🏷️</span>
+                        <span class="nav-card-label">Categorías</span>
+                    </div>
+                    <div class="nav-card" onclick="switchTab('users')" style="border-color: #8b5cf633;">
+                        <span class="nav-card-emoji">👥</span>
+                        <span class="nav-card-label">Usuarios</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic CRUD Section -->
+                <div id="settings-crud-container">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 id="crud-title">Aerolíneas</h4>
+                        <button class="btn" style="width: auto; padding: 0.5rem 1rem;" onclick="openCrudModal()">+
+                            Agregar Nuevo</button>
+                    </div>
+                    <div id="settings-cards-container" class="cards-grid">
+                        <!-- Javascript will inject cards here -->
+                        <div style="text-align: center; grid-column: 1/-1; padding: 2rem; opacity: 0.5;">Cargando
+                            ajustes...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. REGISTROS (Incidentes) -->
+        <div id="view-registros" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="margin:0;">📋 Registros de Incidencias</h3>
+                        <p style="margin:0; opacity: 0.7; font-size: 0.9rem;">Equipos reportados por agentes (Dañados,
+                            Extraviados, etc.)</p>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 0.5rem 1rem;"
+                        onclick="loadRegistros()">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="mini-table" id="registros-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Agente</th>
+                                <th>Categoría</th>
+                                <th>Equipo</th>
+                                <th>Terminal</th>
+                                <th>Ubicación</th>
+                                <th>Detalle</th>
+                                <th>Evidencia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registros-body">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 3rem; opacity: 0.5;">Cargando
+                                    registros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            CREADO CON <span>❤️</span> POR IAN SAAVEDRA PARA CARGOMOBILITY
+        </footer>
     </main>
 
-    <!-- Templates -->
-    <template id="view-sillas">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4>Gestión de Activos</h4>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal"><i
-                    class="fas fa-plus"></i> Nuevo Activo</button>
-        </div>
-        <div class="card border-0 shadow-sm">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Código</th>
-                            <th>Tipo</th>
-                            <th>Propietario</th>
-                            <th>Ubicación</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="chairsTableBody"></tbody>
-                </table>
-            </div>
-            <div class="card-body text-center text-muted"><small>Cargando datos...</small></div>
-        </div>
-    </template>
+    <!-- CRUD MODAL (Generic) -->
+    <div id="crud-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h3 id="modal-title" style="margin-top:0; color: var(--primary-color); font-weight: 800;">Editar Item</h3>
+            <form id="crud-form">
+                <input type="hidden" id="crud-id">
+                <input type="hidden" id="crud-type">
 
-    <!-- Movimientos Template -->
-    <template id="view-movimientos">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold text-primary"><i class="fas fa-clipboard-list"></i> Registro de Movimientos</h4>
-            <button class="btn btn-modern btn-white text-primary shadow-sm" onclick="loadLogs()"><i
-                    class="fas fa-sync-alt"></i> Actualizar</button>
-        </div>
-        <div class="card border-0 shadow-lg">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 custom-table">
-                    <thead class="bg-light text-uppercase small text-muted">
-                        <tr>
-                            <th class="py-3 ps-4">📅 Fecha/Hora</th>
-                            <th class="py-3">👤 Agente</th>
-                            <th class="py-3">♿ Activo</th>
-                            <th class="py-3">🛫 Origen</th>
-                            <th class="py-3">🛬 Destino</th>
-                            <th class="py-3 pe-4">📍 Ubicación Final</th>
-                        </tr>
-                    </thead>
-                    <tbody id="logsTableBody"></tbody>
-                </table>
-            </div>
-            <div class="card-body text-center text-muted" id="logsLoading"><small>Cargando registros...</small></div>
-        </div>
-    </template>
-
-    <!-- Create/Edit Modal -->
-    <div class="modal fade" id="createModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header border-0 text-white"
-                    style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); border-top-left-radius: 20px; border-top-right-radius: 20px;">
-                    <h5 class="modal-title fw-bold" id="modalTitle"><i class="fas fa-magic me-2"></i> Crear Activo</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Nombre</label>
+                    <input type="text" id="crud-name" class="input-style" style="border: 1px solid #ccc;" required>
                 </div>
-                <div class="modal-body bg-light bg-opacity-50">
-                    <form id="createChairForm">
-                        <input type="hidden" name="id" id="chairId">
 
-                        <div class="mb-4">
-                            <label class="form-label text-uppercase text-muted small fw-bold">Categoría</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 text-primary"><i
-                                        class="fas fa-box"></i></span>
-                                <select name="category" id="chairCategory"
-                                    class="form-select border-start-0 ps-0 text-dark fw-semibold"
-                                    style="border-left:none!important;">
-                                    <option value="standard">Silla de Ruedas</option>
-                                    <option value="golf">Carrito de Golf</option>
-                                    <option value="oruga">Silla Oruga</option>
-                                    <option value="pasillo">Silla de Pasillo</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label text-uppercase text-muted small fw-bold">Propietario</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 text-primary"><i
-                                        class="fas fa-building"></i></span>
-                                <select name="owner" id="chairOwner"
-                                    class="form-select border-start-0 ps-0 text-dark fw-semibold"
-                                    style="border-left:none!important;">
-                                    <option value="Equipo Naranja">Equipo Naranja</option>
-                                    <option value="Equipo Azul - PMR OLA">Equipo Azul - PMR OLA</option>
-                                    <option value="Equipo Azul - PMR LATAM">Equipo Azul - PMR LATAM</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label text-uppercase text-muted small fw-bold">Ubicación</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0 text-primary"><i
-                                        class="fas fa-map-marker-alt"></i></span>
-                                <select name="location" id="chairLocation"
-                                    class="form-select border-start-0 ps-0 text-dark fw-semibold"
-                                    style="border-left:none!important;">
-                                    <option>Terminal Nacional</option>
-                                    <option>Terminal Internacional</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="d-grid mt-5">
-                            <button type="submit"
-                                class="btn btn-modern btn-modern-primary py-3 fw-bold rounded-pill shadow">
-                                <i class="fas fa-save me-2"></i> Guardar Activo
-                            </button>
-                        </div>
-                    </form>
+                <!-- Dynamic Field (IATA or Terminal or Hidden) -->
+                <div id="crud-extra-field" class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Código IATA</label>
+                    <input type="text" id="crud-extra" class="input-style" style="border: 1px solid #ccc;">
                 </div>
-            </div>
+
+                <!-- Logo Field (Only for Airlines) -->
+                <div id="crud-logo-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Logo de la Aerolínea (URL o
+                        Archivo)</label>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <input type="url" id="crud-logo" class="input-style" style="border: 1px solid #ccc;"
+                            placeholder="Pegar URL del logo...">
+                        <div style="text-align: center; font-size: 0.8rem; opacity: 0.6;">— O —</div>
+                        <input type="file" id="crud-logo-file" class="input-style"
+                            style="border: 1px solid #ccc; padding: 0.5rem;" accept="image/*">
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <img id="crud-logo-preview" src="" alt="Preview"
+                            style="display: none; max-height: 80px; max-width: 100%; object-fit: contain; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; margin: 0 auto;">
+                    </div>
+                </div>
+
+                <!-- Asset Type Field (Only for Equipo) -->
+                <div id="crud-asset-type-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Categoría de Equipo</label>
+                    <select id="crud-asset-type" class="input-style" style="border: 1px solid #ccc;">
+                        <option value="silla">Silla de Ruedas</option>
+                        <option value="carrito">Carrito de Golf</option>
+                        <option value="oruga">Silla Oruga</option>
+                    </select>
+                </div>
+
+                <!-- Asset Status Field (Only for Equipo) -->
+                <div id="crud-asset-status-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Estado del Equipo</label>
+                    <select id="crud-asset-status" class="input-style" style="border: 1px solid #ccc;">
+                        <option value="available">✅ Disponible</option>
+                        <option value="maintenance">🛠️ Mantenimiento / Inoperativo</option>
+                        <option value="damaged">⚠️ Dañado / Falla (Inoperativo)</option>
+                        <option value="lost">❌ Extraviado / Perdido</option>
+                        <option value="in_use" disabled>🏃 En Uso (Bloqueado)</option>
+                    </select>
+                </div>
+
+                <!-- User Specific Fields -->
+                <div id="crud-user-fields" style="display: none;">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Correo
+                            Electrónico</label>
+                        <input type="email" id="crud-user-email" class="input-style" style="border: 1px solid #ccc;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Teléfono</label>
+                        <input type="text" id="crud-user-phone" class="input-style" style="border: 1px solid #ccc;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Comuna</label>
+                            <input type="text" id="crud-user-commune" class="input-style"
+                                style="border: 1px solid #ccc;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Rol / Cargo</label>
+                            <select id="crud-user-role" class="input-style" style="border: 1px solid #ccc;">
+                                <option value="Agente">Agente</option>
+                                <option value="Supervisor">Supervisor</option>
+                                <option value="CDO">CDO</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Dirección</label>
+                        <textarea id="crud-user-address" class="input-style"
+                            style="border: 1px solid #ccc; height: 60px;"></textarea>
+                    </div>
+                </div>
+
+                <!-- QR Upload Field (Only for Assets) -->
+                <div id="crud-qr-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Imagen Código QR</label>
+                    <input type="file" id="crud-qr-file" class="input-style"
+                        style="border: 1px solid #ccc; padding: 0.5rem;" accept="image/*">
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <img id="crud-qr-preview" src="" alt="QR Preview"
+                            style="display: none; max-height: 150px; max-width: 100%; object-fit: contain; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; margin: 0 auto;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCrudModal()">Cancelar</button>
+                    <button type="submit" class="btn">Guardar</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- QR Modal -->
-    <div class="modal fade" id="qrModal" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Código QR</h5><button class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <div id="qrDisplay" class="d-flex justify-content-center mb-3"></div>
-                    <h5 id="qrCodeLabel" class="fw-bold"></h5>
-                    <button class="btn btn-primary btn-sm mt-2" onclick="window.print()"><i class="fas fa-print"></i>
-                        Imprimir</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="../js/supabase_client.js?v=1.1"></script>
-    <script src="../js/admin.js?v=1.1"></script>
-
-    <script>
-        // Sidebar State Logic (Ported from drpisos)
-        document.addEventListener('DOMContentLoaded', function () {
-            // Live Clock
-            function updateClock() {
-                const now = new Date();
-                document.getElementById('liveClock').textContent = now.toLocaleTimeString('es-ES');
-            }
-            setInterval(updateClock, 1000);
-            updateClock();
-
-            // Sidebar State
-            const stateKey = 'qrcargo_sidebar_state';
-            const sidebarState = JSON.parse(localStorage.getItem(stateKey)) || [];
-
-            const saveState = (newState) => localStorage.setItem(stateKey, JSON.stringify(newState));
-
-            // Restore opened items
-            sidebarState.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.classList.add('show');
-                    const btn = document.querySelector(`[data-bs-target="#${id}"]`);
-                    if (btn) {
-                        btn.classList.remove('collapsed');
-                        btn.setAttribute('aria-expanded', 'true');
-                    }
-                }
-            });
-
-            // Listeners
-            document.querySelectorAll('.sidebar .accordion-collapse').forEach(el => {
-                el.addEventListener('shown.bs.collapse', function () {
-                    let s = JSON.parse(localStorage.getItem(stateKey)) || [];
-                    if (!s.includes(this.id)) {
-                        s.push(this.id);
-                        saveState(s);
-                    }
-                });
-                el.addEventListener('hidden.bs.collapse', function () {
-                    let s = JSON.parse(localStorage.getItem(stateKey)) || [];
-                    s = s.filter(id => id !== this.id);
-                    saveState(s);
-                });
-            });
-
-            // Toggle sidebar mobile
-            document.getElementById('sidebarCollapse')?.addEventListener('click', () => {
-                document.getElementById('sidebar').classList.toggle('active');
-            });
-        });
-    </script>
+    <!-- Scripts -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script type="module" src="../assets/js/client.js"></script>
+    <script type="module" src="../assets/js/common.js"></script>
+    <script type="module" src="js/admin.js"></script>
+    <script type="module" src="js/crud_logic.js"></script>
 </body>
 
 </html>

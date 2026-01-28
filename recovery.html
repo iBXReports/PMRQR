@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Acceso | PMRQR</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/dist/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .recovery-card {
+            max-width: 450px;
+            width: 90%;
+            margin: 5rem auto;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .result-box {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px dashed var(--primary-color);
+            border-radius: 15px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass">
+        <div class="logo">
+            <img src="assets/imagenes/logocargo.png" alt="PMRQR Logo">
+        </div>
+        <div class="nav-links">
+            <a href="login.html">Volver al Login</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="recovery-card glass float-anim">
+            <h2 style="color: var(--accent-color); margin-bottom: 1rem;">🔓 Recuperar Acceso</h2>
+            <p style="opacity: 0.7; margin-bottom: 2rem;">Ingresa tu correo electrónico para recuperar tu nombre de
+                usuario o restablecer tu contraseña.</p>
+
+            <form id="recovery-form">
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" id="recovery-email" placeholder="tu-correo@ola.cl" required>
+                </div>
+                <button type="submit" id="recovery-btn" class="btn">Consultar Datos 🔍</button>
+            </form>
+
+            <div id="recovery-result" class="result-box">
+                <p style="margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">Tu nombre de usuario es:</p>
+                <h3 id="display-username"
+                    style="color: var(--primary-color); margin-bottom: 1.5rem; font-size: 1.8rem; letter-spacing: 1px;">
+                    -</h3>
+
+                <hr style="opacity: 0.1; margin: 1.5rem 0;">
+
+                <p style="font-size: 0.85rem; margin-bottom: 1rem;">Para la contraseña, podemos enviarte un enlace de
+                    restablecimiento seguro.</p>
+                <button onclick="resetPasswordLink()" class="btn btn-secondary"
+                    style="width: auto; padding: 0.6rem 1.2rem;">
+                    <i class="fas fa-envelope"></i> Enviar Link de Contraseña
+                </button>
+            </div>
+
+            <div id="recovery-error" class="alert alert-error hidden" style="margin-top: 1rem;"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="assets/js/client.js"></script>
+    <script type="module" src="assets/js/common.js"></script>
+    <script type="module">
+        import { supabase } from './assets/js/client.js';
+
+        const form = document.getElementById('recovery-form');
+        const resultBox = document.getElementById('recovery-result');
+        const errorBox = document.getElementById('recovery-error');
+        const userDisplay = document.getElementById('display-username');
+        const btn = document.getElementById('recovery-btn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('recovery-email').value.trim();
+
+            btn.disabled = true;
+            btn.textContent = 'Buscando...';
+            errorBox.classList.add('hidden');
+            resultBox.style.display = 'none';
+
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('username')
+                    .eq('email', email)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (!data) {
+                    throw new Error('No encontramos ninguna cuenta vinculada a este correo.');
+                }
+
+                userDisplay.textContent = data.username;
+                resultBox.style.display = 'block';
+
+            } catch (err) {
+                errorBox.textContent = err.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Consultar Datos 🔍';
+            }
+        });
+
+        window.resetPasswordLink = async function () {
+            const email = document.getElementById('recovery-email').value.trim();
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/login.html',
+            });
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("📩 ¡Enviado! Revisa tu bandeja de entrada para cambiar tu contraseña.");
+            }
+        }
+    </script>
+
+    <footer class="app-footer">
+        CREADO CON <span>❤️</span> POR IAN SAAVEDRA PARA CARGOMOBILITY
+    </footer>
+</body>
+
+</html>

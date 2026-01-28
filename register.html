@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro | PMRQR</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="glass">
+        <div class="logo">
+            <img src="assets/imagenes/logocargo.png" alt="PMRQR Logo">
+        </div>
+        <div class="nav-links">
+            <button id="theme-toggle" class="theme-toggle" aria-label="Cambiar tema">🌙</button>
+            <a href="login.html">Iniciar Sesión</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="auth-container glass float-anim">
+            <h2 style="text-align: center; color: var(--primary-color);">Crea tu cuenta 🚀</h2>
+            <p style="text-align: center; margin-bottom: 2rem; opacity: 0.7;">Únete a la experiencia del futuro.</p>
+
+            <div id="error-alert" class="alert alert-error hidden"></div>
+            <div id="success-alert" class="alert alert-success hidden"></div>
+
+            <form id="register-form">
+                <div class="form-group">
+                    <label>👤 Usuario</label>
+                    <input type="text" name="username" placeholder="Elige un nombre de usuario único" required>
+                </div>
+
+                <div class="form-group">
+                    <label>📝 Nombre Completo</label>
+                    <input type="text" name="fullName" placeholder="Tu nombre real" required>
+                </div>
+
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" name="email" placeholder="ejemplo@correo.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" name="password" placeholder="Mínimo 6 caracteres" required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>🏠 Dirección</label>
+                        <input type="text" name="address" placeholder="Calle, Número" required>
+                    </div>
+                    <div class="form-group">
+                        <label>📍 Comuna</label>
+                        <input type="text" name="commune" placeholder="Ej: Santiago" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>📱 Teléfono de Contacto</label>
+                    <input type="tel" name="phone" placeholder="+56 9 1234 5678" required>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn">Registrarse ✨</button>
+                <div id="loader" class="loader hidden"></div>
+            </form>
+
+            <p style="text-align: center; margin-top: 2rem;">
+                ¿Ya tienes cuenta? <a href="login.html" style="color: var(--secondary-color); font-weight: bold;">Inicia
+                    Sesión</a>
+            </p>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        CREADO CON <span>❤️</span> POR IAN SAAVEDRA PARA CARGOMOBILITY
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="assets/js/client.js"></script>
+    <script type="module" src="assets/js/common.js"></script>
+    <script type="module" src="assets/js/auth.js"></script>
+</body>
+
+</html>
