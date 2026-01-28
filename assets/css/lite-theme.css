@@ -1,6 +1,7 @@
 /* 
    LITE THEME (Modo Rendimiento)
    Diseño clásico, sólido y rápido.
+   Supports both Light and Dark modes.
 */
 
 /* --- BASE OVERRIDES --- */
@@ -17,7 +18,9 @@ html.lite-mode *::after {
     transition: none !important;
 }
 
-/* --- CONTAINERS (No Glass, Solid Colors) --- */
+/* ============================== */
+/* LIGHT MODE (Default)           */
+/* ============================== */
 html.lite-mode .glass {
     background: #ffffff !important;
     backdrop-filter: none !important;
@@ -25,17 +28,9 @@ html.lite-mode .glass {
     border: 1px solid #e5e7eb !important;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
     border-radius: 12px !important;
+    color: #1f2937 !important;
 }
 
-html.lite-mode[data-theme="dark"] .glass {
-    background: #1e293b !important;
-    /* Slate-800 */
-    border-color: #334155 !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
-    color: #f8fafc !important;
-}
-
-/* --- NAVIGATION --- */
 html.lite-mode nav.glass {
     background: #ffffff !important;
     border-bottom: 2px solid var(--primary-color) !important;
@@ -44,13 +39,69 @@ html.lite-mode nav.glass {
     top: 0;
 }
 
-html.lite-mode[data-theme="dark"] nav.glass {
+html.lite-mode input,
+html.lite-mode select,
+html.lite-mode .input-style {
+    background: #f3f4f6 !important;
+    border: 1px solid #d1d5db !important;
+    color: #111827 !important;
+    border-radius: 6px !important;
+}
+
+/* ============================== */
+/* DARK MODE                      */
+/* ============================== */
+html.lite-mode[data-theme="dark"] body,
+html.lite-mode [data-theme="dark"] body {
+    background-color: #0f172a !important;
+}
+
+html.lite-mode[data-theme="dark"] .glass,
+html.lite-mode [data-theme="dark"] .glass {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+    color: #f1f5f9 !important;
+}
+
+html.lite-mode[data-theme="dark"] nav.glass,
+html.lite-mode [data-theme="dark"] nav.glass {
     background: #0f172a !important;
-    /* Slate-900 */
     border-bottom: 2px solid var(--primary-color) !important;
 }
 
-/* --- BUTTONS & INPUTS --- */
+html.lite-mode[data-theme="dark"] input,
+html.lite-mode[data-theme="dark"] select,
+html.lite-mode[data-theme="dark"] .input-style,
+html.lite-mode [data-theme="dark"] input,
+html.lite-mode [data-theme="dark"] select,
+html.lite-mode [data-theme="dark"] .input-style {
+    background: #334155 !important;
+    border-color: #475569 !important;
+    color: #ffffff !important;
+}
+
+/* Text colors in dark mode */
+html.lite-mode[data-theme="dark"] h1,
+html.lite-mode[data-theme="dark"] h2,
+html.lite-mode[data-theme="dark"] h3,
+html.lite-mode[data-theme="dark"] h4,
+html.lite-mode[data-theme="dark"] p,
+html.lite-mode[data-theme="dark"] label,
+html.lite-mode[data-theme="dark"] span,
+html.lite-mode [data-theme="dark"] h1,
+html.lite-mode [data-theme="dark"] h2,
+html.lite-mode [data-theme="dark"] h3,
+html.lite-mode [data-theme="dark"] h4,
+html.lite-mode [data-theme="dark"] p,
+html.lite-mode [data-theme="dark"] label,
+html.lite-mode [data-theme="dark"] span {
+    color: #f1f5f9 !important;
+}
+
+/* ============================== */
+/* BUTTONS (Keep Gradient Colors) */
+/* ============================== */
 html.lite-mode .btn {
     border-radius: 8px !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
@@ -61,40 +112,20 @@ html.lite-mode .btn:active {
     transform: translateY(1px) !important;
 }
 
-html.lite-mode input,
-html.lite-mode select {
-    background: #f3f4f6 !important;
-    border: 1px solid #d1d5db !important;
-    color: #111827 !important;
-    border-radius: 6px !important;
-}
-
-html.lite-mode[data-theme="dark"] input,
-html.lite-mode[data-theme="dark"] select {
-    background: #334155 !important;
-    border-color: #475569 !important;
-    color: #ffffff !important;
-}
-
-/* --- CARDS & STATS --- */
+/* ============================== */
+/* CARDS & STATS                  */
+/* ============================== */
 html.lite-mode .stat-card {
     border-left: 5px solid var(--primary-color) !important;
 }
 
 html.lite-mode .status-badge {
     border: 1px solid currentColor !important;
-    background: transparent !important;
 }
 
-/* --- TYPOGRAPHY --- */
-html.lite-mode h1,
-html.lite-mode h2,
-html.lite-mode h3 {
-    letter-spacing: -0.5px;
-    color: var(--text-color) !important;
-}
-
-/* --- MOBILE OPTIMIZATIONS --- */
+/* ============================== */
+/* MOBILE OPTIMIZATIONS           */
+/* ============================== */
 @media (max-width: 768px) {
     html.lite-mode .container {
         padding: 0.5rem !important;

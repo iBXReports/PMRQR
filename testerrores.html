@@ -4,279 +4,388 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soporte & Diagnóstico | PMRQR</title>
+    <title>Test de Errores | PMRQR</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/lite-theme.css">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background: #0f172a;
-            color: white;
-            padding: 2rem;
         }
 
         .test-container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .test-section {
+            margin-bottom: 2rem;
         }
 
         .test-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            backdrop-filter: blur(10px);
+            margin-bottom: 1rem;
         }
 
-        .status-pill {
-            padding: 4px 12px;
-            border-radius: 20px;
+        .test-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 0.8rem;
-            font-weight: bold;
         }
 
-        .status-ok {
-            background: #059669;
+        .status-pending {
+            background: #fbbf24;
+            color: white;
+        }
+
+        .status-success {
+            background: #10b981;
             color: white;
         }
 
         .status-error {
-            background: #dc2626;
+            background: #ef4444;
             color: white;
         }
 
-        .status-warning {
-            background: #d97706;
-            color: white;
-        }
-
-        .status-pending {
-            background: #4b5563;
-            color: white;
-        }
-
-        .log-area {
-            background: #000;
-            color: #0f0;
-            font-family: monospace;
-            padding: 1rem;
+        .test-result {
+            background: rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            height: 200px;
-            overflow-y: auto;
-            font-size: 0.85rem;
-            margin-top: 1rem;
-            border: 1px solid #333;
-        }
-
-        .sql-suggest {
-            background: #1e293b;
-            border-left: 4px solid #6366f1;
             padding: 1rem;
-            margin-top: 1rem;
-            display: none;
+            font-family: monospace;
+            font-size: 0.85rem;
+            max-height: 200px;
+            overflow: auto;
+            white-space: pre-wrap;
         }
 
-        pre {
-            white-space: pre-wrap;
-            word-break: break-all;
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .summary-card h3 {
+            font-size: 2rem;
+            margin: 0;
+        }
+
+        .summary-card p {
+            margin: 0.5rem 0 0;
+            opacity: 0.7;
+        }
+
+        .summary-total {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .summary-success {
+            border-left: 4px solid #10b981;
+        }
+
+        .summary-error {
+            border-left: 4px solid #ef4444;
         }
 
         .btn-run {
             background: linear-gradient(135deg, #6366f1, #a855f7);
             color: white;
             border: none;
-            padding: 12px 24px;
+            padding: 1rem 2rem;
             border-radius: 8px;
-            font-weight: bold;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            display: block;
-            width: 100%;
-            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .btn-run:hover {
-            transform: scale(1.02);
-        }
-
-        .test-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .test-item:last-child {
-            border: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
         }
     </style>
 </head>
 
-<body>
+<body data-theme="dark">
+    <nav class="glass">
+        <div class="logo">
+            <img src="assets/imagenes/logocargo.png" alt="PMRQR Logo">
+        </div>
+        <div class="nav-links">
+            <button id="theme-toggle" class="theme-toggle">🌙</button>
+            <a href="index.html">Volver</a>
+        </div>
+    </nav>
 
     <div class="test-container">
-        <h1 style="text-align: center; margin-bottom: 2rem;">🛠️ Diagnóstico del Sistema</h1>
+        <h1 style="margin-bottom: 0.5rem;">🧪 Test de Errores - PMRQR</h1>
+        <p style="opacity: 0.7; margin-bottom: 2rem;">Diagnóstico completo del sistema y base de datos</p>
 
-        <div class="test-card">
-            <button class="btn-run" onclick="runDiagnostics()">EJECUTAR TEST COMPLETO 🚀</button>
-        </div>
-
-        <!-- CONEXIÓN -->
-        <div class="test-card">
-            <h3>📡 Conexión con Supabase</h3>
-            <div id="test-connection" class="test-item">
-                <span>Verificando API y Cliente...</span>
-                <span class="status-pill status-pending">PENDIENTE</span>
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card summary-total">
+                <h3 id="total-tests">0</h3>
+                <p>Tests Totales</p>
+            </div>
+            <div class="summary-card summary-success">
+                <h3 id="passed-tests">0</h3>
+                <p>Pasados</p>
+            </div>
+            <div class="summary-card summary-error">
+                <h3 id="failed-tests">0</h3>
+                <p>Fallidos</p>
             </div>
         </div>
 
-        <!-- BASE DE DATOS -->
-        <div class="test-card">
-            <h3>🗄️ Estructura de Base de Datos (SQL Tester)</h3>
-            <div id="db-tests">
-                <!-- Dynamic items -->
-                <div class="test-item"><span>Cargando esquema requerido...</span></div>
-            </div>
+        <!-- Run Tests Button -->
+        <button class="btn-run" onclick="runAllTests()">
+            <i class="fas fa-play"></i> Ejecutar Todos los Tests
+        </button>
 
-            <div id="sql-fix-container" class="sql-suggest">
-                <h4 style="color: #6366f1;"><i class="fas fa-terminal"></i> Queries faltantes detectadas:</h4>
-                <p style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 10px;">Copia y pega esto en el SQL Editor de
-                    Supabase:</p>
-                <pre id="sql-content"
-                    style="background: rgba(0,0,0,0.3); padding: 1rem; border-radius: 4px; border: 1px solid #444; color: #fbbf24;"></pre>
-                <button class="btn btn-secondary" onclick="copySql()"
-                    style="margin-top: 10px; width: auto; font-size: 0.8rem;">Copiar SQL</button>
-            </div>
-        </div>
-
-        <!-- LOG COMPLETO -->
-        <div class="test-card">
-            <h3>📝 Registro de Depuración (Console Log)</h3>
-            <div id="log-area" class="log-area">Esperando inicio de pruebas...</div>
-        </div>
+        <!-- Test Sections -->
+        <div id="test-results" style="margin-top: 2rem;"></div>
     </div>
 
     <script type="module">
         import { supabase } from './assets/js/client.js';
+        window.supabase = supabase;
+    </script>
 
-        const logArea = document.getElementById('log-area');
-        const sqlContainer = document.getElementById('sql-fix-container');
-        const sqlContent = document.getElementById('sql-content');
+    <script>
+        // Test definitions
+        const tests = [
+            {
+                name: "Conexión a Supabase",
+                category: "Conexión",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('profiles').select('id').limit(1);
+                    if (error) throw new Error(error.message);
+                    return "Conexión exitosa a Supabase";
+                }
+            },
+            {
+                name: "Tabla: profiles",
+                category: "Base de Datos",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('profiles').select('*').limit(5);
+                    if (error) throw new Error(error.message);
+                    return `Tabla accesible. ${data.length} registros encontrados.`;
+                }
+            },
+            {
+                name: "Tabla: assets",
+                category: "Base de Datos",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('assets').select('*').limit(5);
+                    if (error) throw new Error(error.message);
+                    return `Tabla accesible. ${data.length} activos encontrados.`;
+                }
+            },
+            {
+                name: "Tabla: operations",
+                category: "Base de Datos",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('operations').select('*').limit(5);
+                    if (error) throw new Error(error.message);
+                    return `Tabla accesible. ${data.length} operaciones encontradas.`;
+                }
+            },
+            {
+                name: "Tabla: reports",
+                category: "Base de Datos",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('reports').select('*').limit(5);
+                    if (error) throw new Error(error.message);
+                    return `Tabla accesible. ${data.length} reportes encontrados.`;
+                }
+            },
+            {
+                name: "Tabla: airlines",
+                category: "Configuración",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('airlines').select('*');
+                    if (error) throw new Error(error.message);
+                    return `Tabla accesible. ${data.length} aerolíneas configuradas.`;
+                }
+            },
+            {
+                name: "Tabla: locations",
+                category: "Configuración",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('locations').select('*');
+                    if (error) throw new Error(error.message);
+                    return `Tabla accesible. ${data.length} ubicaciones configuradas.`;
+                }
+            },
+            {
+                name: "Tabla: app_settings",
+                category: "Configuración",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('app_settings').select('*');
+                    if (error) throw new Error(error.message);
+                    return `Tabla accesible. ${data.length} configuraciones guardadas.`;
+                }
+            },
+            {
+                name: "Autenticación Actual",
+                category: "Autenticación",
+                run: async () => {
+                    const { data: { session } } = await window.supabase.auth.getSession();
+                    if (session) {
+                        return `Usuario autenticado: ${session.user.email}`;
+                    } else {
+                        return "No hay sesión activa (visitante)";
+                    }
+                }
+            },
+            {
+                name: "Storage: Bucket 'uploads'",
+                category: "Storage",
+                run: async () => {
+                    const { data, error } = await window.supabase.storage.from('uploads').list('', { limit: 1 });
+                    if (error) throw new Error(error.message);
+                    return "Bucket 'uploads' accesible";
+                }
+            },
+            {
+                name: "Columnas de Operations",
+                category: "Esquema",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('operations').select('id, user_id, asset_id, start_time, bridge, gate, airline, flight_number, end_gate').limit(1);
+                    if (error) throw new Error(error.message);
+                    return "Todas las columnas esperadas existen";
+                }
+            },
+            {
+                name: "Columnas de Profiles",
+                category: "Esquema",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('profiles').select('id, username, full_name, email, role, team, cert_golf, cert_duplex, cert_oruga').limit(1);
+                    if (error) throw new Error(error.message);
+                    return "Todas las columnas esperadas existen";
+                }
+            },
+            {
+                name: "Operaciones Activas",
+                category: "Estado",
+                run: async () => {
+                    const { data, error, count } = await window.supabase.from('operations').select('*', { count: 'exact' }).eq('status', 'active');
+                    if (error) throw new Error(error.message);
+                    return `${data.length} operaciones activas en este momento`;
+                }
+            },
+            {
+                name: "Activos Disponibles",
+                category: "Estado",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('assets').select('*').eq('status', 'available');
+                    if (error) throw new Error(error.message);
+                    return `${data.length} activos disponibles`;
+                }
+            },
+            {
+                name: "Activos en Uso",
+                category: "Estado",
+                run: async () => {
+                    const { data, error } = await window.supabase.from('assets').select('*').eq('status', 'in_use');
+                    if (error) throw new Error(error.message);
+                    return `${data.length} activos en uso`;
+                }
+            }
+        ];
 
-        function log(msg, type = 'info') {
-            const span = document.createElement('div');
-            const colors = { info: '#0f0', error: '#f44', warn: '#f90' };
-            span.style.color = colors[type];
-            span.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            logArea.appendChild(span);
-            logArea.scrollTop = logArea.scrollHeight;
-            console.log(`[TEST] ${msg}`);
+        // Render initial state
+        function renderTests() {
+            const container = document.getElementById('test-results');
+            const categories = [...new Set(tests.map(t => t.category))];
+
+            let html = '';
+            categories.forEach(cat => {
+                html += `<div class="test-section"><h2>${cat}</h2>`;
+                tests.filter(t => t.category === cat).forEach((test, idx) => {
+                    html += `
+                        <div class="test-card" id="test-${test.name.replace(/\s/g, '-')}">
+                            <div class="test-title">
+                                <span class="status-icon status-pending" id="icon-${test.name.replace(/\s/g, '-')}">⏳</span>
+                                ${test.name}
+                            </div>
+                            <div class="test-result" id="result-${test.name.replace(/\s/g, '-')}">Esperando ejecución...</div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            });
+
+            container.innerHTML = html;
+            document.getElementById('total-tests').textContent = tests.length;
         }
 
-        const SCHEMA_REQUIRED = {
-            tables: ['profiles', 'assets', 'operations', 'reports', 'locations', 'airlines', 'asset_categories'],
-            columns: {
-                profiles: ['username', 'role', 'team', 'cert_golf', 'phone'],
-                assets: ['code', 'status', 'type', 'qr_url'],
-                operations: ['user_id', 'asset_id', 'status', 'return_photo_url'],
-                reports: ['asset_code', 'report_category', 'photo_url']
-            }
-        };
+        // Run all tests
+        window.runAllTests = async function () {
+            let passed = 0;
+            let failed = 0;
 
-        window.runDiagnostics = async () => {
-            log("Iniciando diagnóstico completo...", 'info');
-            logArea.innerHTML = '';
-            sqlContainer.style.display = 'none';
-            let missingQueries = "";
+            for (const test of tests) {
+                const id = test.name.replace(/\s/g, '-');
+                const icon = document.getElementById('icon-' + id);
+                const result = document.getElementById('result-' + id);
 
-            // 1. Test Supabase Connection
-            const connItem = document.getElementById('test-connection');
-            try {
-                const { data, error } = await supabase.from('profiles').select('count', { count: 'exact', head: true });
-                if (error) throw error;
-                connItem.innerHTML = `<span>Conectado a la Base de Datos</span> <span class="status-pill status-ok">OK</span>`;
-                log("Conexión con Supabase establecida correctamente.");
-            } catch (e) {
-                connItem.innerHTML = `<span>Error de Conexión</span> <span class="status-pill status-error">FALLÓ</span>`;
-                log("Error de conexión: " + e.message, 'error');
-                return;
-            }
-
-            // 2. SQL Schema Tester
-            const dbContainer = document.getElementById('db-tests');
-            dbContainer.innerHTML = '';
-
-            // Let's check tables one by one
-            for (const table of SCHEMA_REQUIRED.tables) {
-                const item = document.createElement('div');
-                item.className = 'test-item';
-                item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-pending">REVISANDO...</span>`;
-                dbContainer.appendChild(item);
+                icon.className = 'status-icon status-pending';
+                icon.textContent = '⏳';
+                result.textContent = 'Ejecutando...';
 
                 try {
-                    // Try selecting a single row or just checking if it exists
-                    const { error } = await supabase.from(table).select('*').limit(1);
-
-                    if (error) {
-                        if (error.code === '42P01') { // undefined_table
-                            item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-error">FALTA</span>`;
-                            log(`La tabla '${table}' no existe en la base de datos.`, 'error');
-                            missingQueries += `-- Crear tabla ${table} (Estructura base sugerida)\nCREATE TABLE public.${table} (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, created_at timestamp with time zone DEFAULT now());\n\n`;
-                        } else {
-                            log(`Error al verificar tabla ${table}: ${error.message}`, 'error');
-                            item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-warning">ERROR</span>`;
-                        }
-                    } else {
-                        item.innerHTML = `<span>Tabla: ${table}</span> <span class="status-pill status-ok">OK</span>`;
-                        log(`Tabla '${table}' encontrada.`);
-
-                        // Check columns if table exists
-                        if (SCHEMA_REQUIRED.columns[table]) {
-                            for (const col of SCHEMA_REQUIRED.columns[table]) {
-                                const colItem = document.createElement('div');
-                                colItem.className = 'test-item';
-                                colItem.style.paddingLeft = '30px';
-                                colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-pending">REVISANDO...</span>`;
-                                dbContainer.appendChild(colItem);
-
-                                // Test column by selecting it specifically
-                                const { error: colErr } = await supabase.from(table).select(col).limit(1);
-                                if (colErr && colErr.code === '42703') { // undefined_column
-                                    colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-error">FALTA</span>`;
-                                    log(`La columna '${col}' falta en la tabla '${table}'.`, 'error');
-                                    missingQueries += `-- Añadir columna ${col} a ${table}\nALTER TABLE public.${table} ADD COLUMN IF NOT EXISTS ${col} text;\n\n`;
-                                } else if (colErr) {
-                                    colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-warning">ALERTA</span>`;
-                                } else {
-                                    colItem.innerHTML = `<span>Columna: ${col}</span> <span class="status-pill status-ok">OK</span>`;
-                                }
-                            }
-                        }
-                    }
-                } catch (e) {
-                    log(`Excepción al revisar '${table}': ${e.message}`, 'error');
+                    const output = await test.run();
+                    icon.className = 'status-icon status-success';
+                    icon.textContent = '✓';
+                    result.textContent = '✅ ' + output;
+                    passed++;
+                } catch (err) {
+                    icon.className = 'status-icon status-error';
+                    icon.textContent = '✗';
+                    result.textContent = '❌ ERROR: ' + err.message;
+                    failed++;
                 }
             }
 
-            if (missingQueries) {
-                sqlContainer.style.display = 'block';
-                sqlContent.textContent = missingQueries;
-                log("Se detectaron fallos en el esquema. Generando sugerencias SQL.", 'warn');
-            } else {
-                log("Esquema verificado. Todo parece estar en orden.", 'info');
-            }
-
-            log("Pruebas finalizadas. Revise los estados individuales arriba.", 'info');
+            document.getElementById('passed-tests').textContent = passed;
+            document.getElementById('failed-tests').textContent = failed;
         };
 
-        window.copySql = () => {
-            navigator.clipboard.writeText(sqlContent.textContent);
-            alert("SQL Copiado");
-        }
+        // Initialize
+        renderTests();
     </script>
 
+    <script src="assets/js/common.js" type="module"></script>
 </body>
 
 </html>

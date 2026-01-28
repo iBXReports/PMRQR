@@ -7,13 +7,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Operaciones | PMRQR</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <!-- Check Performance Mode Immediately -->
+    <!-- Check Performance Mode Immediately - Default is LITE for all users -->
     <script>
         (function () {
             const mode = localStorage.getItem('performanceMode');
-            if (mode === 'lite') {
+            // Default to 'lite' if not set (new users) or if explicitly set to 'lite'
+            if (mode !== 'normal') {
                 document.write('<link rel="stylesheet" href="assets/css/lite-theme.css" id="lite-theme-css">');
-                document.documentElement.classList.add('lite-mode'); // Use HTML tag for faster painting
+                document.documentElement.classList.add('lite-mode');
             }
         })();
     </script>

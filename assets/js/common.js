@@ -46,10 +46,10 @@ window.addEventListener('storage', (e) => {
     }
 });
 
-// Lite Theme (Performance Mode)
+// Lite Theme (Performance Mode) - DEFAULT: 'lite' for all users
 export function applyPerformanceMode(mode) {
-    // mode: 'lite' or 'normal'
-    if (!mode) mode = localStorage.getItem('performanceMode') || 'normal';
+    // mode: 'lite' or 'normal' - Default is 'lite' for performance
+    if (!mode) mode = localStorage.getItem('performanceMode') || 'lite';
 
     if (mode === 'lite') {
         document.body.classList.add('lite-mode');
