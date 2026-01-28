@@ -103,16 +103,39 @@
 
 <body>
 
-    <nav class="glass">
+    <nav class="glass" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;">
+        <!-- 1. LOGO -->
         <div class="logo">
-            <a href="index.html"><img src="assets/imagenes/logocargo.png" alt="PMRQR Logo"></a>
+            <a href="index.html"><img src="assets/imagenes/logocargo.png" alt="PMRQR Logo" style="height: 50px;"></a>
         </div>
-        <div class="nav-links">
-            <button id="theme-toggle" class="theme-toggle">🌙</button>
-            <a href="index.html">Inicio</a>
-            <button id="logout-btn"
-                style="margin-left: 1rem; padding: 0.5rem 1rem; background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; border-radius: 8px; cursor: pointer;">Cerrar
-                Sesión</button>
+
+        <!-- 2. USER SESSION INFO -->
+        <div id="user-nav-container" class="hidden" style="display: flex; align-items: center; gap: 1rem;">
+
+            <div class="user-dropdown"
+                style="position: relative; cursor: pointer; display: flex; align-items: center; gap: 0.8rem;">
+                <!-- Name -->
+                <div style="text-align: right;">
+                    <span id="nav-user-name"
+                        style="display: block; font-weight: 700; color: var(--primary-color); font-size: 0.9rem;">Cargando...</span>
+                </div>
+
+                <!-- Avatar -->
+                <img id="nav-user-avatar" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
+                    alt="Avatar"
+                    style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;">
+
+                <!-- Dropdown Menu -->
+                <div class="dropdown-content">
+                    <a href="index.html"><i class="fas fa-home"></i> Volver a Inicio</a>
+                    <a href="admin/admin.html" id="nav-admin-link" class="hidden"><i class="fas fa-shield-alt"></i>
+                        Panel Admin</a>
+                    <button id="nav-theme-toggle"><i class="fas fa-moon"></i> Tema Claro/Oscuro</button>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); margin: 5px 0;"></div>
+                    <button id="nav-logout-btn" style="color: #ef4444;"><i class="fas fa-sign-out-alt"></i> Cerrar
+                        Sesión</button>
+                </div>
+            </div>
         </div>
     </nav>
 

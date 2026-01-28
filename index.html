@@ -26,10 +26,10 @@
             font-family: 'Outfit', sans-serif;
         }
 
-        /* Nav Dropdown */
         .user-dropdown {
             position: relative;
             display: inline-block;
+            cursor: pointer;
         }
 
         .dropdown-content {
@@ -39,12 +39,13 @@
             top: 100%;
             background-color: var(--card-bg);
             min-width: 200px;
-            box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             z-index: 1000;
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid var(--card-border);
-            margin-top: 10px;
+            /* Removed margin-top to fix hover gap */
+            backdrop-filter: blur(10px);
         }
 
         .dropdown-content a,
@@ -62,15 +63,111 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .dropdown-content a:hover,
-        .dropdown-content button:hover {
-            background-color: var(--primary-color);
-            color: white;
+        /* Show on Hover OR Active class (Click) */
+        /* Modern User Dropdown */
+        .user-dropdown {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 30px;
+            transition: background 0.2s ease;
         }
 
-        .user-dropdown:hover .dropdown-content,
+        .user-dropdown:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 120%;
+            /* Slight offset for better visual separation */
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            min-width: 260px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            animation: fadeInDown 0.2s ease-out;
+            padding: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-content a,
+        .dropdown-content button {
+            color: var(--text-color);
+            padding: 14px 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            background: transparent;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-content a:last-child,
+        .dropdown-content button:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Hover States with Gradients */
+        .dropdown-content a:hover,
+        .dropdown-content button:hover {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            transform: translateX(5px);
+            color: var(--primary-color);
+        }
+
+        .dropdown-content .logout-btn:hover {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, rgba(244, 63, 94, 0.1) 100%);
+            color: #ef4444;
+        }
+
+        /* Icons in Dropdown */
+        .dropdown-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
         .user-dropdown.active .dropdown-content {
             display: block;
+        }
+
+        /* Divider */
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.05);
+            margin: 8px 10px;
+        }
+
+        [data-theme="dark"] .dropdown-divider {
+            background: rgba(255, 255, 255, 0.1);
         }
 
 
@@ -159,13 +256,40 @@
 
 <body>
 
-    <nav class="glass">
+    <nav class="glass" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;">
+        <!-- 1. LOGO (Always Visible) -->
         <div class="logo">
-            <img src="assets/imagenes/logocargo.png" alt="PMRQR Logo">
+            <img src="assets/imagenes/logocargo.png" alt="PMRQR Logo" style="height: 50px;">
         </div>
-        <div class="nav-links">
-            <button id="theme-toggle" class="theme-toggle">🌙</button>
-            <a href="profile.html" id="user-link">Perfil</a>
+
+        <!-- 2. USER SESSION INFO (Hidden by default, shown if logged in) -->
+        <div id="user-nav-container" class="hidden" style="display: flex; align-items: center; gap: 1rem;">
+
+            <div class="user-dropdown"
+                style="position: relative; cursor: pointer; display: flex; align-items: center; gap: 0.8rem;">
+                <!-- Name & Role -->
+                <div style="text-align: right;">
+                    <span id="nav-user-name"
+                        style="display: block; font-weight: 700; color: var(--primary-color); font-size: 0.9rem;">Cargando...</span>
+                    <!-- Optional: Show Role -->
+                </div>
+
+                <!-- Avatar -->
+                <img id="nav-user-avatar" src="https://ui-avatars.com/api/?name=User&background=6366f1&color=fff"
+                    alt="Avatar"
+                    style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;">
+
+                <!-- Dropdown Menu -->
+                <div class="dropdown-content">
+                    <a href="profile.html"><span class="dropdown-icon">👤</span> Mi Perfil</a>
+                    <a href="admin/admin.html" id="nav-admin-link" class="hidden"><span class="dropdown-icon">🛡️</span>
+                        Panel Admin</a>
+                    <button id="nav-theme-toggle"><span class="dropdown-icon">🌓</span> Cambiar Tema</button>
+                    <div class="dropdown-divider"></div>
+                    <button id="nav-logout-btn" class="logout-btn" style="color: #ef4444;"><span
+                            class="dropdown-icon">🚪</span> Cerrar Sesión</button>
+                </div>
+            </div>
         </div>
     </nav>
 
