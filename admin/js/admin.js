@@ -696,6 +696,60 @@ async function loadAssets() {
             `;
             tbody.appendChild(tr);
         });
+        // --- GALLERY OF RETURNS ---
+        const galleryContainer = document.getElementById('asset-gallery-grid');
+        if (galleryContainer) {
+            // Fetch last 20 operations with photos
+            const { data: galleryOps, error: galleryError } = await supabase
+                .from('operations')
+                .select('*, assets(code, type), profiles(full_name)')
+                .eq('status', 'completed')
+                .neq('return_photo_url', null) // Correct column for return photos
+                .order('end_time', { ascending: false })
+                .limit(20);
+
+            if (!galleryError && galleryOps && galleryOps.length > 0) {
+                galleryContainer.innerHTML = '';
+                galleryOps.forEach(op => {
+                    const dateObj = new Date(op.end_time);
+                    const date = dateObj.toLocaleDateString();
+                    const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const startTime = new Date(op.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    const card = document.createElement('div');
+                    card.className = 'glass';
+                    card.style.cssText = 'position: relative; overflow: hidden; border-radius: 16px; aspect-ratio: 1; group; cursor: pointer; border: 1px solid var(--card-border);';
+
+                    // Image Background
+                    card.innerHTML = `
+                    <div style="position: absolute; inset: 0; background-image: url('${op.return_photo_url}'); background-size: cover; background-position: center; transition: transform 0.3s ease;">
+                    </div>
+                    <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.3) 50%, transparent 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 1rem;">
+                        <span class="badge active" style="align-self: flex-start; margin-bottom: auto; backdrop-filter: blur(4px);">${op.assets?.code}</span>
+                        
+                        <div style="color: white; font-size: 0.9rem; font-weight: 600;">${op.profiles?.full_name || 'Agente'}</div>
+                        <div style="color: rgba(255,255,255,0.7); font-size: 0.75rem;"><i class="fas fa-map-marker-alt"></i> ${op.end_point || 'Base'}</div>
+                        <div style="color: rgba(255,255,255,0.7); font-size: 0.75rem; margin-top: 4px;">
+                            <i class="fas fa-clock"></i> ${startTime} - ${time} <br>
+                            <i class="fas fa-calendar"></i> ${date}
+                        </div>
+                    </div>
+                `;
+
+                    // Hover effect logic via JS or CSS class
+                    card.onmouseenter = () => { card.children[0].style.transform = 'scale(1.1)'; };
+                    card.onmouseleave = () => { card.children[0].style.transform = 'scale(1)'; };
+
+                    // Open full image on click
+                    card.onclick = () => window.open(op.return_photo_url, '_blank');
+
+                    galleryContainer.appendChild(card);
+                });
+            } else {
+                galleryContainer.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem; opacity: 0.5;">No hay fotos de devoluciones recientes.</div>';
+            }
+        }
+
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center error">Error: ${err.message}</td></tr>`;
     }

@@ -638,31 +638,26 @@
                 grid-template-columns: 1fr;
                 /* Stack settings cards */
             }
-        }
 
-        padding: 1rem;
-        width: 100%;
-        }
+            .menu-toggle {
+                display: block;
+            }
 
-        .menu-toggle {
-            display: block;
-        }
+            .admin-header {
+                padding: 0.8rem 1rem;
+                top: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
 
-        .admin-header {
-            padding: 0.8rem 1rem;
-            top: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
+            .admin-header h1 {
+                font-size: 1.1rem !important;
+            }
 
-        .admin-header h1 {
-            font-size: 1.1rem !important;
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            min-width: 32px;
-        }
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                min-width: 32px;
+            }
         }
     </style>
 </head>
@@ -1025,6 +1020,20 @@
                 <div id="assets-category-stats"
                     style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
                     <!-- JS will inject category pills here -->
+                </div>
+
+                <!-- Gallery Section -->
+                <div class="glass"
+                    style="padding: 1.5rem; margin-bottom: 2rem; border-left: 4px solid var(--primary-color);">
+                    <h4 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fas fa-camera"></i> Galería de
+                        Devoluciones</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 1rem;">Confirmación visual de las últimas
+                        entregas de equipo.</p>
+                    <div id="asset-gallery-grid"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+                        <div style="grid-column: 1/-1; text-align: center; padding: 2rem; opacity: 0.5;">Cargando
+                            fotos...</div>
+                    </div>
                 </div>
 
                 <div style="overflow-x: auto;">

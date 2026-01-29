@@ -339,6 +339,9 @@ async function handleAssetScan(e, forceReturn = false) {
         }
     }
 
+    // --- FIX: Cleanup prefixes (INICIO/DEVOL) common in QR generation ---
+    code = code.replace(/^(INICIO|DEVOL)/, '');
+
     if (loader) loader.classList.remove('hidden');
 
     try {
@@ -393,9 +396,12 @@ async function handleAssetScan(e, forceReturn = false) {
             // Try to guess from text even if not in DB
             const parts = code.split(/[-_]/);
             const number = parts.length > 1 ? parts[parts.length - 1] : '';
-            const typeGuess = code.toLowerCase().includes('carrito') ? 'Carrito de Golf' :
-                code.toLowerCase().includes('oruga') ? 'Silla Oruga' :
-                    code.toLowerCase().includes('duplex') ? 'Carrito Duplex' : 'Equipo';
+
+            const lowerCode = code.toLowerCase();
+            const typeGuess = lowerCode.includes('golf') ? 'Carrito de Golf' :
+                lowerCode.includes('oruga') ? 'Silla Oruga' :
+                    lowerCode.includes('duplex') ? 'Carrito Duplex' :
+                        lowerCode.includes('silla') ? 'Silla de Ruedas' : 'Equipo';
 
             if (number) displayName = `${typeGuess} ${number}`;
 
@@ -447,7 +453,10 @@ async function handleAssetScan(e, forceReturn = false) {
                 // Extract number from code if possible (e.g. SILLA-01 -> 01)
                 const parts = code.split(/[-_]/);
                 const number = parts.length > 1 ? parts[parts.length - 1] : '';
-                displayName = `${asset.type} ${number}`;
+
+                // Capitalize Type
+                const typeStr = asset.type.charAt(0).toUpperCase() + asset.type.slice(1);
+                displayName = `${typeStr} ${number}`;
             }
 
             document.getElementById('asset-code-display').textContent = displayName;

@@ -88,6 +88,13 @@ window.loadSettingTable = async function (type, title) {
         });
     }
 
+    // Adjust Grid for Airlines (Smaller cards)
+    if (type === 'airlines') {
+        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+    } else {
+        container.style.gridTemplateColumns = '';
+    }
+
     const { data, error } = await query;
 
     // If Asset Categories, also fetch counts
@@ -123,40 +130,35 @@ window.loadSettingTable = async function (type, title) {
             card.className = 'airline-card hover-scale';
             const bgImage = item.logo_url ? `url('${item.logo_url}')` : 'none';
 
+            // User requested: Smaller cards, Logo as background.
+            // visual: White card, contained logo, floating actions and name.
             card.style.cssText = `
                 position: relative;
-                height: 120px;
-                background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.9)), ${bgImage};
-                background-size: cover;
-                background-position: center;
+                height: 100px; 
+                background: #ffffff ${bgImage} center/ 80% auto no-repeat;
                 border-radius: 16px;
-                padding: 1rem;
+                padding: 0.5rem;
                 display: flex;
                 flex-direction: column;
                 justify-content: flex-end;
-                color: white;
-                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-                border: 1px solid rgba(255,255,255,0.1);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                border: 1px solid rgba(0,0,0,0.1);
                 overflow: hidden;
             `;
 
             card.innerHTML = `
-                <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
-                    <button onclick="openCrudModal('${safeItem}')" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; backdrop-filter: blur(4px);">
-                        <i class="fas fa-edit" style="font-size: 0.8rem;"></i>
+                <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px;">
+                    <button onclick="openCrudModal('${safeItem}')" style="background: rgba(99, 102, 241, 0.9); border: none; color: white; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-edit" style="font-size: 0.7rem;"></i>
                     </button>
-                    <button onclick="deleteSetting('${item.id}')" style="background: rgba(239,68,68,0.8); border: none; color: white; border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">
-                        <i class="fas fa-trash-alt" style="font-size: 0.8rem;"></i>
+                    <button onclick="deleteSetting('${item.id}')" style="background: rgba(239, 68, 68, 0.9); border: none; color: white; border-radius: 6px; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-trash-alt" style="font-size: 0.7rem;"></i>
                     </button>
                 </div>
-                <div>
-                    <h4 style="margin: 0; font-size: 1.2rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${item.name || 'Sin Nombre'}</h4>
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
-                        <span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 6px; backdrop-filter: blur(4px);">
-                            ${item.iata_code || '-'}
-                        </span>
-                        ${item.logo_url ? '' : '<i class="fas fa-plane" style="opacity: 0.5;"></i>'} 
-                    </div>
+                
+                <div style="background: rgba(0,0,0,0.75); backdrop-filter: blur(2px); border-radius: 8px; padding: 4px 8px; display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-weight: 700; color: white; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name || 'Sin Nombre'}</span>
+                    <span style="font-size: 0.7rem; color: #fbbf24; font-weight: 800; margin-left: 5px;">${item.iata_code || ''}</span>
                 </div>
             `;
             container.appendChild(card);
