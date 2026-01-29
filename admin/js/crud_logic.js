@@ -115,112 +115,159 @@ window.loadSettingTable = async function (type, title) {
     }
 
     data.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'modern-card';
-
-        let iconContent = '';
-        if (config.hasLogo) {
-            iconContent = item.logo_url
-                ? `<img src="${item.logo_url}" alt="${item.name}">`
-                : `<i class="fas fa-plane"></i>`;
-        } else {
-            const icons = {
-                'origin': 'fa-plane-departure',
-                'destination': 'fa-plane-arrival',
-                'gate': 'fa-door-open',
-                'gate_arrival': 'fa-sign-in-alt',
-                'bridge': 'fa-bridge',
-                'assets': 'fa-tools',
-                'asset_categories': 'fa-tags'
-            };
-
-            // Override with specific asset icons
-            if (type === 'assets') {
-                const assetIcons = {
-                    'silla de ruedas': 'fa-wheelchair',
-                    'silla de pasillo': 'fa-chair',
-                    'silla oruga': 'fa-truck-monster',
-                    'carrito de golf': 'fa-golf-cart',
-                    'carrito duplex': 'fa-bus'
-                };
-                const assetType = (item.type || '').toLowerCase();
-                iconContent = `<i class="fas ${assetIcons[assetType] || 'fa-tools'}"></i>`;
-            } else {
-                iconContent = `<i class="fas ${icons[type] || 'fa-map-marker-alt'}"></i>`;
-            }
-        }
-
         const safeItem = encodeURIComponent(JSON.stringify(item));
 
-        card.innerHTML = `
-            <div class="card-header">
-                <div class="card-icon-wrapper">${iconContent}</div>
-                <div class="card-title-area">
-                    <h4 class="card-title">${item.name || item.code}</h4>
-                    <span class="card-subtitle">${config.label}</span>
-                </div>
-            </div>
-            <div class="card-body">
-                ${config.hasIata ? `
-                <div class="card-info-item">
-                    <span class="info-label">IATA</span>
-                    <span class="info-value">${item.iata_code || '-'}</span>
-                </div>` : ''}
-                ${config.hasTerminal ? `
-                <div class="card-info-item">
-                    <span class="info-label">Terminal</span>
-                    <span class="info-value">${item.terminal || '-'}</span>
-                </div>` : ''}
-                ${config.isCategory ? `
-                <div class="card-info-item" style="grid-column: 1 / -1;">
-                    <span class="info-label">Equipos Registrados</span>
-                    <span class="info-value" style="font-weight: 800; font-size: 1.2rem;">
-                        ${assetCounts[(item.name || '').toLowerCase()] || 0}
-                    </span>
-                </div>` : ''}
-                ${config.isAsset ? `
-                <div class="card-info-item">
-                    <span class="info-label">Tipo</span>
-                    <span class="info-value" style="text-transform: capitalize;">${item.type}</span>
-                </div>
-                <div class="card-info-item">
-                    <span class="info-label">Estado</span>
-                    <span class="badge ${item.status === 'available' ? 'active' : 'warning'}">${item.status === 'available' ? 'Disponible' : 'En Uso'}</span>
-                </div>
-                <div class="card-info-item" style="grid-column: 1 / -1; margin-top: 10px;">
-                    <span class="info-label" style="display:block; margin-bottom:5px;">🔗 Link Inicio</span>
-                    <input type="text" readonly value="${item.start_link || 'No generado'}" style="width: 100%; font-size: 0.7rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(0,0,0,0.2); color: var(--text-color);">
-                </div>
-                <div class="card-info-item" style="grid-column: 1 / -1;">
-                    <span class="info-label" style="display:block; margin-bottom:5px;">🔗 Link Devolución</span>
-                    <input type="text" readonly value="${item.return_link || 'No generado'}" style="width: 100%; font-size: 0.7rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(0,0,0,0.2); color: var(--text-color);">
-                </div>` : ''}
-            </div>
-            <div class="card-footer">
-                ${config.isAsset ? `
-                <div style="display: flex; align-items: center; gap: 10px; margin-right: auto;">
-                    <input type="checkbox" class="bulk-check" value="${item.id}" onchange="toggleBulkSelect()" style="width: 18px; height: 18px; cursor: pointer;">
-                    <span style="font-size: 0.8rem; opacity: 0.7;">Select</span>
-                </div>` : ''}
-                <div class="action-group">
-                    ${config.isAsset ? `
-                    <button class="btn-action btn-whatsapp" title="Imprimir QR" onclick="printAssetQR('${safeItem}')" style="background:var(--primary-color); color:white; border:none;">
-                        <i class="fas fa-qrcode"></i>
-                    </button>` : ''}
-                    <button class="btn-action btn-edit" title="Editar" onclick="openCrudModal('${safeItem}')">
-                        <i class="fas fa-edit"></i>
+        if (type === 'airlines') {
+            // SPECIAL COMPACT AIRLINE CARD WITH BACKGROUND
+            const card = document.createElement('div');
+            card.className = 'airline-card hover-scale';
+            const bgImage = item.logo_url ? `url('${item.logo_url}')` : 'none';
+
+            card.style.cssText = `
+                position: relative;
+                height: 120px;
+                background: linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.9)), ${bgImage};
+                background-size: cover;
+                background-position: center;
+                border-radius: 16px;
+                padding: 1rem;
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                color: white;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+                border: 1px solid rgba(255,255,255,0.1);
+                overflow: hidden;
+            `;
+
+            card.innerHTML = `
+                <div style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
+                    <button onclick="openCrudModal('${safeItem}')" style="background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; backdrop-filter: blur(4px);">
+                        <i class="fas fa-edit" style="font-size: 0.8rem;"></i>
                     </button>
-                    ${!config.isAsset ? `
-                    <button class="btn-action btn-delete" title="Eliminar" onclick="deleteSetting('${item.id}')">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>` : `
-                    <button class="btn-action btn-delete" title="Eliminar" onclick="deleteAsset('${item.id}')">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>`}
+                    <button onclick="deleteSetting('${item.id}')" style="background: rgba(239,68,68,0.8); border: none; color: white; border-radius: 50%; width: 28px; height: 28px; cursor: pointer;">
+                        <i class="fas fa-trash-alt" style="font-size: 0.8rem;"></i>
+                    </button>
                 </div>
-            </div>
-        `;
-        container.appendChild(card);
+                <div>
+                    <h4 style="margin: 0; font-size: 1.2rem; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">${item.name || 'Sin Nombre'}</h4>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+                        <span style="font-size: 0.8rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 6px; backdrop-filter: blur(4px);">
+                            ${item.iata_code || '-'}
+                        </span>
+                        ${item.logo_url ? '' : '<i class="fas fa-plane" style="opacity: 0.5;"></i>'} 
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        } else {
+            // STANDARD MODERN CARD
+            const card = document.createElement('div');
+            card.className = 'modern-card';
+
+            let iconContent = '';
+            // Icons logic for standard cards
+            if (config.hasLogo) {
+                iconContent = item.logo_url
+                    ? `<img src="${item.logo_url}" alt="${item.name}">`
+                    : `<i class="fas fa-plane"></i>`;
+            } else {
+                const icons = {
+                    'origin': 'fa-plane-departure',
+                    'destination': 'fa-plane-arrival',
+                    'gate': 'fa-door-open',
+                    'gate_arrival': 'fa-sign-in-alt',
+                    'bridge': 'fa-bridge',
+                    'assets': 'fa-tools',
+                    'asset_categories': 'fa-tags'
+                };
+
+                // Override with specific asset icons
+                if (type === 'assets') {
+                    const assetIcons = {
+                        'silla de ruedas': 'fa-wheelchair',
+                        'silla de pasillo': 'fa-chair',
+                        'silla oruga': 'fa-truck-monster',
+                        'carrito de golf': 'fa-golf-cart',
+                        'carrito duplex': 'fa-bus'
+                    };
+                    const assetType = (item.type || '').toLowerCase();
+                    iconContent = `<i class="fas ${assetIcons[assetType] || 'fa-tools'}"></i>`;
+                } else {
+                    iconContent = `<i class="fas ${icons[type] || 'fa-map-marker-alt'}"></i>`;
+                }
+            }
+
+            card.innerHTML = `
+                <div class="card-header">
+                    <div class="card-icon-wrapper">${iconContent}</div>
+                    <div class="card-title-area">
+                        <h4 class="card-title">${item.name || item.code}</h4>
+                        <span class="card-subtitle">${config.label}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    ${config.hasIata ? `
+                    <div class="card-info-item">
+                        <span class="info-label">IATA</span>
+                        <span class="info-value">${item.iata_code || '-'}</span>
+                    </div>` : ''}
+                    ${config.hasTerminal ? `
+                    <div class="card-info-item">
+                        <span class="info-label">Terminal</span>
+                        <span class="info-value">${item.terminal || '-'}</span>
+                    </div>` : ''}
+                    ${config.isCategory ? `
+                    <div class="card-info-item" style="grid-column: 1 / -1;">
+                        <span class="info-label">Equipos Registrados</span>
+                        <span class="info-value" style="font-weight: 800; font-size: 1.2rem;">
+                            ${assetCounts[(item.name || '').toLowerCase()] || 0}
+                        </span>
+                    </div>` : ''}
+                    ${config.isAsset ? `
+                    <div class="card-info-item">
+                        <span class="info-label">Tipo</span>
+                        <span class="info-value" style="text-transform: capitalize;">${item.type}</span>
+                    </div>
+                    <div class="card-info-item">
+                        <span class="info-label">Estado</span>
+                        <span class="badge ${item.status === 'available' ? 'active' : 'warning'}">${item.status === 'available' ? 'Disponible' : 'En Uso'}</span>
+                    </div>
+                    <div class="card-info-item" style="grid-column: 1 / -1; margin-top: 10px;">
+                        <span class="info-label" style="display:block; margin-bottom:5px;">🔗 Link Inicio</span>
+                        <input type="text" readonly value="${item.start_link || 'No generado'}" style="width: 100%; font-size: 0.7rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(0,0,0,0.2); color: var(--text-color);">
+                    </div>
+                    <div class="card-info-item" style="grid-column: 1 / -1;">
+                        <span class="info-label" style="display:block; margin-bottom:5px;">🔗 Link Devolución</span>
+                        <input type="text" readonly value="${item.return_link || 'No generado'}" style="width: 100%; font-size: 0.7rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(0,0,0,0.2); color: var(--text-color);">
+                    </div>` : ''}
+                </div>
+                <div class="card-footer">
+                    ${config.isAsset ? `
+                    <div style="display: flex; align-items: center; gap: 10px; margin-right: auto;">
+                        <input type="checkbox" class="bulk-check" value="${item.id}" onchange="toggleBulkSelect()" style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="font-size: 0.8rem; opacity: 0.7;">Select</span>
+                    </div>` : ''}
+                    <div class="action-group">
+                        ${config.isAsset ? `
+                        <button class="btn-action btn-whatsapp" title="Imprimir QR" onclick="printAssetQR('${safeItem}')" style="background:var(--primary-color); color:white; border:none;">
+                            <i class="fas fa-qrcode"></i>
+                        </button>` : ''}
+                        <button class="btn-action btn-edit" title="Editar" onclick="openCrudModal('${safeItem}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        ${!config.isAsset ? `
+                        <button class="btn-action btn-delete" title="Eliminar" onclick="deleteSetting('${item.id}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>` : `
+                        <button class="btn-action btn-delete" title="Eliminar" onclick="deleteAsset('${item.id}')">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>`}
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        }
     });
 }
 

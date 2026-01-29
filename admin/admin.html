@@ -675,7 +675,7 @@
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
         <div class="sidebar-logo">
-            <img src="../assets/imagenes/logocargo.png" alt="Logo">
+            <img src="../assets/imagenes/logoclaro.png" alt="Logo">
             <span>PMRQR</span>
         </div>
 
@@ -738,6 +738,11 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn-action" onclick="document.getElementById('admin-guide-modal').style.display='flex'"
+                    style="background:transparent; border:none; color:var(--text-color); font-size:1.2rem; cursor:pointer;"
+                    title="Guía Admin">
+                    <i class="fas fa-question-circle"></i>
+                </button>
                 <div class="user-dropdown" id="admin-user-dropdown">
                     <!-- Name -->
                     <div style="text-align: right;">
@@ -761,6 +766,44 @@
                 </div>
             </div>
         </header>
+
+        <!-- ADMIN GUIDE MODAL -->
+        <div id="admin-guide-modal"
+            style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+            <div class="glass"
+                style="max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 2rem; position: relative; background: var(--card-bg);">
+                <button onclick="document.getElementById('admin-guide-modal').style.display='none'"
+                    style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                <h2 style="color: var(--primary-color); margin-top: 0;">🛡️ Guía de Administración</h2>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #a855f7;">📊 Dashboard & Monitor</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">Visualiza métricas en tiempo real. Usa la pestaña
+                        "Monitor" para ver las operaciones activas, filtrar por estado y gestionar incidencias.</p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #3b82f6;">👥 Usuarios y Permisos</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">Gestiona agentes y roles. Puedes buscar usuarios por
+                        nombre/email y descargar la lista completa en XLS, CSV u ODT.</p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #10b981;">⚙️ Ajustes y Activos</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">Configura Aerolíneas (con logos), Puentes, Gates y crea
+                        nuevos Activos (Sillas/Carros). Imprime los códigos QR directamente desde aquí.</p>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: #f59e0b;">📈 Reportes</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.8;">Genera informes detallados de operación y exporta la
+                        data para análisis externo.</p>
+                </div>
+
+                <button class="btn" onclick="document.getElementById('admin-guide-modal').style.display='none'">Cerrar
+                    Guía</button>
+            </div>
+        </div>
 
         <!-- 1. DASHBOARD -->
         <div id="view-dashboard" class="content-view">
@@ -1007,6 +1050,38 @@
             <div class="glass content-section" style="padding: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3>👥 Usuarios y Permisos</h3>
+                </div>
+
+                <!-- SEARCH & EXPORT TOOLS -->
+                <div
+                    style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <div style="position: relative;">
+                            <i class="fas fa-search"
+                                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5;"></i>
+                            <input type="text" id="user-search-input"
+                                placeholder="Buscar agente (Nombre, Email, Team)..." class="input-style"
+                                style="width: 100%; padding-left: 35px; border: 1px solid rgba(255,255,255,0.2);">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="exportUsers('xlsx')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-excel" style="color: #10b981;"></i> XLSX
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportUsers('xls')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-excel" style="color: #10b981;"></i> XLS
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportUsers('csv')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-csv" style="color: #3b82f6;"></i> CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportUsers('odt')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-alt" style="color: #f59e0b;"></i> ODT
+                        </button>
+                    </div>
                 </div>
                 <div class="table-container" style="overflow-x: auto;">
                     <table id="users-table" class="mini-table" style="width: 100%; font-size: 0.85rem;">

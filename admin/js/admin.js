@@ -711,89 +711,167 @@ window.copyToClipboard = function (text) {
 }
 
 // --- USERS ---
-function loadUsers() {
+// --- USERS ---
+let allUsersCache = [];
+
+async function loadUsers() {
     const tbody = document.querySelector('#users-table tbody');
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 2rem; opacity: 0.5;">Cargando...</td></tr>';
 
-    supabase.from('profiles').select('*').order('full_name').then(({ data, error }) => {
-        tbody.innerHTML = '';
-        // --- STRICT HIDE HIDDEN ADMIN FROM USER LIST ---
-        const filteredData = (data || []).filter(u =>
+    try {
+        const { data, error } = await supabase.from('profiles').select('*').order('full_name');
+        if (error) throw error;
+
+        // Filter hidden admins
+        allUsersCache = (data || []).filter(u =>
             !['administrador', 'stbck'].includes(u.username?.toLowerCase()) &&
             !['administrador sistema', 'administrador stbck'].includes(u.full_name?.toLowerCase())
         );
 
-        if (filteredData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:2rem; opacity:0.5;">No hay usuarios registrados.</td></tr>';
-            return;
+        renderUsers(allUsersCache);
+
+        // Setup search listener
+        const searchInput = document.getElementById('user-search-input');
+        if (searchInput && !searchInput.dataset.listener) {
+            searchInput.addEventListener('input', (e) => filterUsers(e.target.value));
+            searchInput.dataset.listener = "true";
         }
 
-        filteredData.forEach(user => {
-            const tr = document.createElement('tr');
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center error">Error: ${err.message}</td></tr>`;
+    }
+}
 
-            tr.innerHTML = `
-                <td>
-                    <img src="${user.avatar_url || '../assets/imagenes/avatarcargo.png'}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
-                </td>
-                <td>
-                    <div style="font-weight:600;">${user.full_name || user.username || 'Sin Nombre'}</div>
-                    <div style="font-size:0.75rem; opacity:0.6;">@${user.username}</div>
-                </td>
-                <td>
-                    <select onchange="updateUserRole('${user.id}', this.value)" class="input-style" style="padding:0.2rem; font-size:0.8rem; width:auto;">
-                        <option value="Agente" ${user.role === 'Agente' ? 'selected' : ''}>Agente</option>
-                        <option value="Supervisor" ${user.role === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
-                        <option value="CDO" ${user.role === 'CDO' ? 'selected' : ''}>CDO</option>
-                        <option value="admin" ${user.role?.toLowerCase() === 'admin' ? 'selected' : ''}>Admin</option>
-                    </select>
-                </td>
-                <td>
-                    <select onchange="updateUserTeam('${user.id}', this.value)" class="input-style" style="padding:0.2rem; font-size:0.8rem; width:auto;">
-                        <option value="Team OLA" ${user.team === 'Team OLA' ? 'selected' : ''}>Team OLA</option>
-                        <option value="Team Latam" ${user.team === 'Team Latam' ? 'selected' : ''}>Team Latam</option>
-                    </select>
-                </td>
-                <td>
-                    <div style="display:flex; flex-direction:column; gap:4px; font-size:0.7rem;">
-                        ${user.cert_golf ? `
-                        <span class="cert-badge cert-golf active" 
-                              onclick="toggleCert('${user.id}', 'cert_golf', false)">
-                            🏌️ Golf
-                        </span>` : ''}
-                        ${user.cert_duplex ? `
-                        <span class="cert-badge cert-duplex active" 
-                              onclick="toggleCert('${user.id}', 'cert_duplex', false)">
-                            🚌 Duplex
-                        </span>` : ''}
-                        ${user.cert_oruga ? `
-                        <span class="cert-badge cert-oruga active" 
-                              onclick="toggleCert('${user.id}', 'cert_oruga', false)">
-                            🚜 Oruga
-                        </span>` : ''}
-                        ${!user.cert_golf && !user.cert_duplex && !user.cert_oruga ? '<span style="opacity:0.4;">Sin cursos</span>' : ''}
-                    </div>
-                </td>
-                <td style="font-size:0.75rem;">${user.email || '-'}</td>
-                <td style="font-size:0.75rem;">${user.phone || '-'}</td>
-                <td>${user.commune || '-'}</td>
-                <td style="font-size:0.75rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${user.address || ''}">
-                    ${user.address || '-'}
-                </td>
-                <td>
-                    <div class="action-group">
-                        <button class="btn-action btn-edit" title="Editar Usuario" onclick="editUser('${user.id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-action btn-delete" title="Eliminar Usuario" onclick="deleteUser('${user.id}')">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
+function filterUsers(query) {
+    if (!query) {
+        renderUsers(allUsersCache);
+        return;
+    }
+    const lowerQ = query.toLowerCase();
+    const filtered = allUsersCache.filter(u =>
+        (u.full_name || '').toLowerCase().includes(lowerQ) ||
+        (u.username || '').toLowerCase().includes(lowerQ) ||
+        (u.email || '').toLowerCase().includes(lowerQ) ||
+        (u.team || '').toLowerCase().includes(lowerQ)
+    );
+    renderUsers(filtered);
+}
+
+function renderUsers(usersList) {
+    const tbody = document.querySelector('#users-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (usersList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:2rem; opacity:0.5;">No se encontraron usuarios.</td></tr>';
+        return;
+    }
+
+    usersList.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <img src="${user.avatar_url || '../assets/imagenes/avatarcargo.png'}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
+            </td>
+            <td>
+                <div style="font-weight:600;">${user.full_name || user.username || 'Sin Nombre'}</div>
+                <div style="font-size:0.75rem; opacity:0.6;">@${user.username}</div>
+            </td>
+            <td>
+                <select onchange="updateUserRole('${user.id}', this.value)" class="input-style" style="padding:0.2rem; font-size:0.8rem; width:auto;">
+                    <option value="Agente" ${user.role === 'Agente' ? 'selected' : ''}>Agente</option>
+                    <option value="Supervisor" ${user.role === 'Supervisor' ? 'selected' : ''}>Supervisor</option>
+                    <option value="CDO" ${user.role === 'CDO' ? 'selected' : ''}>CDO</option>
+                    <option value="admin" ${user.role?.toLowerCase() === 'admin' ? 'selected' : ''}>Admin</option>
+                </select>
+            </td>
+            <td>
+                <select onchange="updateUserTeam('${user.id}', this.value)" class="input-style" style="padding:0.2rem; font-size:0.8rem; width:auto;">
+                    <option value="Team OLA" ${user.team === 'Team OLA' ? 'selected' : ''}>Team OLA</option>
+                    <option value="Team Latam" ${user.team === 'Team Latam' ? 'selected' : ''}>Team Latam</option>
+                </select>
+            </td>
+            <td>
+                <div style="display:flex; flex-direction:column; gap:4px; font-size:0.7rem;">
+                    ${user.cert_golf ? `
+                    <span class="cert-badge cert-golf active" 
+                          onclick="toggleCert('${user.id}', 'cert_golf', false)">
+                        🏌️ Golf
+                    </span>` : ''}
+                    ${user.cert_duplex ? `
+                    <span class="cert-badge cert-duplex active" 
+                          onclick="toggleCert('${user.id}', 'cert_duplex', false)">
+                        🚌 Duplex
+                    </span>` : ''}
+                    ${user.cert_oruga ? `
+                    <span class="cert-badge cert-oruga active" 
+                          onclick="toggleCert('${user.id}', 'cert_oruga', false)">
+                        🚜 Oruga
+                    </span>` : ''}
+                    ${!user.cert_golf && !user.cert_duplex && !user.cert_oruga ? '<span style="opacity:0.4;">Sin cursos</span>' : ''}
+                </div>
+            </td>
+            <td style="font-size:0.75rem;">${user.email || '-'}</td>
+            <td style="font-size:0.75rem;">${user.phone || '-'}</td>
+            <td>${user.commune || '-'}</td>
+            <td style="font-size:0.75rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${user.address || ''}">
+                ${user.address || '-'}
+            </td>
+            <td>
+                <div class="action-group">
+                    <button class="btn-action btn-edit" title="Editar Usuario" onclick="editUser('${user.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-action btn-delete" title="Eliminar Usuario" onclick="deleteUser('${user.id}')">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
     });
+}
+
+window.exportUsers = function (format) {
+    if (!allUsersCache || allUsersCache.length === 0) {
+        alert("No hay usuarios para exportar.");
+        return;
+    }
+
+    // Transform data for export
+    const exportData = allUsersCache.map(u => ({
+        "Nombre Completo": u.full_name || u.username,
+        "Usuario": u.username,
+        "Rol": u.role,
+        "Team": u.team,
+        "Email": u.email,
+        "Teléfono": u.phone,
+        "Comuna": u.commune,
+        "Dirección": u.address,
+        "Cursos": [
+            u.cert_golf ? 'Golf' : '',
+            u.cert_duplex ? 'Duplex' : '',
+            u.cert_oruga ? 'Oruga' : ''
+        ].filter(Boolean).join(', ')
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `PMRQR_Usuarios_${dateStr}`;
+
+    if (format === 'csv') {
+        XLSX.writeFile(wb, `${filename}.csv`, { bookType: 'csv' });
+    } else if (format === 'xls') {
+        XLSX.writeFile(wb, `${filename}.xls`, { bookType: 'xlsb' });
+    } else if (format === 'odt') {
+        XLSX.writeFile(wb, `${filename}.odt`, { bookType: 'ods' });
+    } else {
+        XLSX.writeFile(wb, `${filename}.xlsx`, { bookType: 'xlsx' });
+    }
 }
 
 window.toggleCert = async function (uid, field, status) {
