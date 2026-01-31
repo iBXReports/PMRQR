@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     cert_golf boolean DEFAULT false,
     cert_duplex boolean DEFAULT false,
     cert_oruga boolean DEFAULT false,
+    tica_status text DEFAULT 'no_tiene',
     updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()),
     CONSTRAINT username_length CHECK (char_length(username) >= 3)
 );

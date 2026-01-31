@@ -699,6 +699,14 @@
                 <i class="fas fa-clipboard-list"></i>
                 <span>Registros</span>
             </a>
+            <a href="#" class="nav-item" onclick="switchTab('rosters')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Rol / Turnos</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('movilizacion')">
+                <i class="fas fa-bus-alt"></i>
+                <span>Movilización</span>
+            </a>
             <a href="#" class="nav-item" onclick="switchTab('settings')">
                 <i class="fas fa-cog"></i>
                 <span>Ajustes</span>
@@ -803,6 +811,7 @@
         <!-- 1. DASHBOARD -->
         <div id="view-dashboard" class="content-view">
             <div class="stats-grid">
+                <!-- Active Operations Stat -->
                 <div class="glass stat-card float-anim">
                     <div class="stat-info">
                         <h3 id="stat-active-ops">0</h3>
@@ -812,6 +821,40 @@
                         <i class="fas fa-running"></i>
                     </div>
                 </div>
+
+                <!-- Agents On Shift Stat -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-on-shift">0</h3>
+                        <p style="margin:0;">En Turno</p>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-user-clock"></i>
+                    </div>
+                </div>
+
+                <!-- Agents Upcoming Stat -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-upcoming">0</h3>
+                        <p style="margin:0;">Por Ingresar</p>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <i class="fas fa-hourglass-start"></i>
+                    </div>
+                </div>
+
+                <!-- TICA Stat -->
+                <div class="glass stat-card float-anim" style="animation-delay: 0.05s;">
+                    <div class="stat-info">
+                        <h3 id="stat-tica-active">0</h3>
+                        <p style="margin:0;">TICA Activa</p>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                </div>
+                <!-- Available Assets -->
                 <div class="glass stat-card float-anim" style="animation-delay: 0.1s;">
                     <div class="stat-info">
                         <h3 id="stat-available-assets">0</h3>
@@ -891,6 +934,39 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <div class="glass content-section" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <h3>📅 Turnos del Día (Agentes Programados)</h3>
+                        <span id="shifts-count-badge" class="badge"
+                            style="background:var(--primary-color); color:white; display:none;">0</span>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 6px 16px; font-size: 0.85rem;"
+                        onclick="switchTab('rosters'); setTimeout(() => document.getElementById('daily-roster-container')?.scrollIntoView({behavior:'smooth'}), 500);">
+                        Ver más agentes <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+                    </button>
+                </div>
+
+                <!-- Search Bar -->
+                <div style="margin-bottom: 1rem; position: relative;">
+                    <i class="fas fa-search"
+                        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                    <input type="text" id="today-shifts-search" placeholder="Buscar por Nombre o Rut..."
+                        style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.05); color: var(--text-color);">
+                </div>
+
+                <div id="shifts-grouped-container">
+                    <!-- Tables will be injected here by JS -->
+                    <div style="text-align: center; padding: 2rem; opacity: 0.5;">Cargando turnos desplegados...</div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div id="shifts-pagination"
+                    style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;">
+                    <!-- Auto-generated via JS -->
                 </div>
             </div>
 
@@ -1074,6 +1150,14 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <!-- IMPORT EXCEL BUTTON -->
+                        <input type="file" id="users-import-file" accept=".xlsx,.xls" style="display:none;"
+                            onchange="importUsersExcel(this)">
+                        <button class="btn" onclick="document.getElementById('users-import-file').click()"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem; background: linear-gradient(135deg, #8b5cf6, #6366f1);">
+                            <i class="fas fa-file-import"></i> Importar Excel
+                        </button>
+                        <div style="width: 1px; background: rgba(255,255,255,0.2); margin: 0 0.25rem;"></div>
                         <button class="btn btn-secondary" onclick="exportUsers('xlsx')"
                             style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
                             <i class="fas fa-file-excel" style="color: #10b981;"></i> XLSX
@@ -1292,6 +1376,10 @@
                         <span class="nav-card-emoji">🏷️</span>
                         <span class="nav-card-label">Categorías</span>
                     </div>
+                    <div class="nav-card" onclick="loadSettingTable('shift_codes', 'Códigos de Turno')">
+                        <span class="nav-card-emoji">⏱️</span>
+                        <span class="nav-card-label">Turnos</span>
+                    </div>
                     <div class="nav-card" onclick="switchTab('users')" style="border-color: #8b5cf633;">
                         <span class="nav-card-emoji">👥</span>
                         <span class="nav-card-label">Usuarios</span>
@@ -1351,6 +1439,113 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. ROSTERS (Turns/Rol) -->
+        <div id="view-rosters" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="margin:0;">📅 Gestión de Roles y Turnos</h3>
+                        <p style="margin:0; opacity: 0.7; font-size: 0.9rem;">Sube y consulta la planificación mensual
+                            de turnos.</p>
+                    </div>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="glass"
+                    style="padding: 2rem; margin-bottom: 2rem; border: 2px dashed rgba(255,255,255,0.2); text-align: center;">
+                    <i class="fas fa-cloud-upload-alt"
+                        style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                    <h4 style="margin: 0 0 1rem 0;">Cargar Nuevo Rol Mensual</h4>
+
+                    <div
+                        style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        <input type="month" id="roster-month" class="input-style" style="width: auto;">
+                        <input type="file" id="roster-file" accept=".xlsx, .xls" class="input-style"
+                            style="width: auto; padding: 0.5rem;">
+                        <button class="btn" onclick="uploadRoster()" style="width: auto;">
+                            <i class="fas fa-upload"></i> Subir Archivo
+                        </button>
+                    </div>
+                    <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1rem;">Formatos soportados: Excel (.xlsx,
+                        .xls)</p>
+                </div>
+
+                <!-- Rosters List -->
+                <h4 style="margin-bottom: 1rem;">📁 Roles Disponibles</h4>
+                <div style="overflow-x: auto; margin-bottom: 2rem;">
+                    <table class="mini-table" id="rosters-table">
+                        <thead>
+                            <tr>
+                                <th>Mes / Año</th>
+                                <th>Nombre del Archivo</th>
+                                <th>Subido Por</th>
+                                <th>Fecha Carga</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosters-body">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem; opacity: 0.5;">Cargando
+                                    historial...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Roster Detail View (Hidden by default) -->
+                <div id="roster-detail-view" style="display:none; animation: fadeIn 0.3s ease;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <h3 id="roster-detail-title" style="margin:0;">📅 Detalle del Rol</h3>
+                        <button class="btn btn-secondary" onclick="closeRosterDetail()" style="width:auto;">
+                            <i class="fas fa-times"></i> Cerrar
+                        </button>
+                    </div>
+
+                    <div style="overflow-x: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <table class="roster-grid-table" id="roster-grid">
+                            <!-- JS will inject header and body -->
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. MOVILIZACION -->
+        <div id="view-movilizacion" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3 style="margin-top:0; color: var(--primary-color);">🚌 Gestión Triage Movilización (Nocturno)</h3>
+                <p style="opacity: 0.8; margin-bottom: 2rem;">Generación de planilla de transporte para Zarpes
+                    (Salientes) y Recogidas (Entrantes) en horario inhábil (21:00 - 07:00).</p>
+
+                <div
+                    style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">📅 Fecha de Operación
+                            (Noche)</label>
+                        <input type="date" id="movil-date" class="input-style"
+                            style="width: 100%; padding: 12px; border-radius: 8px;">
+                        <small style="opacity: 0.7;">Selecciona el día "base" (ej: Hoy). Se buscarán recogidas para esta
+                            noche y zarpes para mañana temprano.</small>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">👤 Solicitante</label>
+                        <select id="movil-requester" class="input-style"
+                            style="width: 100%; padding: 12px; border-radius: 8px;">
+                            <option value="">Cargando...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; text-align: right;">
+                    <button onclick="generateMovilExcel()" class="btn"
+                        style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #10b981;">
+                        <i class="fas fa-file-excel"></i> Descargar Planilla (.xlsx)
+                    </button>
+                    <p id="movil-msg" style="margin-top: 1rem; color: #f59e0b; display: none;">Generando...</p>
                 </div>
             </div>
         </div>
@@ -1481,12 +1676,21 @@
         </div>
     </div>
 
+    <!-- Debugging Script -->
+    <script>
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            alert('Error Global: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo);
+            return false;
+        };
+    </script>
     <!-- Scripts -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script type="module" src="../assets/js/client.js"></script>
     <script type="module" src="../assets/js/common.js"></script>
-    <script type="module" src="js/admin.js"></script>
-    <script type="module" src="js/crud_logic.js"></script>
+    <script type="module" src="js/admin.js?v=6"></script>
+    <script type="module" src="js/crud_logic.js?v=1"></script>
+    <script type="module" src="js/movilizacion.js?v=8"></script>
+    <script type="module" src="js/admin_rosters.js?v=6"></script>
 </body>
 
 </html>

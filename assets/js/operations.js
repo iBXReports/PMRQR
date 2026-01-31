@@ -394,16 +394,19 @@ async function handleAssetScan(e, forceReturn = false) {
             let displayName = code;
 
             // Try to guess from text even if not in DB
-            const parts = code.split(/[-_]/);
-            const number = parts.length > 1 ? parts[parts.length - 1] : '';
+            // Extract number (digits at end)
+            const match = code.match(/(\d+)$/);
+            const number = match ? match[0] : '';
 
             const lowerCode = code.toLowerCase();
             const typeGuess = lowerCode.includes('golf') ? 'Carrito de Golf' :
                 lowerCode.includes('oruga') ? 'Silla Oruga' :
                     lowerCode.includes('duplex') ? 'Carrito Duplex' :
-                        lowerCode.includes('silla') ? 'Silla de Ruedas' : 'Equipo';
+                        lowerCode.includes('silla') ? 'Silla de Ruedas' :
+                            lowerCode.includes('carrito') ? 'Carrito de Golf' : 'Equipo';
 
             if (number) displayName = `${typeGuess} ${number}`;
+            else displayName = `${typeGuess} (${code})`;
 
             document.getElementById('asset-code-display').textContent = displayName;
             showView('view-form-start');
@@ -450,13 +453,15 @@ async function handleAssetScan(e, forceReturn = false) {
             // Format Display Name
             let displayName = code;
             if (asset && asset.type) {
-                // Extract number from code if possible (e.g. SILLA-01 -> 01)
-                const parts = code.split(/[-_]/);
-                const number = parts.length > 1 ? parts[parts.length - 1] : '';
+                // Extract number
+                const match = code.match(/(\d+)$/);
+                const number = match ? match[0] : '';
 
                 // Capitalize Type
                 const typeStr = asset.type.charAt(0).toUpperCase() + asset.type.slice(1);
-                displayName = `${typeStr} ${number}`;
+
+                if (number) displayName = `${typeStr} ${number}`;
+                else displayName = `${typeStr} - ${code}`;
             }
 
             document.getElementById('asset-code-display').textContent = displayName;

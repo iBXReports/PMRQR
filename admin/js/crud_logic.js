@@ -14,6 +14,7 @@ const SETTINGS_CONFIG = {
     'bridge': { table: 'locations', label: 'Puentes', filter: { type: 'bridge' }, hasTerminal: true, hiddenType: 'bridge' },
     'asset_categories': { table: 'asset_categories', label: 'Categorías Equipo', isCategory: true },
     'assets': { table: 'assets', label: 'Equipo', isAsset: true },
+    'shift_codes': { table: 'shift_codes', label: 'Códigos de Turno', isShift: true },
     'profiles': { table: 'profiles', label: 'Usuario', isProfile: true, hasLogo: true }
 };
 
@@ -34,8 +35,16 @@ window.loadSettingTable = async function (type, title) {
     const crudHeader = document.querySelector('#settings-crud-container > div'); // The header div with title and add button
     const bulkBtnId = 'btn-bulk-delete';
     const bulkPrintId = 'btn-bulk-print';
+    const uploadShiftsId = 'btn-upload-shifts';
+
     let bulkBtn = document.getElementById(bulkBtnId);
     let bulkPrintBtn = document.getElementById(bulkPrintId);
+    let uploadShiftsBtn = document.getElementById(uploadShiftsId);
+
+    // Clean up previous buttons if switching tabs
+    if (type !== 'assets' && bulkBtn) { bulkBtn.remove(); bulkBtn = null; }
+    if (type !== 'assets' && bulkPrintBtn) { bulkPrintBtn.remove(); bulkPrintBtn = null; }
+    if (type !== 'shift_codes' && uploadShiftsBtn) { uploadShiftsBtn.remove(); uploadShiftsBtn = null; }
 
     if (type === 'assets') {
         // Delete Button
@@ -72,9 +81,32 @@ window.loadSettingTable = async function (type, title) {
             crudHeader.insertBefore(bulkPrintBtn, addBtn);
         }
 
-    } else {
-        if (bulkBtn) bulkBtn.remove();
-        if (bulkPrintBtn) bulkPrintBtn.remove();
+    } else if (type === 'shift_codes') {
+        // Shift Code Upload Button
+        if (!uploadShiftsBtn) {
+            uploadShiftsBtn = document.createElement('button');
+            uploadShiftsBtn.id = uploadShiftsId;
+            uploadShiftsBtn.className = 'btn';
+            uploadShiftsBtn.style.width = 'auto';
+            uploadShiftsBtn.style.padding = '0.5rem 1rem';
+            uploadShiftsBtn.style.marginRight = '10px';
+            uploadShiftsBtn.style.background = '#10b981'; // Green
+            uploadShiftsBtn.innerHTML = '<i class="fas fa-file-excel"></i> Importar Excel';
+
+            // Hidden File Input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'shift-upload-input';
+            fileInput.accept = '.xlsx, .xls';
+            fileInput.style.display = 'none';
+            fileInput.onchange = handleShiftUpload;
+            document.body.appendChild(fileInput); // Append to body so it persists or check if exists
+
+            uploadShiftsBtn.onclick = () => document.getElementById('shift-upload-input').click();
+
+            const addBtn = crudHeader.querySelector('button');
+            crudHeader.insertBefore(uploadShiftsBtn, addBtn);
+        }
     }
 
     container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 2rem; opacity: 0.5;">Cargando...</div>';
@@ -88,11 +120,17 @@ window.loadSettingTable = async function (type, title) {
         });
     }
 
-    // Adjust Grid for Airlines (Smaller cards)
+    // Adjust Grid/Layout
     if (type === 'airlines') {
+        container.style.display = 'grid';
         container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(180px, 1fr))';
+    } else if (type === 'shift_codes') {
+        // EXCEL LIKE TABLE VIEW
+        container.style.display = 'block';
+        container.style.overflowX = 'auto';
     } else {
-        container.style.gridTemplateColumns = '';
+        container.style.display = 'grid';
+        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(240px, 1fr))';
     }
 
     const { data, error } = await query;
@@ -116,15 +154,108 @@ window.loadSettingTable = async function (type, title) {
     }
 
     container.innerHTML = '';
+
     if (data.length === 0) {
         container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 2rem; opacity: 0.5;">No hay registros.</div>';
         return;
     }
 
+    // --- RENDER TABLE FOR SHIFT CODES ---
+    if (type === 'shift_codes') {
+        const table = document.createElement('table');
+        table.className = 'modern-table'; // Use class for reusability if we add CSS, for now we inline style mostly
+        table.style.width = '100%';
+        table.style.borderCollapse = 'collapse';
+        table.style.background = 'var(--bg-card)'; // Theme aware
+        table.style.color = 'var(--text-color)';
+        table.style.fontSize = '0.85rem';
+        table.style.fontFamily = "'Outfit', sans-serif";
+        table.style.borderRadius = '12px';
+        table.style.overflow = 'hidden';
+        table.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+
+        const isDark = document.body.getAttribute('data-theme') === 'dark'; // Simple check, or rely on css vars
+
+        table.innerHTML = `
+            <thead style="background: var(--primary-color); color: white;">
+                <tr>
+                    <th style="padding:12px 16px; text-align:left; font-weight:600;">CÓDIGO</th>
+                    <th style="padding:12px 16px; text-align:center; font-weight:600;">CAT</th>
+                    <th style="padding:12px 16px; text-align:center; font-weight:600;">INICIO</th>
+                    <th style="padding:12px 16px; text-align:center; font-weight:600;">FIN</th>
+                    <th style="padding:12px 16px; text-align:center; font-weight:600;">TIPO</th>
+                    <th style="padding:12px 16px; text-align:center; font-weight:600;">ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody style="font-weight: 500;"></tbody>
+        `;
+
+        const tbody = table.querySelector('tbody');
+
+        data.forEach(item => {
+            const safeItem = encodeURIComponent(JSON.stringify(item));
+            const tr = document.createElement('tr');
+
+            // Modern Color Coding
+            let catColor = '#6b7280'; // gray default
+            let catBg = 'rgba(107, 114, 128, 0.1)';
+
+            if (['L', 'LI', 'LM', 'V', 'AU'].includes(item.category)) {
+                catColor = '#10b981'; // Green
+                catBg = 'rgba(16, 185, 129, 0.1)';
+            }
+            else if (['N'].includes(item.category)) {
+                catColor = '#3b82f6'; // Blue
+                catBg = 'rgba(59, 130, 246, 0.1)';
+            }
+            else if (['M'].includes(item.category)) {
+                catColor = '#f59e0b'; // Amber
+                catBg = 'rgba(245, 158, 11, 0.1)';
+            }
+            else if (['T'].includes(item.category)) {
+                catColor = '#ef4444'; // Red-ish for afternoon heat? Or just styling
+                catBg = 'rgba(239, 68, 68, 0.1)';
+            }
+
+            tr.style.borderBottom = '1px solid var(--border-color, #e5e7eb)';
+            tr.style.transition = 'background 0.2s';
+            tr.onmouseover = () => tr.style.background = 'var(--bg-hover, rgba(0,0,0,0.02))';
+            tr.onmouseout = () => tr.style.background = 'transparent';
+
+            tr.innerHTML = `
+                <td style="padding:12px 16px;">
+                    <span style="font-weight: 800; color: var(--text-color);">${item.name}</span>
+                </td>
+                <td style="padding:12px 16px; text-align:center;">
+                    <span style="background:${catBg}; color:${catColor}; padding: 4px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 700;">${item.category}</span>
+                </td>
+                <td style="padding:12px 16px; text-align:center; opacity: 0.8;">${item.start_time ? item.start_time.substring(0, 5) : '-'}</td>
+                <td style="padding:12px 16px; text-align:center; opacity: 0.8;">${item.end_time ? item.end_time.substring(0, 5) : '-'}</td>
+                <td style="padding:12px 16px; text-align:center; text-transform:capitalize; font-size:0.8rem; opacity: 0.7;">${item.type || 'Turno'}</td>
+                <td style="padding:12px 16px;">
+                    <div style="display:flex; justify-content:center; gap:8px;">
+                        <button onclick="openCrudModal('${safeItem}')" class="btn-icon" style="background:var(--primary-light, #e0e7ff); color:var(--primary-color); width:32px; height:32px; border-radius:8px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.2s;">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteSetting('${item.id}')" class="btn-icon" style="background:#fee2e2; color:#ef4444; width:32px; height:32px; border-radius:8px; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.2s;">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        container.appendChild(table);
+        return; // Stop here for shift_codes
+    }
+
+    // --- RENDER CARDS FOR OTHERS ---
     data.forEach(item => {
         const safeItem = encodeURIComponent(JSON.stringify(item));
 
         if (type === 'airlines') {
+            // ... (Existing Airline Card Logic)
             // SPECIAL COMPACT AIRLINE CARD WITH BACKGROUND
             const card = document.createElement('div');
             card.className = 'airline-card hover-scale';
@@ -181,7 +312,8 @@ window.loadSettingTable = async function (type, title) {
                     'gate_arrival': 'fa-sign-in-alt',
                     'bridge': 'fa-bridge',
                     'assets': 'fa-tools',
-                    'asset_categories': 'fa-tags'
+                    'asset_categories': 'fa-tags',
+                    'shift_codes': 'fa-clock'
                 };
 
                 // Override with specific asset icons
@@ -243,6 +375,16 @@ window.loadSettingTable = async function (type, title) {
                         <span class="info-label" style="display:block; margin-bottom:5px;">🔗 Link Devolución</span>
                         <input type="text" readonly value="${item.return_link || 'No generado'}" style="width: 100%; font-size: 0.7rem; padding: 4px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(0,0,0,0.2); color: var(--text-color);">
                     </div>` : ''}
+                    ${config.isShift ? `
+                    <div class="card-info-item">
+                        <span class="info-label">Categoría</span>
+                        <span class="info-value">${item.category || '-'}</span>
+                    </div>
+                    ${item.start_time ? `
+                    <div class="card-info-item">
+                        <span class="info-label">Horario</span>
+                        <span class="info-value">${item.start_time?.substring(0, 5)} - ${item.end_time?.substring(0, 5)}</span>
+                    </div>` : ''}` : ''}
                 </div>
                 <div class="card-footer">
                     ${config.isAsset ? `
@@ -298,6 +440,50 @@ window.openCrudModal = function (itemJson) {
     const quantityField = document.getElementById('crud-quantity-field');
     const quantityInput = document.getElementById('crud-quantity');
 
+    // Shift Code Fields (Dynamic Inject if not exists)
+    let shiftTimeField = document.getElementById('crud-shift-time-field');
+    if (!shiftTimeField) {
+        // Create if missing (lazy inject)
+        const div = document.createElement('div');
+        div.id = 'crud-shift-time-field';
+        div.className = 'form-group';
+        div.style.marginBottom = '1rem';
+        div.style.display = 'none';
+        div.innerHTML = `
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                <div>
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Hora Inicio</label>
+                    <input type="time" id="crud-shift-start" class="input-style" style="border: 1px solid #ccc;">
+                </div>
+                <div>
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Hora Fin</label>
+                    <input type="time" id="crud-shift-end" class="input-style" style="border: 1px solid #ccc;">
+                </div>
+            </div>
+            <div style="margin-top:1rem;">
+                <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Categoría</label>
+                <select id="crud-shift-cat" class="input-style" style="border: 1px solid #ccc;">
+                    <option value="M">Mañana (M)</option>
+                    <option value="T">Tarde (T)</option>
+                    <option value="N">Noche (N)</option>
+                    <option value="S">Saliente (S)</option>
+                    <option value="CU">Curso (CU)</option>
+                    <option value="L">Libre (L)</option>
+                    <option value="AU">Ausente (AU)</option>
+                    <option value="V">Vacaciones (V)</option>
+                    <option value="LM">Licencia Médica (LM)</option>
+                </select>
+            </div>
+        `;
+        const form = document.getElementById('crud-form');
+        const appendTarget = document.getElementById('crud-extra-field'); // Insert after this
+        form.insertBefore(div, appendTarget ? appendTarget.nextSibling : form.firstChild);
+        shiftTimeField = div;
+    }
+    const shiftStart = document.getElementById('crud-shift-start');
+    const shiftEnd = document.getElementById('crud-shift-end');
+    const shiftCat = document.getElementById('crud-shift-cat');
+
     extraField.style.display = 'none';
     extraInput.required = false;
     if (logoField) logoField.style.display = 'none';
@@ -307,6 +493,7 @@ window.openCrudModal = function (itemJson) {
     if (qrPreview) qrPreview.style.display = 'none';
     if (assetStatusField) assetStatusField.style.display = 'none';
     if (quantityField) quantityField.style.display = 'none';
+    if (shiftTimeField) shiftTimeField.style.display = 'none';
 
     const userFields = document.getElementById('crud-user-fields');
     if (userFields) userFields.style.display = 'none';
@@ -376,6 +563,79 @@ window.openCrudModal = function (itemJson) {
         extraField.style.display = 'block';
         extraLabel.textContent = 'Terminal';
         extraInput.placeholder = 'Nacional / Internacional';
+    } else if (config.isShift) {
+        document.getElementById('modal-title').textContent = 'Gestionar Código de Turno';
+        document.getElementById('crud-name').placeholder = 'Ej: M0817, N2008CU, LI';
+        if (shiftTimeField) shiftTimeField.style.display = 'block';
+
+        // Auto-Fill Listener
+        const nameInput = document.getElementById('crud-name');
+        nameInput.oninput = (e) => {
+            const val = e.target.value.toUpperCase().trim();
+
+            // 1. Check Special Codes
+            // LI=Libre, S=Saliente, AU=Ausente, V=Vacaciones
+            if (['LI', 'LIBRE'].includes(val)) {
+                if (shiftCat) shiftCat.value = 'L';
+                if (shiftStart) shiftStart.value = '';
+                if (shiftEnd) shiftEnd.value = '';
+                return;
+            }
+            if (['S', 'SALIENTE', 'SAL'].includes(val)) {
+                if (shiftCat) shiftCat.value = 'S';
+                // Usually has a start time? Assuming generic for now unless parsed
+                return;
+            }
+            if (['AU', 'AUSENTE'].includes(val)) {
+                if (shiftCat) shiftCat.value = 'AU';
+                return;
+            }
+            if (['V', 'VAC', 'VACACIONES'].includes(val)) {
+                if (shiftCat) shiftCat.value = 'V';
+                return;
+            }
+
+            // 2. Regex for Standard Patterns: M0817, T1523
+            // Group 1: Cat (M,T,N,S)
+            // Group 2: StartHH
+            // Group 3: StartMM (Optional, implied 00) - Actually existing regex expects explicit start/end hour pairs e.g. 0817 (08 to 17)
+            // Let's match the user's example "N2008CU" -> Start 20:00, End 08:00, Cat CU? 
+            // Or "M0715" -> Start 07, End 15
+
+            // Updated Regex: ^([A-Z]+)(\d{2})(\d{2})([A-Z]*)?$
+            // Example: M0715 -> M, 07, 15, undefined
+            // Example: N2008CU -> N, 20, 08, CU
+
+            const match = val.match(/^([A-Z])(\d{2})(\d{2})([A-Z]*)$/);
+
+            if (match) {
+                let cat = match[1];     // M, T, N...
+                const startH = match[2]; // 07
+                const endH = match[3];   // 15
+                const suffix = match[4]; // CU?
+
+                // Fix Time format
+                if (shiftStart) shiftStart.value = `${startH}:00`;
+                if (shiftEnd) shiftEnd.value = `${endH}:00`;
+
+                // Logic for Category
+                if (suffix === 'CU') {
+                    cat = 'CU';
+                }
+
+                // Map initial char if simple
+                if (shiftCat) {
+                    // Normalize unknown cats to M/T/N if strict? Or select correctly
+                    // Our options: M, T, N, S, CU, L, AU, V
+                    if (['M', 'T', 'N', 'S'].includes(cat) && cat !== 'CU') {
+                        shiftCat.value = cat;
+                    }
+                    if (cat === 'CU' || suffix === 'CU') {
+                        shiftCat.value = 'CU';
+                    }
+                }
+            }
+        };
     }
 
     // Show logo field for airlines
@@ -423,6 +683,13 @@ window.openCrudModal = function (itemJson) {
 
         if (config.hasIata) extraInput.value = item.iata_code || '';
         if (config.hasTerminal) extraInput.value = item.terminal || '';
+
+        // Shift Population
+        if (config.isShift) {
+            if (shiftCat) shiftCat.value = item.category || 'M';
+            if (shiftStart) shiftStart.value = item.start_time || '';
+            if (shiftEnd) shiftEnd.value = item.end_time || '';
+        }
 
         // QR Preview for edit
         if (config.isAsset && item.qr_url) {
@@ -547,6 +814,20 @@ document.getElementById('crud-form').addEventListener('submit', async (e) => {
         if (config.hasTerminal) payload.terminal = extra;
         if (config.hiddenType) payload.type = config.hiddenType;
         if (config.hasLogo) payload.logo_url = logoUrl;
+
+        // Shift Payload
+        if (config.isShift) {
+            payload.category = document.getElementById('crud-shift-cat').value;
+            payload.start_time = document.getElementById('crud-shift-start').value;
+            payload.end_time = document.getElementById('crud-shift-end').value;
+
+            // Auto-detect type if special
+            if (['L', 'LI', 'V', 'AU'].includes(payload.category)) {
+                payload.type = 'ausencia'; // Not 'turno'
+            } else {
+                payload.type = 'turno';
+            }
+        }
     }
 
     if (config.isProfile) {
@@ -849,6 +1130,115 @@ window.deleteBulkAssets = async function () {
         // alert('Equipos eliminados correctamente.');
         if (typeof window.loadAssets === 'function') window.loadAssets(); // Refresh main assets view if needed relative to context
         loadSettingTable('assets'); // Refresh table
+    }
+}
+
+// --- SHIFT CODE BULK UPLOAD EXCEL LOGIC ---
+window.handleShiftUpload = function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convert to JSON (Header: 1 assumes 0-index based array of arrays)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        processShiftExcelData(jsonData);
+    };
+    reader.readAsArrayBuffer(file);
+    // Reset inputs
+    e.target.value = '';
+};
+
+async function processShiftExcelData(rows) {
+    if (!rows || rows.length === 0) {
+        alert("El archivo parece vacío.");
+        return;
+    }
+
+    const payloads = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 1) continue;
+
+        let code = (row[0] || '').toString().trim().toUpperCase();
+        if (!code || code === 'CODIGO' || code === 'CODE' || code.includes('CODIGO')) continue; // Skip header
+
+        let startRaw = row[1]; // Col B
+        let endRaw = row[2];   // Col C
+
+        // Excel Time Parsing Helper
+        const formatTime = (val) => {
+            if (!val) return null;
+            if (typeof val === 'number') {
+                // Excel fraction day
+                const totalMinutes = Math.round(val * 24 * 60);
+                const h = Math.floor(totalMinutes / 60);
+                const m = totalMinutes % 60;
+                return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            }
+            const s = String(val).trim();
+            if (s.match(/^\d{1,2}:\d{2}$/)) return s.padStart(5, '0');
+            if (s.match(/^\d{1,2}:\d{2}:\d{2}$/)) return s.substring(0, 5).padStart(5, '0');
+            return null;
+        };
+
+        const startTime = formatTime(startRaw);
+        const endTime = formatTime(endRaw);
+
+        // Heuristics
+        let category = 'M'; // Default
+        let type = 'turno';
+
+        if (['LI', 'LIBRE'].includes(code)) { category = 'L'; type = 'ausencia'; }
+        else if (['S', 'SALIENTE', 'SAL'].includes(code)) { category = 'S'; type = 'turno'; }
+        else if (['AU', 'AUSENTE'].includes(code)) { category = 'AU'; type = 'ausencia'; }
+        else if (['V', 'VAC', 'VACACIONES'].includes(code)) { category = 'V'; type = 'ausencia'; }
+        else if (['LM', 'LICENCIA'].includes(code)) { category = 'LM'; type = 'ausencia'; }
+        else {
+            const match = code.match(/^([A-Z])(\d{2})(\d{2})([A-Z]*)$/);
+            if (match) {
+                let catChar = match[1];
+                const suffix = match[4];
+                if (suffix === 'CU') { category = 'CU'; type = 'turno'; }
+                else if (['M', 'T', 'N'].includes(catChar)) category = catChar;
+            } else {
+                if (code.startsWith('M')) category = 'M';
+                else if (code.startsWith('T')) category = 'T';
+                else if (code.startsWith('N')) category = 'N';
+                else if (code.includes('CURSO')) category = 'CU';
+            }
+        }
+
+        const payload = {
+            name: code,
+            category: category,
+            type: type,
+            start_time: startTime,
+            end_time: endTime
+        };
+        payloads.push(payload);
+    }
+
+    if (payloads.length === 0) {
+        alert("No se encontraron turnos válidos para importar.");
+        return;
+    }
+
+    const { data, error } = await supabase.from('shift_codes').upsert(payloads, { onConflict: 'name' });
+
+    if (error) {
+        console.error("Upload Error:", error);
+        alert("Error al importar: " + error.message);
+    } else {
+        alert(`Se importaron ${payloads.length} códigos de turno exitosamente.`);
+        loadSettingTable('shift_codes');
     }
 }
 

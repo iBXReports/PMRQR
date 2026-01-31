@@ -3,36 +3,60 @@ import { supabase } from '../../assets/js/client.js';
 
 // --- STATE ---
 let currentUser = null;
+let allShiftsCache = [];
+let allUsersCache = []; // Fix: Global cache for users to avoid ReferenceError
+let filteredShifts = [];
+let currentShiftsPage = 0;
+const shiftsPerPage = 20;
+
+
+console.log("Admin JS loading...");
+// alert("Admin JS Script Executing");
+
+// NOTE: Global window assignments are made AFTER function definitions below
 
 // --- INIT ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Auth Check - STRICT
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-        window.location.href = '../login.html';
-        return;
+    try {
+        // 1. Auth Check - STRICT
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
+        if (authError) {
+            alert("Auth Error: " + authError.message);
+            throw authError;
+        }
+
+        if (!session) {
+            window.location.href = '../login.html';
+            return;
+        }
+
+        // Fetch profile
+        const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+
+        if (profileError) {
+            console.error("Profile Error:", profileError);
+            // Don't block entirely, but alert
+            alert("Error cargando perfil: " + profileError.message);
+        }
+
+        if (profile) {
+            currentUser = profile;
+            updateUIProfile(profile);
+        }
+
+
+        // 2. Load Initial Data
+        await loadDashboard();
+
+
+
+        // Setup Admin Dropdown
+        setupAdminDropdown();
+
+    } catch (err) {
+        console.error("Critical Init Error:", err);
+        alert("Error crítico iniciando el panel: " + err.message);
     }
-
-    // Optional: Check if role is 'admin' or 'supervisor'
-    // For now assuming any logged in user can try, but ideally we restrict this specific page.
-    // Fetch profile
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-    if (!profile) { // || profile.role !== 'admin'
-        // alert("No tienes permisos de administrador");
-        // window.location.href = '../index.html';
-    }
-
-    currentUser = profile;
-    updateUIProfile(profile);
-
-    // 2. Load Initial Data
-    loadDashboard();
-
-    // 3. Global Listeners
-    window.switchTab = switchTab;
-
-    // Setup Admin Dropdown
-    setupAdminDropdown();
 });
 
 function setupAdminDropdown() {
@@ -94,7 +118,7 @@ function updateUIProfile(profile) {
 }
 
 // --- NAVIGATION ---
-window.toggleSidebar = function () {
+function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebar-overlay').classList.toggle('active');
 }
@@ -127,7 +151,9 @@ function switchTab(tabName) {
         'users': 'Usuarios y Permisos',
         'reports': 'Reportes',
         'registros': 'Registros de Incidencias',
-        'settings': 'Ajustes de Configuración'
+        'settings': 'Ajustes de Configuración',
+        'rosters': 'Gestión de Roles Mensuales',
+        'movilizacion': 'Planilla de Movilización (Triage)'
     };
     const pageTitle = document.getElementById('page-title');
     if (pageTitle) pageTitle.textContent = pageTitles[tabName] || 'Dashboard';
@@ -158,8 +184,18 @@ function switchTab(tabName) {
                 loadSettingTable('airlines', 'Aerolíneas');
             }
         }
+        if (tabName === 'rosters') {
+            loadRosters();
+        }
+        if (tabName === 'movilizacion') {
+            if (window.initMovilizacion) window.initMovilizacion();
+        }
     }
 }
+
+// --- EXPOSE GLOBALS FOR HTML ONCLICK ---
+window.switchTab = switchTab;
+window.toggleSidebar = toggleSidebar;
 
 window.openAssetModal = function () {
     // We use the generic crud modal for assets now
@@ -212,86 +248,101 @@ window.deleteAsset = async function (id) {
 }
 
 // --- DASHBOARD LOADER ---
+// --- DASHBOARD LOADER ---
 async function loadDashboard() {
-    // Quick Stats
-    const { count: opsCount } = await supabase.from('operations').select('*', { count: 'exact', head: true }).eq('status', 'active');
-    document.getElementById('stat-active-ops').textContent = opsCount || 0;
+    console.log("Loading Dashboard Data...");
+    try {
+        // Load Today's Shifts
+        loadTodayShifts(); // Async but we don't await to parallelize
 
-    const { count: assetsCount } = await supabase.from('assets').select('*', { count: 'exact', head: true }).eq('status', 'available');
-    document.getElementById('stat-available-assets').textContent = assetsCount || 0;
+        // Quick Stats
+        const { count: opsCount } = await supabase.from('operations').select('*', { count: 'exact', head: true }).eq('status', 'active');
+        const activeOpsEl = document.getElementById('stat-active-ops');
+        if (activeOpsEl) activeOpsEl.textContent = opsCount || 0;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const { count: todayCount } = await supabase.from('operations')
-        .select('*', { count: 'exact', head: true })
-        .gte('start_time', today.toISOString());
-    document.getElementById('stat-total-today').textContent = todayCount || 0;
 
-    const { count: faultyCount } = await supabase.from('assets')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['damaged', 'lost', 'maintenance']);
-    document.getElementById('stat-faulty').textContent = faultyCount || 0;
+        const { count: ticaCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('tica_status', 'vigente');
+        const ticaStatEl = document.getElementById('stat-tica-active');
+        if (ticaStatEl) ticaStatEl.textContent = ticaCount || 0;
 
-    // --- RECENT OPERATIONS (Dashboard) ---
-    const { data: recentOps } = await supabase
-        .from('operations')
-        .select(`
+        const { count: assetsCount } = await supabase.from('assets').select('*', { count: 'exact', head: true }).eq('status', 'available');
+        document.getElementById('stat-available-assets').textContent = assetsCount || 0;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const { count: todayCount } = await supabase.from('operations')
+            .select('*', { count: 'exact', head: true })
+            .gte('start_time', today.toISOString());
+        document.getElementById('stat-total-today').textContent = todayCount || 0;
+
+        const { count: faultyCount } = await supabase.from('assets')
+            .select('*', { count: 'exact', head: true })
+            .in('status', ['damaged', 'lost', 'maintenance']);
+        document.getElementById('stat-faulty').textContent = faultyCount || 0;
+
+        // --- RECENT OPERATIONS (Dashboard) ---
+        const { data: recentOps } = await supabase
+            .from('operations')
+            .select(`
             *,
             assets (id, code, type),
             profiles (username, full_name)
         `)
-        .eq('status', 'completed')
-        .order('end_time', { ascending: false })
-        .limit(10); // Fetch more to filter admin
+            .eq('status', 'completed')
+            .order('end_time', { ascending: false })
+            .limit(10); // Fetch more to filter admin
 
-    const filteredRecentOps = (recentOps || []).filter(op => !['Administrador', 'StbcK'].includes(op.profiles?.username)).slice(0, 5);
+        const filteredRecentOps = (recentOps || []).filter(op => !['Administrador', 'StbcK'].includes(op.profiles?.username)).slice(0, 5);
 
 
-    // --- FAULTY ASSETS TABLE (Dashboard) ---
-    const faultyTableBody = document.querySelector('#faulty-assets-dashboard-table tbody');
-    if (faultyTableBody) {
-        const { data: faultyAssets } = await supabase
-            .from('assets')
-            .select('*')
-            .in('status', ['damaged', 'lost', 'maintenance'])
-            .limit(3);
+        // --- FAULTY ASSETS TABLE (Dashboard) ---
+        const faultyTableBody = document.querySelector('#faulty-assets-dashboard-table tbody');
+        if (faultyTableBody) {
+            const { data: faultyAssets } = await supabase
+                .from('assets')
+                .select('*')
+                .in('status', ['damaged', 'lost', 'maintenance'])
+                .limit(3);
 
-        faultyTableBody.innerHTML = '';
-        if (faultyAssets && faultyAssets.length > 0) {
-            for (const asset of faultyAssets) {
-                const tr = document.createElement('tr');
-                const statusLabel = { 'damaged': '⚠️ Dañado', 'lost': '❌ Extraviado', 'maintenance': '🛠️ Mant.' };
-                tr.innerHTML = `
+            faultyTableBody.innerHTML = '';
+            if (faultyAssets && faultyAssets.length > 0) {
+                for (const asset of faultyAssets) {
+                    const tr = document.createElement('tr');
+                    const statusLabel = { 'damaged': '⚠️ Dañado', 'lost': '❌ Extraviado', 'maintenance': '🛠️ Mant.' };
+                    tr.innerHTML = `
                     <td><strong>${asset.code}</strong></td>
                     <td>${asset.type}</td>
                     <td><span class="badge ${asset.status === 'lost' ? 'danger' : 'warning'}">${statusLabel[asset.status] || asset.status}</span></td>
-                    <td>${new Date(asset.created_at).toLocaleDateString()}</td>
+                    <td>${new Date(asset.created_at).toLocaleDateString('es-CL')}</td>
                 `;
-                faultyTableBody.appendChild(tr);
+                    faultyTableBody.appendChild(tr);
+                }
+            } else {
+                faultyTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:1rem; opacity:0.5;">No hay equipos con falla reportada.</td></tr>';
             }
-        } else {
-            faultyTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:1rem; opacity:0.5;">No hay equipos con falla reportada.</td></tr>';
         }
-    }
 
-    const tbody = document.querySelector('#recent-ops-table tbody');
-    tbody.innerHTML = '';
+        const tbody = document.querySelector('#recent-ops-table tbody');
+        tbody.innerHTML = '';
 
-    if (filteredRecentOps.length > 0) {
-        filteredRecentOps.forEach(op => {
-            const row = document.createElement('tr');
-            const timeAgo = getTimeAgo(new Date(op.end_time));
-            row.innerHTML = `
+        if (filteredRecentOps.length > 0) {
+            filteredRecentOps.forEach(op => {
+                const row = document.createElement('tr');
+                const timeAgo = getTimeAgo(new Date(op.end_time));
+                row.innerHTML = `
                 <td><strong>${op.assets?.code || '???'}</strong></td>
                 <td>${op.profiles?.full_name || op.profiles?.username || 'Agente'}</td>
                 <td>${op.start_point}</td>
                 <td>${op.end_point || op.destination}</td>
                 <td><span class="badge active" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Devuelto hace: ${timeAgo}</span></td>
             `;
-            tbody.appendChild(row);
-        });
-    } else {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay actividad reciente.</td></tr>';
+                tbody.appendChild(row);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay actividad reciente.</td></tr>';
+        }
+    } catch (err) {
+        console.error("Dashboard Load Error:", err);
     }
 }
 
@@ -386,6 +437,8 @@ function updatePaginationUI(total) {
         container.appendChild(btn);
     }
 }
+
+
 
 // --- LIVE OPERATIONS ---
 const airlineMap = {
@@ -712,7 +765,7 @@ async function loadAssets() {
                 galleryContainer.innerHTML = '';
                 galleryOps.forEach(op => {
                     const dateObj = new Date(op.end_time);
-                    const date = dateObj.toLocaleDateString();
+                    const date = dateObj.toLocaleDateString('es-CL');
                     const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     const startTime = new Date(op.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -766,7 +819,7 @@ window.copyToClipboard = function (text) {
 
 // --- USERS ---
 // --- USERS ---
-let allUsersCache = [];
+
 
 async function loadUsers() {
     const tbody = document.querySelector('#users-table tbody');
@@ -824,6 +877,11 @@ function renderUsers(usersList) {
 
     usersList.forEach(user => {
         const tr = document.createElement('tr');
+
+        let ticaBadge = '<span class="badge" style="background:#ef4444; color:white; font-size:0.65rem; padding:2px 6px;">Sin TICA</span>';
+        if (user.tica_status === 'vigente') ticaBadge = '<span class="badge" style="background:#10b981; color:white; font-size:0.65rem; padding:2px 6px;">TICA Vigente</span>';
+        if (user.tica_status === 'por_vencer') ticaBadge = '<span class="badge" style="background:#f59e0b; color:white; font-size:0.65rem; padding:2px 6px;">TICA x Vencer</span>';
+
         tr.innerHTML = `
             <td>
                 <img src="${user.avatar_url || '../assets/imagenes/avatarcargo.png'}" style="width:35px; height:35px; border-radius:50%; object-fit:cover; border:1px solid #ddd;">
@@ -831,6 +889,7 @@ function renderUsers(usersList) {
             <td>
                 <div style="font-weight:600;">${user.full_name || user.username || 'Sin Nombre'}</div>
                 <div style="font-size:0.75rem; opacity:0.6;">@${user.username}</div>
+                <div style="margin-top:3px;">${ticaBadge}</div>
             </td>
             <td>
                 <select onchange="updateUserRole('${user.id}', this.value)" class="input-style" style="padding:0.2rem; font-size:0.8rem; width:auto;">
@@ -928,6 +987,322 @@ window.exportUsers = function (format) {
     }
 }
 
+// --- IMPORT USERS FROM EXCEL ---
+// This function reads an Excel file and updates ONLY missing fields for existing users
+// It will NOT overwrite existing data
+window.importUsersExcel = async function (fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    // Reset file input so same file can be selected again
+    fileInput.value = '';
+
+    try {
+        const reader = new FileReader();
+
+        reader.onload = async (e) => {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            // Get the first sheet
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+
+            // Convert to JSON
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+            if (jsonData.length === 0) {
+                alert('El archivo Excel está vacío o no tiene datos válidos.');
+                return;
+            }
+
+            // Create progress modal
+            let progressModal = document.getElementById('import-progress-modal');
+            if (!progressModal) {
+                progressModal = document.createElement('div');
+                progressModal.id = 'import-progress-modal';
+                progressModal.innerHTML = `
+                    <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+                        <div style="background: linear-gradient(145deg, #1a1a2e, #16213e); padding: 2rem; border-radius: 16px; width: 90%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); border: 1px solid rgba(139, 92, 246, 0.3);">
+                            <h3 style="color: #a855f7; margin: 0 0 1rem 0; text-align: center;">📥 Importando Datos</h3>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span id="import-progress-text" style="color: white; font-size: 0.9rem;">Procesando...</span>
+                                    <span id="import-progress-percent" style="color: #10b981; font-weight: bold;">0%</span>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.1); border-radius: 10px; height: 20px; overflow: hidden;">
+                                    <div id="import-progress-bar" style="background: linear-gradient(90deg, #8b5cf6, #10b981); height: 100%; width: 0%; transition: width 0.3s ease; border-radius: 10px;"></div>
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: center; color: rgba(255,255,255,0.6); font-size: 0.8rem;">
+                                <span id="import-progress-detail">Fila 0 de ${jsonData.length}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(progressModal);
+            } else {
+                progressModal.style.display = 'block';
+            }
+
+            const progressBar = document.getElementById('import-progress-bar');
+            const progressPercent = document.getElementById('import-progress-percent');
+            const progressText = document.getElementById('import-progress-text');
+            const progressDetail = document.getElementById('import-progress-detail');
+            const totalRows = jsonData.length;
+
+            // Update progress helper
+            const updateProgress = (current, phase, detail = '') => {
+                const percent = Math.round((current / totalRows) * 100);
+                progressBar.style.width = percent + '%';
+                progressPercent.textContent = percent + '%';
+                progressText.textContent = phase;
+                progressDetail.textContent = detail || `Fila ${current} de ${totalRows}`;
+            };
+
+            // Show loading in table too
+            const tbody = document.querySelector('#users-table tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 2rem;">⏳ Importando datos...</td></tr>';
+            }
+
+            // Normalize RUT helper
+            const normalizeRut = (r) => {
+                if (!r) return '';
+                return String(r).replace(/\./g, '').replace(/-/g, '').toUpperCase().trim();
+            };
+
+            // Normalize name
+            const normalizeName = (n) => {
+                if (!n) return '';
+                return String(n).toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            };
+
+            // Fetch current users from database
+            const { data: currentUsers, error: fetchError } = await supabase
+                .from('profiles')
+                .select('*');
+
+            if (fetchError) {
+                alert('Error obteniendo usuarios: ' + fetchError.message);
+                loadUsers();
+                return;
+            }
+
+            // Create lookup maps
+            const usersByRut = {};
+            const usersByName = {};
+            currentUsers.forEach(u => {
+                const rut = normalizeRut(u.rut);
+                const name = normalizeName(u.full_name);
+                if (rut) usersByRut[rut] = u;
+                if (name) usersByName[name] = u;
+            });
+
+            // Possible column name mappings (Spanish and English variations)
+            // Updated to match new Excel format:
+            // A: NOMBRE DE FUNCIONARIO, B: MAIL, C: ID, D: CEL, E: DIRECCION, F: NUMERO, G: COMUNA, H: RUT
+            const columnMappings = {
+                rut: ['rut', 'RUT', 'Rut', 'rut_id', 'RUT_ID', 'id_rut', 'H'],
+                id_rut: ['id', 'ID', 'Id', 'C'],  // RUT without dots/dash/verification digit
+                full_name: ['nombre', 'Nombre', 'NOMBRE', 'full_name', 'nombre_completo', 'NOMBRE COMPLETO', 'Nombre Completo',
+                    'NOMBRE DE FUNCIONARIO', 'Nombre de Funcionario', 'nombre de funcionario', 'A'],
+                phone: ['telefono', 'Telefono', 'TELEFONO', 'phone', 'celular', 'Celular', 'CELULAR', 'fono', 'Fono',
+                    'cel', 'CEL', 'Cel', 'D'],
+                address: ['direccion', 'Direccion', 'DIRECCION', 'address', 'domicilio', 'Domicilio', 'DOMICILIO', 'E'],
+                addr_number: ['numero', 'Numero', 'NUMERO', 'number', 'num', 'NUM', 'nro', 'NRO', 'F'],
+                commune: ['comuna', 'Comuna', 'COMUNA', 'commune', 'ciudad', 'Ciudad', 'CIUDAD', 'G'],
+                email: ['email', 'Email', 'EMAIL', 'correo', 'Correo', 'CORREO', 'mail', 'Mail', 'MAIL', 'B'],
+                team: ['team', 'Team', 'TEAM', 'equipo', 'Equipo', 'EQUIPO'],
+                role: ['cargo', 'Cargo', 'CARGO', 'role', 'rol', 'Rol', 'ROL']
+            };
+
+            // Find column in row by checking possible names
+            const getField = (row, fieldNames) => {
+                for (const name of fieldNames) {
+                    if (row[name] !== undefined && row[name] !== '') {
+                        return String(row[name]).trim();
+                    }
+                }
+                return '';
+            };
+
+            let updated = 0;
+            let skipped = 0;
+            let notFound = 0;
+            let rowIndex = 0;
+
+            // Phase 1: Process existing users
+            updateProgress(0, '📝 Actualizando usuarios existentes...', `Preparando...`);
+
+            // Process each row from Excel
+            for (const row of jsonData) {
+                rowIndex++;
+
+                // Update progress every 5 rows to avoid UI lag
+                if (rowIndex % 5 === 0 || rowIndex === totalRows) {
+                    updateProgress(rowIndex, '📝 Actualizando usuarios existentes...', `Fila ${rowIndex} de ${totalRows}`);
+                    await new Promise(r => setTimeout(r, 0)); // Allow UI to update
+                }
+
+                const excelRut = normalizeRut(getField(row, columnMappings.rut));
+                const excelName = normalizeName(getField(row, columnMappings.full_name));
+
+                // Find matching user (by RUT first, then by name)
+                let dbUser = null;
+                if (excelRut && usersByRut[excelRut]) {
+                    dbUser = usersByRut[excelRut];
+                } else if (excelName && usersByName[excelName]) {
+                    dbUser = usersByName[excelName];
+                }
+
+                if (!dbUser) {
+                    notFound++;
+                    console.log(`[IMPORT] No encontrado: ${excelName || excelRut}`);
+                    continue;
+                }
+
+                // Build update object - ONLY fields that are NULL or empty in DB
+                const updates = {};
+                let hasUpdates = false;
+
+                // Check each field - only update if DB is empty AND Excel has value
+                const fieldsToCheck = [
+                    { dbField: 'phone', excelMappings: columnMappings.phone },
+                    { dbField: 'address', excelMappings: columnMappings.address },
+                    { dbField: 'commune', excelMappings: columnMappings.commune },
+                    { dbField: 'rut', excelMappings: columnMappings.rut },
+                    { dbField: 'team', excelMappings: columnMappings.team }
+                ];
+
+                for (const { dbField, excelMappings } of fieldsToCheck) {
+                    const excelValue = getField(row, excelMappings);
+                    const dbValue = dbUser[dbField];
+
+                    // Only update if DB is empty/null and Excel has a value
+                    if ((!dbValue || dbValue === '' || dbValue === '-') && excelValue) {
+                        updates[dbField] = excelValue;
+                        hasUpdates = true;
+                    }
+                }
+
+                if (hasUpdates) {
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update(updates)
+                        .eq('id', dbUser.id);
+
+                    if (updateError) {
+                        console.error(`[IMPORT] Error actualizando ${dbUser.full_name}:`, updateError);
+                    } else {
+                        updated++;
+                        console.log(`[IMPORT] Actualizado: ${dbUser.full_name}`, updates);
+                    }
+                } else {
+                    skipped++;
+                }
+            }
+
+            // --- SAVE ALL ROWS TO AGENT_PREDATA TABLE ---
+            // This creates a "pre-registration database" for auto-complete during registration
+            let preDataSaved = 0;
+            let preDataErrors = 0;
+            rowIndex = 0; // Reset for phase 2
+
+            // Phase 2: Save pre-registration data
+            updateProgress(0, '💾 Guardando pre-datos...', `Preparando...`);
+
+            for (const row of jsonData) {
+                rowIndex++;
+
+                // Update progress every 5 rows
+                if (rowIndex % 5 === 0 || rowIndex === totalRows) {
+                    updateProgress(rowIndex, '💾 Guardando pre-datos...', `Fila ${rowIndex} de ${totalRows}`);
+                    await new Promise(r => setTimeout(r, 0)); // Allow UI to update
+                }
+                // Get RUT - try column H first, then fall back to ID column (C) adding verification digit
+                let rut = normalizeRut(getField(row, columnMappings.rut));
+                const idRut = getField(row, columnMappings.id_rut); // Column C - RUT without verification digit
+
+                // If no RUT but we have ID, use ID as the base (won't have verification digit)
+                if (!rut && idRut) {
+                    rut = String(idRut).replace(/\D/g, '').toUpperCase();
+                }
+
+                const fullName = getField(row, columnMappings.full_name);
+                const phone = getField(row, columnMappings.phone);
+                const address = getField(row, columnMappings.address);
+                const addrNumber = getField(row, columnMappings.addr_number);  // Column F
+                const commune = getField(row, columnMappings.commune);
+                const email = getField(row, columnMappings.email);
+                const team = getField(row, columnMappings.team);
+
+                // Skip if no RUT (can't upsert without unique key)
+                if (!rut) continue;
+
+                // Prepare record
+                const preDataRecord = {
+                    rut: rut,
+                    full_name: fullName || null,
+                    phone: phone || null,
+                    address: address || null,
+                    addr_number: addrNumber || null,  // House number separate
+                    commune: commune || null,
+                    email: email || null,
+                    team: team || null
+                };
+
+                // Upsert to agent_predata (insert or update based on RUT)
+                const { error: preDataError } = await supabase
+                    .from('agent_predata')
+                    .upsert(preDataRecord, { onConflict: 'rut' });
+
+                if (preDataError) {
+                    console.error(`[PREDATA] Error saving ${fullName}:`, preDataError);
+                    preDataErrors++;
+                } else {
+                    preDataSaved++;
+                }
+            }
+
+            console.log(`[IMPORT] Pre-data saved: ${preDataSaved}, errors: ${preDataErrors}`);
+
+            // Update progress to 100% complete
+            updateProgress(totalRows, '✅ Importación completa!', `${totalRows} filas procesadas`);
+
+            // Close progress modal after a brief delay
+            setTimeout(() => {
+                const modal = document.getElementById('import-progress-modal');
+                if (modal) modal.remove();
+            }, 500);
+
+            // Show results
+            alert(`✅ Importación completada!\n\n` +
+                `📊 Procesados: ${jsonData.length} filas\n` +
+                `✏️ Actualizados: ${updated} usuarios existentes\n` +
+                `⏭️ Sin cambios: ${skipped} usuarios (ya tenían datos)\n` +
+                `❓ No encontrados: ${notFound} (no coinciden RUT/Nombre)\n\n` +
+                `📁 Pre-datos guardados: ${preDataSaved} (para auto-registro)`);
+
+            // Reload users table
+            loadUsers();
+        };
+
+        reader.onerror = () => {
+            alert('Error leyendo el archivo.');
+        };
+
+        reader.readAsArrayBuffer(file);
+
+    } catch (err) {
+        console.error('Import error:', err);
+        alert('Error en la importación: ' + err.message);
+        loadUsers();
+    }
+}
+
 window.toggleCert = async function (uid, field, status) {
     const { error } = await supabase.from('profiles').update({ [field]: status }).eq('id', uid);
     if (error) alert("Error actualizando permiso: " + error.message);
@@ -983,7 +1358,7 @@ window.loadAllSettings = function () {
 // This file only handles navigation, dashboard, operations, assets, and users
 
 // --- REPORTS ENGINE ---
-window.loadReports = async function () {
+async function loadReports() {
     const period = document.getElementById('report-period')?.value || 'today';
     const tbody = document.querySelector('#table-reports-detail tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;">Calculando métricas...</td></tr>';
@@ -1053,7 +1428,7 @@ window.loadReports = async function () {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${new Date(op.start_time).toLocaleDateString()}</td>
+                    <td>${new Date(op.start_time).toLocaleDateString('es-CL')}</td>
                     <td>${op.profiles?.full_name || 'Agente'}</td>
                     <td>${op.team || '-'}</td>
                     <td><strong>${op.assets?.code || '-'}</strong></td>
@@ -1140,7 +1515,7 @@ window.loadReports = async function () {
                     <td><strong>${asset.code}</strong></td>
                     <td>${asset.type}</td>
                     <td><span class="badge ${asset.status === 'lost' ? 'danger' : 'warning'}">${statusLabel[asset.status] || asset.status}</span></td>
-                    <td>${lastOp ? `${lastOp.profiles?.full_name} (${new Date(lastOp.start_time).toLocaleDateString()})` : 'Sin historial'}</td>
+                    <td>${lastOp ? `${lastOp.profiles?.full_name} (${new Date(lastOp.start_time).toLocaleDateString('es-CL')})` : 'Sin historial'}</td>
                 `;
                 faultyBody.appendChild(tr);
             }
@@ -1198,7 +1573,7 @@ async function loadRegistros() {
 
         tbody.innerHTML = '';
         filteredReports.forEach(report => {
-            const date = new Date(report.created_at).toLocaleString();
+            const date = new Date(report.created_at).toLocaleString('es-CL');
             const tr = document.createElement('tr');
 
             const categoryColors = {
@@ -1234,4 +1609,315 @@ async function loadRegistros() {
     }
 }
 
-window.loadRegistros = loadRegistros;
+// --- DASHBOARD SHIFTS LOGIC ---
+
+// --- DASHBOARD SHIFTS LOGIC ---
+
+// Global cache for filtering
+let allGroupedShifts = null;
+
+async function loadTodayShifts() {
+    const container = document.getElementById('shifts-grouped-container');
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align:center; padding:2rem;">Cargando turnos desplegados...</div>';
+
+    // 1. Calculate Dates
+    const now = new Date();
+    const dates = [];
+    for (let i = 0; i < 3; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() + i);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        dates.push(`${yyyy}-${mm}-${dd}`);
+    }
+    const [today, tomorrow, dayAfter] = dates;
+
+    try {
+        // 2. Fetch Shift Codes (Time Definitions)
+        const { data: shiftCodesData } = await supabase.from('shift_codes').select('*');
+        const shiftMap = {};
+        if (shiftCodesData) {
+            shiftCodesData.forEach(sc => {
+                shiftMap[sc.name] = { start: sc.start_time, end: sc.end_time };
+            });
+        }
+
+        // 3. Fetch Shifts
+        const { data: shifts, error } = await supabase
+            .from('user_shifts')
+            .select('*')
+            .gte('shift_date', today)
+            .lte('shift_date', dayAfter)
+            .order('user_name');
+
+        if (error || !shifts || shifts.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:2rem;">No hay turnos registrados para hoy.</div>';
+            updateDashStats(0, 0);
+            return;
+        }
+
+        // 4. Fetch Profiles (for clean names and formatting)
+        const distinctRuts = [...new Set(shifts.map(s => s.rut))].filter(Boolean);
+        let profilesData = [];
+        if (distinctRuts.length > 0) {
+            const { data: pData } = await supabase
+                .from('profiles')
+                .select('rut, tica_status, phone, full_name, role, team')
+                .in('rut', distinctRuts);
+            profilesData = pData || [];
+        }
+
+        const profileMap = {};
+        const clean = (s) => String(s || '').replace(/[^0-9kK]/g, '').toUpperCase();
+        profilesData.forEach(p => {
+            if (p.rut) profileMap[clean(p.rut)] = p;
+        });
+
+        // 5. Structure Data & Calculate Stats
+        const users = {};
+        let activeAgentsCount = 0;
+        let upcomingAgentsCount = 0;
+
+        shifts.forEach(s => {
+            if (!users[s.rut]) {
+                const profile = profileMap[clean(s.rut)] || {};
+
+                // Determine Category
+                let rawRole = (s.role_raw || '').toUpperCase();
+                let team = (s.team || 'OLA').toUpperCase();
+                if (rawRole.includes('LATAM')) team = 'LATAM';
+
+                let category = 'OTHER';
+
+                // Leadership
+                if (rawRole.includes('SUPERVISOR') || rawRole.includes('SPRV') || rawRole.includes('JEFE')) category = team.includes('LATAM') ? 'SPRV_LATAM' : 'SPRV_OLA';
+                else if (rawRole.includes('CDO')) category = team.includes('LATAM') ? 'CDO_LATAM' : 'CDO_OLA';
+
+                // Agents
+                else if (team.includes('LATAM')) {
+                    if (rawRole.includes('PRACTICA') || rawRole.includes('PRÁCTICA')) category = 'AG_LATAM_PRAC';
+                    else if (rawRole.includes('PART') || rawRole.includes('PT') || rawRole.includes('P/T')) category = 'AG_LATAM_PT';
+                    else category = 'AG_LATAM_FT'; // Default Full Time
+                } else {
+                    // OLA
+                    if (rawRole.includes('PRACTICA') || rawRole.includes('PRÁCTICA')) category = 'AG_OLA_PRAC';
+                    else if (rawRole.includes('PART') || rawRole.includes('PT') || rawRole.includes('P/T')) category = 'AG_OLA_PT';
+                    else category = 'AG_OLA_FT';
+                }
+
+                users[s.rut] = {
+                    rut: s.rut,
+                    name: s.user_name,
+                    role: s.role_raw,
+                    team: team,
+                    category: category,
+                    profile: profile,
+                    shifts: {
+                        [today]: 'SIN TURNO',
+                        [tomorrow]: 'SIN TURNO',
+                        [dayAfter]: 'SIN TURNO'
+                    }
+                };
+            }
+            users[s.rut].shifts[s.shift_date] = s.shift_code || 'SIN TURNO';
+            // Removed old loop
+        });
+
+        // 6. Unified Filter & Sort
+        let unifiedList = [];
+        let statsActive = 0;
+        let statsUpcoming = 0;
+
+        // Helper to check time status
+        const checkStatus = (code) => {
+            const times = shiftMap[code];
+            if (!times || !times.start) return { status: 'unknown', diffMins: 0 };
+
+            const [h, m] = times.start.split(':').map(Number);
+            const startMins = h * 60 + m; // minutes from midnight
+            const [eh, em] = (times.end || '23:59').split(':').map(Number);
+            let endMins = eh * 60 + em;
+            if (endMins < startMins) endMins += 24 * 60; // Next day
+
+            const nowMins = now.getHours() * 60 + now.getMinutes();
+
+            if (nowMins >= startMins && nowMins < endMins) return { status: 'active' }; // On shift
+
+            let diff = startMins - nowMins;
+            if (diff < 0) diff += 24 * 60; // wrapped around? unlikely for "upcoming" today, but logical
+
+            if (diff > 0 && diff <= 120) return { status: 'upcoming', diffMins: diff }; // Upcoming < 2h
+
+            return { status: 'other' };
+        };
+
+        const todayUsers = Object.values(users);
+
+        // Filter Loop
+        todayUsers.forEach(u => {
+            const shiftCode = u.shifts[today];
+            const statusInfo = checkStatus(shiftCode);
+
+            // Increment Stats
+            if (statusInfo.status === 'active') statsActive++;
+            if (statusInfo.status === 'upcoming') statsUpcoming++;
+
+            // Special Rule for Leadership (SPRV/CDO)
+            const isBoss = u.category.includes('SPRV') || u.category.includes('CDO');
+
+            if (isBoss) {
+                // strict filter: active or upcoming < 2h
+                if (statusInfo.status === 'active' || statusInfo.status === 'upcoming') {
+                    u.realStatus = statusInfo.status; // Attach for renderer
+                    unifiedList.push(u);
+                }
+            } else {
+                // Regular Agents
+                // Show "all" but we will sort active/upcoming first?
+                // User said "muestrame todo junto". 
+                // Implicit: if limit is 20, we should prioritize visible/relevant shifts.
+                // If I just dump everyone, the 20 limit might cut off active workers.
+                // So I will prioritize: Active > Upcoming > Others (if space)
+
+                u.realStatus = statusInfo.status;
+
+                // Optional: Filter out 'SIN TURNO' / 'LIBRE' if we want to save space?
+                // "muestrame todo junto" might mean all *working* shifts.
+                // I'll include them but sort them lower.
+                unifiedList.push(u);
+            }
+        });
+
+        // Sort: Active First, then Upcoming, then others
+        unifiedList.sort((a, b) => {
+            const score = (status) => {
+                if (status === 'active') return 0;
+                if (status === 'upcoming') return 1;
+                return 2;
+            };
+            const scA = score(a.realStatus);
+            const scB = score(b.realStatus);
+            if (scA !== scB) return scA - scB;
+            return a.name.localeCompare(b.name);
+        });
+
+        // LIMIT TO 20
+        const limitedList = unifiedList.slice(0, 20);
+
+        updateDashStats(statsActive, statsUpcoming);
+        allGroupedShifts = limitedList; // Cache for simple local reuse if needed
+        renderUnifiedShifts(limitedList, today);
+
+        // Setup Search (Simple filtering on the already fethed list?)
+        // If searching, we might search the FULL list, not just the top 20.
+        const searchInput = document.getElementById('today-shifts-search');
+        if (searchInput) {
+            // Remove old listeners to avoid dupes or use oninput
+            searchInput.oninput = (e) => {
+                const term = e.target.value.toLowerCase();
+                if (!term) {
+                    renderUnifiedShifts(unifiedList.slice(0, 20), today);
+                } else {
+                    const searchRes = unifiedList.filter(u => u.name.toLowerCase().includes(term) || u.rut.toLowerCase().includes(term));
+                    renderUnifiedShifts(searchRes.slice(0, 20), today);
+                }
+            };
+        }
+
+    } catch (err) {
+        console.error("Shift Load Error:", err);
+        container.innerHTML = `<div style="color:red; text-align:center;">Error: ${err.message}</div>`;
+    }
+}
+
+// Replaces renderGroupedShifts
+function renderUnifiedShifts(list, todayDate) {
+    const container = document.getElementById('shifts-grouped-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!list || list.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:2rem; color: #aaa;">No hay personal activo o próximo por mostrar.</div>';
+        return;
+    }
+
+    const table = document.createElement('table');
+    table.className = 'unified-shift-table';
+    table.style.width = '100%';
+    table.style.borderCollapse = 'collapse';
+    table.style.fontSize = '0.9rem';
+
+    table.innerHTML = `
+        <thead style="background:rgba(255,255,255,0.05); color:var(--text-color); border-bottom:1px solid rgba(255,255,255,0.1);">
+            <tr>
+                <th style="padding:10px; text-align:left;">Agente</th>
+                <th style="padding:10px; text-align:left;">Cargo</th>
+                <th style="padding:10px; text-align:center;">Turno Hoy</th>
+                <th style="padding:10px; text-align:center;">Estado</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+
+    // Add Keyframe for blinking
+    if (!document.getElementById('blink-style')) {
+        const style = document.createElement('style');
+        style.id = 'blink-style';
+        style.textContent = `
+            @keyframes blink-badge { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+            .badge-pulse { animation: blink-badge 1.5s infinite; }
+         `;
+        document.head.appendChild(style);
+    }
+
+    list.forEach(u => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+
+        let statusBadge = '-';
+        if (u.realStatus === 'active') {
+            statusBadge = `<span class="badge" style="background:#10b981; color:white;">En Turno</span>`;
+        } else if (u.realStatus === 'upcoming') {
+            statusBadge = `<span class="badge badge-pulse" style="background:#f59e0b; color:black; font-weight:bold;">⚠️ Próximo a Ingresar</span>`;
+        }
+
+        // Colorize Shift Code
+        const shiftCode = u.shifts[todayDate] || '-';
+        let codeStyle = 'background:#374151; color:white;';
+        if (shiftCode.startsWith('M')) codeStyle = 'background:#ea580c; color:white;';
+        else if (shiftCode.startsWith('T')) codeStyle = 'background:#eab308; color:black;';
+        else if (shiftCode.startsWith('N')) codeStyle = 'background:#4f46e5; color:white;';
+        else if (['L', 'LI'].includes(shiftCode)) codeStyle = 'background:#15803d; color:white;';
+
+        tr.innerHTML = `
+            <td style="padding:10px; font-weight:600;">
+                <div style="display:flex; flex-direction:column;">
+                    <span>${u.name}</span>
+                    <span style="font-size:0.75rem; opacity:0.6;">${u.team}</span>
+                </div>
+            </td>
+            <td style="padding:10px; font-size:0.85rem; opacity:0.8;">${u.role}</td>
+            <td style="padding:10px; text-align:center;">
+                 <span class="badge" style="${codeStyle} font-family:monospace; font-size:0.85rem;">${shiftCode}</span>
+            </td>
+            <td style="padding:10px; text-align:center;">${statusBadge}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    container.appendChild(table);
+}
+
+function updateDashStats(active, upcoming) {
+    const elActive = document.getElementById('stat-on-shift');
+    const elUpcoming = document.getElementById('stat-upcoming');
+    if (elActive) elActive.textContent = active;
+    if (elUpcoming) elUpcoming.textContent = upcoming;
+}
+
+

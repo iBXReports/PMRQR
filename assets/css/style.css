@@ -100,6 +100,55 @@ body:not([data-theme]) {
         background-color: var(--bg-color) !important;
     }
 
+    /* Roster Grid Colors */
+    .shift-M {
+        background-color: #f97316 !important;
+        color: white !important;
+    }
+
+    /* Orange */
+    .shift-T {
+        background-color: #eab308 !important;
+        color: black !important;
+    }
+
+    /* Yellow */
+    .shift-N {
+        background-color: #6366f1 !important;
+        color: white !important;
+    }
+
+    /* Indigo */
+    .shift-L {
+        background-color: #22c55e !important;
+        color: white !important;
+    }
+
+    /* Green */
+    .shift-AU {
+        background-color: #ef4444 !important;
+        color: white !important;
+    }
+
+    /* Red */
+    .shift-S {
+        background-color: #0ea5e9 !important;
+        color: white !important;
+    }
+
+    /* Sky Blue */
+    .shift-CU {
+        background-color: #d946ef !important;
+        color: white !important;
+    }
+
+    /* Fucsia */
+    .today {
+        border: 2px solid #fbbf24;
+        z-index: 10;
+        font-weight: bold;
+    }
+
     .glass {
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
@@ -176,6 +225,66 @@ nav {
 .logo img:hover {
     transform: scale(1.05);
 }
+
+/* Roster Grid */
+.roster-grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.roster-grid-table th,
+.roster-grid-table td {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 10px;
+    text-align: center;
+}
+
+.roster-grid-table th {
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 700;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.roster-grid-table td.today {
+    background: rgba(251, 191, 36, 0.2);
+    border-left: 2px solid #fbbf24;
+    border-right: 2px solid #fbbf24;
+    font-weight: bold;
+}
+
+.roster-grid-table td.shift-M {
+    color: #60a5fa;
+    font-weight: 600;
+}
+
+/* Blue */
+.roster-grid-table td.shift-T {
+    color: #f472b6;
+    font-weight: 600;
+}
+
+/* Pink */
+.roster-grid-table td.shift-N {
+    color: #818cf8;
+    font-weight: 600;
+}
+
+/* Indigo */
+.roster-grid-table td.shift-L {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Libre */
+.roster-grid-table td.shift-AU {
+    color: #ef4444;
+    font-weight: bold;
+}
+
+/* Ausencia - Red */
 
 /* Forms */
 .auth-container {

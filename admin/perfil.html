@@ -427,7 +427,12 @@
                     <h3><i class="fas fa-user"></i> Información Personal</h3>
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="username">Nombre de Usuario</label>
+                            <label for="rut">RUT</label>
+                            <input type="text" id="rut" name="rut" placeholder="Ej: 17.737.508-K"
+                                oninput="formatRut(this)">
+                        </div>
+                        <div class="form-group">
+                            <label for="username">Nombre de Usuario (Login)</label>
                             <input type="text" id="username" name="username" placeholder="usuario123">
                         </div>
                         <div class="form-group">
@@ -447,8 +452,16 @@
                             <input type="text" id="commune" name="commune" placeholder="Santiago">
                         </div>
                         <div class="form-group">
-                            <label for="address">Dirección</label>
-                            <input type="text" id="address" name="address" placeholder="Av. Principal 123">
+                            <label for="addr_street">Calle / Pasaje</label>
+                            <input type="text" id="addr_street" name="addr_street" placeholder="Av. Principal">
+                        </div>
+                        <div class="form-group">
+                            <label for="addr_number">Número</label>
+                            <input type="text" id="addr_number" name="addr_number" placeholder="1234">
+                        </div>
+                        <div class="form-group">
+                            <label for="addr_unit">Depto / Casa / Block</label>
+                            <input type="text" id="addr_unit" name="addr_unit" placeholder="Block B">
                         </div>
                     </div>
                 </div>
@@ -475,6 +488,22 @@
                                 <p><strong>Advertencia:</strong> Cambiar tu rol es una acción irreversible. Solo un
                                     Administrador puede restaurar roles superiores.</p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TICA Status -->
+                <div class="glass form-section">
+                    <h3><i class="fas fa-id-card"></i> Estado TICA</h3>
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="tica_status">Estado de su credencial (TICA)</label>
+                            <select id="tica_status" name="tica_status">
+                                <option value="no_tiene">No tengo TICA</option>
+                                <option value="vigente">✅ TICA Vigente</option>
+                                <option value="por_vencer">⚠️ TICA Por Vencer</option>
+                                <option value="vencida">❌ TICA Vencida</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -584,13 +613,37 @@
             originalRole = data.role;
 
             // Populate form
+            document.getElementById('rut').value = data.rut || '';
             document.getElementById('username').value = data.username || '';
             document.getElementById('full_name').value = data.full_name || '';
             document.getElementById('email').value = currentUser.email;
             document.getElementById('phone').value = data.phone || '';
             document.getElementById('commune').value = data.commune || '';
-            document.getElementById('address').value = data.address || '';
+
+            // Address Parse
+            const addrFull = data.address || '';
+            let street = addrFull;
+            let num = '';
+            let unit = '';
+            // Heuristic split if saved with template `${street} #${number} ${unit}`
+            if (addrFull.includes('#')) {
+                // Try to split by last #
+                const parts = addrFull.split('#');
+                if (parts.length > 1) {
+                    street = parts[0].trim();
+                    const right = parts.slice(1).join('#').trim();
+                    // Right side is "Number Unit"
+                    const rightParts = right.split(' ');
+                    num = rightParts[0];
+                    unit = rightParts.slice(1).join(' ');
+                }
+            }
+            document.getElementById('addr_street').value = street;
+            document.getElementById('addr_number').value = num;
+            document.getElementById('addr_unit').value = unit;
+
             document.getElementById('team').value = data.team || 'LATAM';
+            document.getElementById('tica_status').value = data.tica_status || 'no_tiene';
 
             // Display info
             document.getElementById('display-name').textContent = data.full_name || data.username || 'Usuario';
@@ -727,12 +780,14 @@
             e.preventDefault();
 
             const payload = {
+                rut: document.getElementById('rut').value,
                 username: document.getElementById('username').value,
                 full_name: document.getElementById('full_name').value,
                 phone: document.getElementById('phone').value,
                 commune: document.getElementById('commune').value,
-                address: document.getElementById('address').value,
+                address: `${document.getElementById('addr_street').value} #${document.getElementById('addr_number').value || 'S/N'} ${document.getElementById('addr_unit').value}`,
                 team: document.getElementById('team').value,
+                tica_status: document.getElementById('tica_status').value,
                 role: document.getElementById('role').value,
                 cert_golf: document.getElementById('cert_golf').checked,
                 cert_duplex: document.getElementById('cert_duplex').checked,
@@ -751,6 +806,25 @@
                 window.location.reload();
             }
         });
+        // RUT Formatter
+        window.formatRut = function (input) {
+            let val = input.value.replace(/[^0-9kK]/g, '');
+            if (val.length === 0) return;
+
+            // Limit length
+            if (val.length > 9) val = val.substring(0, 9);
+
+            // Format
+            const dv = val.slice(-1);
+            let body = val.slice(0, -1);
+
+            if (val.length > 1) {
+                input.value = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv.toUpperCase();
+            } else {
+                input.value = val.toUpperCase();
+            }
+        };
+
     </script>
 </body>
 
