@@ -314,9 +314,17 @@ if (registerForm) {
         const email = formData.get('email');
         const password = formData.get('password');
         const username = formData.get('username');
-        const fullName = formData.get('fullName');
         const rut = formData.get('rut');
         const ticaStatus = formData.get('tica_status');
+
+        // Split Names
+        const firstName = formData.get('first_name');
+        const middleName = formData.get('middle_name') || '';
+        const lastName1 = formData.get('last_name_1');
+        const lastName2 = formData.get('last_name_2') || '';
+
+        // Construct Full Name for backward compatibility
+        const fullName = `${firstName} ${middleName} ${lastName1} ${lastName2}`.replace(/\s+/g, ' ').trim();
 
         // Address Composition
         const street = formData.get('addr_street');
@@ -344,9 +352,16 @@ if (registerForm) {
                     data: {
                         username,
                         full_name: fullName,
+                        first_name: firstName,
+                        middle_name: middleName,
+                        last_name_1: lastName1,
+                        last_name_2: lastName2,
                         rut,
                         tica_status: ticaStatus,
                         address,
+                        address_street: street,
+                        address_number: number,
+                        address_unit: unit,
                         commune,
                         phone
                     }

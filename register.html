@@ -55,16 +55,7 @@
             <div id="success-alert" class="alert alert-success hidden"></div>
 
             <form id="register-form">
-                <div class="form-group">
-                    <label>👤 Usuario</label>
-                    <input type="text" name="username" placeholder="Elige un nombre de usuario único" required>
-                </div>
-
-                <div class="form-group">
-                    <label>📝 Nombre Completo</label>
-                    <input type="text" name="fullName" placeholder="Tu nombre real" required>
-                </div>
-
+                <!-- 1. RUT -->
                 <div class="form-group">
                     <label>🆔 RUT</label>
                     <input type="text" name="rut" placeholder="Ej: 12.345.678-K" required oninput="formatRut(this)">
@@ -72,6 +63,77 @@
                         12.345.678-K)</small>
                 </div>
 
+                <!-- 2-5. Nombres Separados -->
+                <div class="register-grid">
+                    <div class="form-group">
+                        <label>📝 Primer Nombre</label>
+                        <input type="text" name="first_name" placeholder="Juan" required>
+                    </div>
+                    <div class="form-group">
+                        <label>📝 Segundo Nombre</label>
+                        <input type="text" name="middle_name" placeholder="Andrés">
+                    </div>
+                </div>
+                <div class="register-grid">
+                    <div class="form-group">
+                        <label>📝 Primer Apellido</label>
+                        <input type="text" name="last_name_1" placeholder="Pérez" required>
+                    </div>
+                    <div class="form-group">
+                        <label>📝 Segundo Apellido</label>
+                        <input type="text" name="last_name_2" placeholder="González">
+                    </div>
+                </div>
+
+                <!-- 6. Usuario -->
+                <div class="form-group">
+                    <label>👤 Usuario</label>
+                    <input type="text" name="username" placeholder="Elige un nombre de usuario único" required>
+                </div>
+
+                <!-- 7. Contraseña -->
+                <div class="form-group">
+                    <label>🔒 Contraseña</label>
+                    <input type="password" name="password" placeholder="Mínimo 6 caracteres" required>
+                </div>
+
+                <!-- 8. Email -->
+                <div class="form-group">
+                    <label>📧 Correo Electrónico</label>
+                    <input type="email" name="email" placeholder="ejemplo@correo.com" required>
+                </div>
+
+                <!-- 9. Telefono -->
+                <div class="form-group">
+                    <label>📱 Teléfono de Contacto</label>
+                    <input type="tel" name="phone" placeholder="+56 9 1234 5678" required>
+                </div>
+
+                <!-- 10. Calle -->
+                <div class="form-group">
+                    <label>🏠 Calle / Pasaje</label>
+                    <input type="text" name="addr_street" placeholder="Ej: Av. Las Torres" required>
+                </div>
+
+                <!-- 11-12. Numero y Depto -->
+                <div class="register-grid">
+                    <div class="form-group">
+                        <label>🔢 Número</label>
+                        <input type="text" name="addr_number" placeholder="Ej: 1234">
+                    </div>
+                    <div class="form-group">
+                        <label>🏢 Depto / Casa</label>
+                        <input type="text" name="addr_unit" placeholder="Ej: 204">
+                    </div>
+                </div>
+
+                <!-- 13. Comuna -->
+                <div class="form-group">
+                    <label>📍 Comuna</label>
+                    <input type="text" name="commune" placeholder="Ej: Santiago" required>
+                </div>
+
+                <!-- 14. TICA -->
                 <div class="form-group">
                     <label>🎫 Estado TICA (Credencial Aeroportuaria)</label>
                     <select name="tica_status"
@@ -81,42 +143,6 @@
                         <option value="por_vencer" style="background:#2d2d2d;">⚠️ TICA Por Vencer</option>
                         <option value="vencida" style="background:#2d2d2d;">❌ TICA Vencida</option>
                     </select>
-                </div>
-
-                <div class="form-group">
-                    <label>📧 Correo Electrónico</label>
-                    <input type="email" name="email" placeholder="ejemplo@correo.com" required>
-                </div>
-
-                <div class="form-group">
-                    <label>🔒 Contraseña</label>
-                    <input type="password" name="password" placeholder="Mínimo 6 caracteres" required>
-                </div>
-
-                <div class="form-group">
-                    <label>🏠 Calle / Pasaje</label>
-                    <input type="text" name="addr_street" placeholder="Ej: Av. Las Torres" required>
-                </div>
-
-                <div class="register-grid">
-                    <div class="form-group">
-                        <label>🔢 Número</label>
-                        <input type="text" name="addr_number" placeholder="Ej: 1234">
-                    </div>
-                    <div class="form-group">
-                        <label>🏢 Depto</label>
-                        <input type="text" name="addr_unit" placeholder="Ej: 204">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>📍 Comuna</label>
-                    <input type="text" name="commune" placeholder="Ej: Santiago" required>
-                </div>
-
-                <div class="form-group">
-                    <label>📱 Teléfono de Contacto</label>
-                    <input type="tel" name="phone" placeholder="+56 9 1234 5678" required>
                 </div>
 
                 <button type="submit" id="submit-btn" class="btn">Registrarse ✨</button>
@@ -137,7 +163,7 @@
     <!-- Scripts -->
     <script type="module" src="assets/js/client.js"></script>
     <script type="module" src="assets/js/common.js"></script>
-    <script type="module" src="assets/js/auth.js?v=3"></script>
+    <script type="module" src="assets/js/auth.js?v=4"></script>
 </body>
 
 </html>
