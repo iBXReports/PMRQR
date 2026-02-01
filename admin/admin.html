@@ -777,106 +777,192 @@
                 style="max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 2rem; position: relative; background: var(--card-bg);">
                 <button onclick="document.getElementById('admin-guide-modal').style.display='none'"
                     style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer;">&times;</button>
-                <h2 style="color: var(--primary-color); margin-top: 0;">🛡️ Guía de Administración</h2>
+                <h2
+                    style="color: var(--primary-color); margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">
+                    🛡️ Guía de Administración Maestros</h2>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="color: #a855f7;">📊 Dashboard & Monitor</h4>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Visualiza métricas en tiempo real. Usa la pestaña
-                        "Monitor" para ver las operaciones activas, filtrar por estado y gestionar incidencias.</p>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #a855f7; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-users"></i> Gestión de Usuarios</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 10px;">En la sección "Usuarios", tienes
+                        tres herramientas principales:</p>
+
+                    <ul style="list-style: none; padding-left: 0; font-size: 0.9rem;">
+                        <li
+                            style="margin-bottom: 12px; background: rgba(16, 185, 129, 0.1); padding: 10px; border-radius: 8px;">
+                            <strong>1. Importar Usuarios (Excel Maestro):</strong><br>
+                            Use este botón (Verde) para cargar la base de datos completa de agentes.<br>
+                            <em style="opacity: 0.7;">El sistema usa "Smart Match" para actualizar perfiles existentes
+                                buscando por RUT > Email > Usuario > Nombre. Si no existen, los guarda como "Pre-Data"
+                                para que el registro sea automático.</em>
+                        </li>
+                        <li
+                            style="margin-bottom: 12px; background: rgba(139, 92, 246, 0.1); padding: 10px; border-radius: 8px;">
+                            <strong>2. Reporte Diario (Botón Violeta):</strong><br>
+                            Suba aquí el Excel de asistencia diaria u operaciones.<br>
+                            - <strong>Actualiza TICA:</strong> Busca palabras como "VIGENTE", "VENCIDA", "POR
+                            VENCER".<br>
+                            - <strong>Asistencia Hoy:</strong> Registra "AUSENTE", "PRESENTE", "LICENCIA"
+                            automáticamente para el día actual.
+                        </li>
+                        <li
+                            style="margin-bottom: 12px; background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 8px;">
+                            <strong>3. Edición Manual:</strong><br>
+                            Haga clic en el lápiz de cualquier usuario para editar nombres detallados (Primer/Segundo
+                            Nombre y Apellidos), dirección exacta (Calle, Número, Depto) y las certificaciones (Golf,
+                            Duplex, Oruga).
+                        </li>
+                    </ul>
                 </div>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="color: #3b82f6;">👥 Usuarios y Permisos</h4>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Gestiona agentes y roles. Puedes buscar usuarios por
-                        nombre/email y descargar la lista completa en XLS, CSV u ODT.</p>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #3b82f6; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-chart-line"></i> Dashboard y Monitor</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        <strong>Monitor en vivo:</strong> Vea todas las operaciones activas. Use las pestañas para
+                        filtrar por "En Curso" o "Incidencias".<br>
+                        <strong>Alertas:</strong> El sistema marcará en rojo operaciones que excedan el tiempo promedio
+                        o reportes de daños graves.
+                    </p>
                 </div>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="color: #10b981;">⚙️ Ajustes y Activos</h4>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Configura Aerolíneas (con logos), Puentes, Gates y crea
-                        nuevos Activos (Sillas/Carros). Imprime los códigos QR directamente desde aquí.</p>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-calendar-alt"></i> Turnos y Asistencia</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        Vaya a la sección <strong>Rol / Turnos</strong> para ver la matriz de asistencia.<br>
+                        - <strong>Carga de Turnos:</strong> Importe la malla de turnos mensual en Excel.<br>
+                        - <strong>Gestión Diaria:</strong> Puede cambiar manualmente el estado de asistencia (Presente,
+                        Ausente, etc.) desde la tabla unificada.
+                    </p>
                 </div>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="color: #f59e0b;">📈 Reportes</h4>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Genera informes detallados de operación y exporta la
-                        data para análisis externo.</p>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #10b981; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-cubes"></i> Activos y Configuración</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        En <strong>Ajustes</strong>, gestione las opciones del sistema:<br>
+                        - <strong>Aerolíneas y Puentes:</strong> Configure las opciones que ven los agentes.<br>
+                        - <strong>Activos (Sillas/Carros):</strong> Cree nuevos equipos y genere sus códigos QR listos
+                        para imprimir.
+                    </p>
                 </div>
 
-                <button class="btn" onclick="document.getElementById('admin-guide-modal').style.display='none'">Cerrar
-                    Guía</button>
+                <button class="btn" style="width: 100%; margin-top: 1rem;"
+                    onclick="document.getElementById('admin-guide-modal').style.display='none'">Entendido, volver al
+                    panel</button>
             </div>
+
+            <button class="btn" onclick="document.getElementById('admin-guide-modal').style.display='none'">Cerrar
+                Guía</button>
+        </div>
         </div>
 
         <!-- 1. DASHBOARD -->
         <div id="view-dashboard" class="content-view">
-            <div class="stats-grid">
-                <!-- Active Operations Stat -->
-                <div class="glass stat-card float-anim">
-                    <div class="stat-info">
-                        <h3 id="stat-active-ops">0</h3>
-                        <p style="margin:0;">Activas</p>
-                    </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
-                        <i class="fas fa-running"></i>
-                    </div>
-                </div>
-
-                <!-- Agents On Shift Stat -->
-                <div class="glass stat-card float-anim">
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                <!-- Agents On Shift (Present) -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('on-shift')" style="cursor:pointer;">
                     <div class="stat-info">
                         <h3 id="stat-on-shift">0</h3>
-                        <p style="margin:0;">En Turno</p>
+                        <p style="margin:0;">🟢 En Turno</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Presentes</small>
                     </div>
                     <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-                        <i class="fas fa-user-clock"></i>
+                        <i class="fas fa-user-check"></i>
                     </div>
                 </div>
 
-                <!-- Agents Upcoming Stat -->
-                <div class="glass stat-card float-anim">
+                <!-- Agents Upcoming (Next 4 hours) -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('upcoming')" style="cursor:pointer;">
                     <div class="stat-info">
                         <h3 id="stat-upcoming">0</h3>
-                        <p style="margin:0;">Por Ingresar</p>
+                        <p style="margin:0;">⏰ Por Ingresar</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Próximas 4 hrs</small>
                     </div>
                     <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
                         <i class="fas fa-hourglass-start"></i>
                     </div>
                 </div>
 
-                <!-- TICA Stat -->
-                <div class="glass stat-card float-anim" style="animation-delay: 0.05s;">
+                <!-- TICA Activa (Present + Vigente) -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('tica-active')" style="cursor:pointer;">
                     <div class="stat-info">
                         <h3 id="stat-tica-active">0</h3>
-                        <p style="margin:0;">TICA Activa</p>
+                        <p style="margin:0;">✅ TICA Activa</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Presentes Vigente</small>
                     </div>
                     <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
                         <i class="fas fa-id-card"></i>
                     </div>
                 </div>
-                <!-- Available Assets -->
-                <div class="glass stat-card float-anim" style="animation-delay: 0.1s;">
+
+                <!-- Sin TICA -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('sin-tica')" style="cursor:pointer;">
                     <div class="stat-info">
-                        <h3 id="stat-available-assets">0</h3>
-                        <p style="margin:0;">Disponibles</p>
+                        <h3 id="stat-sin-tica">0</h3>
+                        <p style="margin:0;">❌ Sin TICA</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Agentes sin TICA</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #34d399);">
-                        <i class="fas fa-tools"></i>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #6b7280, #4b5563);">
+                        <i class="fas fa-user-slash"></i>
                     </div>
                 </div>
-                <div class="glass stat-card float-anim" style="animation-delay: 0.2s;">
+
+                <!-- Ausencias del Día -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('ausencias')" style="cursor:pointer;">
+                    <div class="stat-info">
+                        <h3 id="stat-ausencias">0</h3>
+                        <p style="margin:0;">🚫 Ausencias</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Del día</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                </div>
+
+                <!-- Active Operations -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-active-ops">0</h3>
+                        <p style="margin:0;">🏃 Activas</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Operaciones</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                        <i class="fas fa-running"></i>
+                    </div>
+                </div>
+
+                <!-- Available Assets -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-available-assets">0</h3>
+                        <p style="margin:0;">🛠️ Disponibles</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Equipos</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #34d399);">
+                        <i class="fas fa-wheelchair"></i>
+                    </div>
+                </div>
+
+                <!-- Total Hoy -->
+                <div class="glass stat-card float-anim">
                     <div class="stat-info">
                         <h3 id="stat-total-today">0</h3>
-                        <p style="margin:0;">Total Hoy</p>
+                        <p style="margin:0;">📊 Total Hoy</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Operaciones</small>
                     </div>
                     <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">
                         <i class="fas fa-clock"></i>
                     </div>
                 </div>
-                <div class="glass stat-card float-anim" style="animation-delay: 0.3s;">
+
+                <!-- Con Falla -->
+                <div class="glass stat-card float-anim">
                     <div class="stat-info">
                         <h3 id="stat-faulty">0</h3>
-                        <p style="margin:0;">Con Falla</p>
+                        <p style="margin:0;">⚠️ Con Falla</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Equipos</small>
                     </div>
                     <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #f87171);">
                         <i class="fas fa-tools"></i>
@@ -884,56 +970,75 @@
                 </div>
             </div>
 
-            <!-- Dashboard Content Split -->
-            <div class="glass content-section" style="padding: 1.5rem; margin-bottom: 2rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>⚠️ Equipos con Falla o en Mantenimiento</h3>
-                    <button class="btn btn-secondary" style="width: auto; padding: 0.4rem 1rem; font-size: 0.8rem;"
-                        onclick="switchTab('reports')">Ver Detalles</button>
-                </div>
-                <div style="overflow-x: auto;">
-                    <table id="faulty-assets-dashboard-table" class="mini-table">
-                        <thead>
-                            <tr>
-                                <th>Equipo</th>
-                                <th>Categoría</th>
-                                <th>Estado</th>
-                                <th>Fecha Reporte</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="4" style="text-align: center; padding: 1rem; opacity: 0.5;">Cargando
-                                    información...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- Modal for Stat Details -->
+            <div id="stat-detail-modal"
+                style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+                <div class="glass"
+                    style="max-width:700px; width:90%; max-height:80vh; overflow-y:auto; padding:2rem; position:relative;">
+                    <button onclick="document.getElementById('stat-detail-modal').style.display='none'"
+                        style="position:absolute; top:1rem; right:1rem; background:none; border:none; color:var(--text-color); font-size:1.5rem; cursor:pointer;">&times;</button>
+                    <h3 id="stat-detail-title" style="margin-top:0; color:var(--primary-color);"></h3>
+                    <div id="stat-detail-content" style="margin-top:1rem;"></div>
                 </div>
             </div>
 
-            <div class="glass content-section" style="padding: 1.5rem; margin-bottom: 2rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>📋 Actividad Reciente</h3>
-                    <button class="btn btn-secondary" style="width: auto; padding: 0.4rem 1rem; font-size: 0.8rem;"
-                        onclick="switchTab('activity-history')">Ver Todo</button>
+            <!-- Dashboard Content Split -->
+            <!-- Split Section: Faulty & Recent Activity -->
+            <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; align-items: start;">
+                <!-- Faulty Assets -->
+                <div class="glass content-section" style="padding: 1.5rem; height: 100%;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.1rem;">⚠️ Equipos con Falla</h3>
+                        <button class="btn btn-secondary"
+                            style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.75rem;"
+                            onclick="switchTab('reports')">Ver Detalles</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="faulty-assets-dashboard-table" class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" style="text-align: center; padding: 1rem; opacity: 0.5;">Cargando...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div style="overflow-x: auto;">
-                    <table id="recent-ops-table">
-                        <thead>
-                            <tr>
-                                <th>Equipo</th>
-                                <th>Agente</th>
-                                <th>Origen</th>
-                                <th>Destino</th>
-                                <th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td colspan="5" style="text-align: center; padding: 2rem;">Cargando datos...</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- Recent Activity -->
+                <div class="glass content-section" style="padding: 1.5rem; height: 100%;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.1rem;">📋 Actividad Reciente</h3>
+                        <button class="btn btn-secondary"
+                            style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.75rem;"
+                            onclick="switchTab('activity-history')">Ver Todo</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="recent-ops-table">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Agente</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" style="text-align: center; padding: 2rem;">Cargando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

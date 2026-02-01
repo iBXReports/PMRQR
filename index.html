@@ -428,29 +428,60 @@
                 style="max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 2rem; position: relative;">
                 <button onclick="document.getElementById('guide-modal').style.display='none'"
                     style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>
-                <h2 style="color: var(--primary-color); margin-top: 0;">📘 Guía de Operaciones</h2>
+                <h2
+                    style="color: var(--primary-color); margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">
+                    📘 Guía Completa de Operaciones</h2>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="color: #a855f7;">1. Iniciar Servicio</h4>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Escanea el código QR adherido al equipo (Silla o
-                        Carrito). Si la cámara no lee el QR, toma una foto y usa la opción "Subir desde Galería".</p>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #a855f7; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-qrcode"></i> 1. Iniciar Servicio</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        Para comenzar, debes escanear el código QR del activo (Silla o Carro):<br>
+                        - <strong>Cámara:</strong> Apunta directamente al QR adherido al equipo.<br>
+                        - <strong>Galería:</strong> Si la cámara falla, toma una foto al QR y súbela usando el botón
+                        "Subir desde Galería".
+                    </p>
                 </div>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="color: #3b82f6;">2. Completar Datos</h4>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Selecciona tu ubicación actual, el punto de retiro y
-                        hacia donde te diriges. Si el destino es un vuelo, completa los datos de Aerolínea y Vuelo.</p>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #3b82f6; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-clipboard-check"></i> 2. Datos del Traslado</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        Completa la información del servicio:<br>
+                        - <strong>Origen y Destino:</strong> ¿De dónde vienes y a dónde vas?<br>
+                        - <strong>Vuelos:</strong> Si vas a un embarque o arribo, es vital ingresar la Aerolínea y
+                        Número de Vuelo.<br>
+                        - <strong>Puertas/Puentes:</strong> Selecciona la puerta de embarque correcta para guiar la
+                        operación.
+                    </p>
                 </div>
 
-                <div style="margin-bottom: 1.5rem;">
-                    <h4 style="color: #10b981;">3. Traslado y Devolución</h4>
-                    <p style="font-size: 0.9rem; opacity: 0.8;">Realiza el servicio. Al finalizar, escanea nuevamente el
-                        QR (o uno de devolución) para liberar el equipo. <strong>Es obligatorio tomar una foto del
-                            equipo estacionado.</strong></p>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #10b981; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-camera"></i> 3. Finalización y Devolución</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        Al terminar el servicio:<br>
+                        1. Escanea el código QR de un punto de devolución o el mismo equipo.<br>
+                        2. <strong>FOTO OBLIGATORIA:</strong> Debes tomar una foto del equipo estacionado correctamente.
+                        Sin esta foto, el sistema no cerrará la operación.
+                    </p>
                 </div>
 
-                <button class="btn"
-                    onclick="document.getElementById('guide-modal').style.display='none'">Entendido</button>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-exclamation-triangle"></i> Reportar Incidencias</h3>
+                    <div
+                        style="background: rgba(245, 158, 11, 0.1); padding: 10px; border-radius: 8px; font-size: 0.9rem;">
+                        Usa el botón <strong>"Informar Incidencia"</strong> en la pantalla de inicio SOLO si:<br>
+                        - El equipo está roto o dañado.<br>
+                        - Encontraste un objeto perdido.<br>
+                        - El equipo se ha extraviado.
+                    </div>
+                </div>
+
+                <button class="btn" style="width: 100%; margin-top: 1rem;"
+                    onclick="document.getElementById('guide-modal').style.display='none'">Entendido, volver a
+                    trabajar</button>
             </div>
         </div>
 

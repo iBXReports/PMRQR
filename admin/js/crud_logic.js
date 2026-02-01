@@ -81,8 +81,10 @@ window.loadSettingTable = async function (type, title) {
             crudHeader.insertBefore(bulkPrintBtn, addBtn);
         }
 
-    } else if (type === 'shift_codes') {
-        // Shift Code Upload Button
+    } else if (type === 'shift_codes' || type === 'profiles') {
+        const isProfile = type === 'profiles';
+
+        // Button A: Import Master / Shifts
         if (!uploadShiftsBtn) {
             uploadShiftsBtn = document.createElement('button');
             uploadShiftsBtn.id = uploadShiftsId;
@@ -91,21 +93,50 @@ window.loadSettingTable = async function (type, title) {
             uploadShiftsBtn.style.padding = '0.5rem 1rem';
             uploadShiftsBtn.style.marginRight = '10px';
             uploadShiftsBtn.style.background = '#10b981'; // Green
-            uploadShiftsBtn.innerHTML = '<i class="fas fa-file-excel"></i> Importar Excel';
+            uploadShiftsBtn.innerHTML = `<i class="fas fa-file-excel"></i> Importar ${isProfile ? 'Usuarios' : 'Turnos'}`;
 
             // Hidden File Input
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.id = 'shift-upload-input';
+            fileInput.id = isProfile ? 'user-master-upload-input' : 'shift-upload-input';
             fileInput.accept = '.xlsx, .xls';
             fileInput.style.display = 'none';
-            fileInput.onchange = handleShiftUpload;
-            document.body.appendChild(fileInput); // Append to body so it persists or check if exists
+            fileInput.onchange = isProfile ? handleUserMasterUpload : handleShiftUpload;
+            document.body.appendChild(fileInput);
 
-            uploadShiftsBtn.onclick = () => document.getElementById('shift-upload-input').click();
+            uploadShiftsBtn.onclick = () => document.getElementById(isProfile ? 'user-master-upload-input' : 'shift-upload-input').click();
 
             const addBtn = crudHeader.querySelector('button');
             crudHeader.insertBefore(uploadShiftsBtn, addBtn);
+        }
+
+        // Button B: Import Daily Report (Only for Profiles)
+        if (isProfile) {
+            let dailyBtn = document.getElementById('btn-daily-report');
+            if (!dailyBtn) {
+                dailyBtn = document.createElement('button');
+                dailyBtn.id = 'btn-daily-report';
+                dailyBtn.className = 'btn';
+                dailyBtn.style.width = 'auto';
+                dailyBtn.style.padding = '0.5rem 1rem';
+                dailyBtn.style.marginRight = '10px';
+                dailyBtn.style.background = '#8b5cf6'; // Violet
+                dailyBtn.innerHTML = `<i class="fas fa-calendar-check"></i> Reporte Diario`;
+
+                // Hidden File Input
+                const fileInput2 = document.createElement('input');
+                fileInput2.type = 'file';
+                fileInput2.id = 'daily-report-upload-input';
+                fileInput2.accept = '.xlsx, .xls';
+                fileInput2.style.display = 'none';
+                fileInput2.onchange = handleDailyReportUpload;
+                document.body.appendChild(fileInput2);
+
+                dailyBtn.onclick = () => document.getElementById('daily-report-upload-input').click();
+
+                const addBtn = crudHeader.querySelector('button');
+                crudHeader.insertBefore(dailyBtn, addBtn);
+            }
         }
     }
 
@@ -1244,3 +1275,397 @@ async function processShiftExcelData(rows) {
 
 // Auto load default if switched to settings (can be hooked into switchTab or init)
 // Added hook in switchTab
+
+// --- USER MASTER UPLOAD EXCEL LOGIC ---
+window.handleUserMasterUpload = function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convert to JSON (Header: 1 assumes 0-index based array of arrays)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        processUserMasterExcel(jsonData);
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = ''; // Reset
+};
+
+async function processUserMasterExcel(rows) {
+    if (!rows || rows.length === 0) {
+        alert("El archivo parece vacío.");
+        return;
+    }
+
+    // 1. Fetch ALL existing profiles with fields key for matching
+    const { data: existingProfiles, error: pfError } = await supabase
+        .from('profiles')
+        .select('id, rut, email, username, full_name');
+
+    if (pfError) {
+        console.error("Error fetching profiles:", pfError);
+        alert("Error verificando usuarios existentes: " + pfError.message);
+        return;
+    }
+
+    // 2. Build Index Maps for fast lookup
+    const mapByRut = {};
+    const mapByEmail = {};
+    const mapByUsername = {};
+    const mapByName = {}; // Normalized name -> ID
+
+    // Normalizer helper
+    const normalize = (str) => String(str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+    const cleanRut = (r) => String(r || '').replace(/[^0-9kK]/g, '').toUpperCase();
+    const cleanStr = (s) => s ? String(s).trim() : '';
+
+    existingProfiles.forEach(p => {
+        if (p.rut) mapByRut[cleanRut(p.rut)] = p.id;
+        if (p.email) mapByEmail[p.email.toLowerCase().trim()] = p.id;
+        if (p.username) mapByUsername[p.username.toLowerCase().trim()] = p.id;
+        if (p.full_name) mapByName[normalize(p.full_name)] = p.id;
+    });
+
+    const predataList = [];
+    const profilesUpdates = [];
+    let updatedCount = 0;
+    let predataCount = 0;
+
+    // Stats for report
+    const matchesFound = {
+        scan_rut: 0,
+        scan_email: 0,
+        scan_username: 0,
+        scan_name: 0
+    };
+
+    // Loop rows (Skip header)
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 1) continue;
+
+        // Check if header
+        const firstCell = String(row[0] || '').toUpperCase();
+        if (firstCell.includes('RUT') || firstCell === 'A') continue;
+
+        // Parse Excel Columns
+        const rawRut = row[0];
+        const rut = cleanRut(rawRut); // Key for Predata
+
+        // Names
+        const colB_ApellidosNombres = row[1];
+        const colC_NombresApellidos = row[2];
+        const colD_FirstName = cleanStr(row[3]);
+        const colE_MiddleName = cleanStr(row[4]);
+        const colF_LastName1 = cleanStr(row[5]);
+        const colG_LastName2 = cleanStr(row[6]);
+
+        // Construct a clean Full Name for display/legacy
+        let finalFullName = cleanStr(colC_NombresApellidos);
+        if (!finalFullName && colD_FirstName) {
+            finalFullName = `${colD_FirstName} ${colE_MiddleName} ${colF_LastName1} ${colG_LastName2}`.replace(/\s+/g, ' ').trim();
+        }
+
+        const username = cleanStr(row[7]);
+        const email = cleanStr(row[8]);
+        const phone = cleanStr(row[9]);
+
+        // Address
+        const addrStreet = cleanStr(row[10]);
+        const addrNumber = cleanStr(row[11]);
+        const addrUnit = cleanStr(row[12]);
+        const commune = cleanStr(row[13]);
+        const fullAddress = `${addrStreet} #${addrNumber || 'S/N'} ${addrUnit}`.trim();
+
+        // Extra
+        const rawTica = cleanStr(row[14]).toUpperCase();
+        let ticaStatus = 'no_tiene';
+        if (rawTica.includes('VIGENTE')) ticaStatus = 'vigente';
+        else if (rawTica.includes('VENCIDA')) ticaStatus = 'vencida';
+        else if (rawTica.includes('POR VENCER')) ticaStatus = 'por_vencer';
+        else if (rawTica.includes('SIN')) ticaStatus = 'no_tiene';
+
+        const isTrue = (val) => {
+            if (!val) return false;
+            const s = String(val).toUpperCase();
+            return s === 'SI' || s === 'YES' || s === 'X' || s.includes('APROBADO') || s.includes('REALIZADO') || s === '1' || s === 'TRUE';
+        };
+        const courseGolf = isTrue(row[15]);
+        const courseDuplex = isTrue(row[16]);
+        const courseOruga = isTrue(row[17]);
+
+        // OBJECT CONSTRUCTION (Common for both Profile and Predata)
+        const userData = {
+            // Include RUT in update only if it was missing? Or force update? 
+            // Force update ensures profile has correct RUT from Master File.
+            rut: rut.length >= 5 ? rut : undefined,
+            username: username || undefined,
+            full_name: finalFullName,
+            first_name: colD_FirstName,
+            middle_name: colE_MiddleName,
+            last_name_1: colF_LastName1,
+            last_name_2: colG_LastName2,
+            email: email || undefined, // Be careful not to wipe existing emails if excel is empty?
+            phone: phone,
+            address: fullAddress,
+            address_street: addrStreet,
+            address_number: addrNumber,
+            address_unit: addrUnit,
+            commune: commune,
+            tica_status: ticaStatus,
+            course_golf: courseGolf,
+            course_duplex: courseDuplex,
+            course_oruga: courseOruga
+        };
+
+        // Clean undefined keys
+        Object.keys(userData).forEach(key => userData[key] === undefined && delete userData[key]);
+
+        // 1. ADD TO PREDATA (Always, keyed by RUT)
+        if (rut && rut.length >= 5) {
+            predataList.push({ ...userData, rut: rut }); // Ensure RUT is set for predata
+        }
+
+        // 2. MATCH WITH EXISTING PROFILE
+        let matchId = null;
+
+        // Strategy A: Direct RUT Match (Most Reliable)
+        if (rut && mapByRut[rut]) {
+            matchId = mapByRut[rut];
+            matchesFound.scan_rut++;
+        }
+
+        // Strategy B: Email Match
+        if (!matchId && email && mapByEmail[email.toLowerCase().trim()]) {
+            matchId = mapByEmail[email.toLowerCase().trim()];
+            matchesFound.scan_email++;
+        }
+
+        // Strategy C: Username Match
+        if (!matchId && username && mapByUsername[username.toLowerCase().trim()]) {
+            matchId = mapByUsername[username.toLowerCase().trim()];
+            matchesFound.scan_username++;
+        }
+
+        // Strategy D: Name Match (Normalized)
+        if (!matchId) {
+            const norm1 = normalize(colC_NombresApellidos); // "Nombres Apellidos"
+            const norm2 = normalize(colB_ApellidosNombres); // "Apellidos Nombres"
+
+            if (norm1 && mapByName[norm1]) {
+                matchId = mapByName[norm1];
+                matchesFound.scan_name++;
+            } else if (norm2 && mapByName[norm2]) {
+                matchId = mapByName[norm2];
+                matchesFound.scan_name++;
+            }
+        }
+
+        // Add to Profile Updates if Match Found
+        if (matchId) {
+            profilesUpdates.push({
+                id: matchId,
+                ...userData
+            });
+        }
+    }
+
+    // BATCH OPS
+    // 1. Upsert Agent Predata
+    if (predataList.length > 0) {
+        const { error: preError } = await supabase
+            .from('agent_predata')
+            .upsert(predataList, { onConflict: 'rut' });
+
+        if (preError) {
+            console.error("Error upserting predata:", preError);
+            alert("Hubo errores guardando datos de pre-match.");
+        } else {
+            predataCount = predataList.length;
+        }
+    }
+
+    // 2. Update Profiles
+    if (profilesUpdates.length > 0) {
+        const { error: profError } = await supabase
+            .from('profiles')
+            .upsert(profilesUpdates, { onConflict: 'id' });
+
+        if (profError) {
+            console.error("Error updating profiles:", profError);
+            alert("Hubo errores actualizando perfiles existentes.");
+        } else {
+            updatedCount = profilesUpdates.length;
+        }
+    }
+
+    alert(`Proceso Terminado 🤖\n\n` +
+        `Datos Nuevos Cargados (Predata): ${predataCount}\n` +
+        `Perfiles Existentes Actualizados: ${updatedCount}\n\n` +
+        `- Por RUT: ${matchesFound.scan_rut}\n` +
+        `- Por Email: ${matchesFound.scan_email}\n` +
+        `- Por Usuario: ${matchesFound.scan_username}\n` +
+        `- Por Nombre: ${matchesFound.scan_name}`);
+
+    // Refresh
+    if (typeof window.loadSettingTable === 'function') {
+        if (currentSettingsType === 'profiles') loadSettingTable('profiles');
+    }
+}
+
+// --- DAILY REPORT UPLOAD (TICA + ATTENDANCE) ---
+window.handleDailyReportUpload = function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convert to JSON (Header: 1 assumes 0-index based array of arrays)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        processDailyReportExcel(jsonData);
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = ''; // Reset
+};
+
+async function processDailyReportExcel(rows) {
+    if (!rows || rows.length === 0) {
+        alert("El archivo parece vacío.");
+        return;
+    }
+
+    // 1. Fetch matching data
+    const { data: existingProfiles, error: pfError } = await supabase
+        .from('profiles')
+        .select('id, rut, full_name, username, email');
+
+    if (pfError) {
+        alert("Error cargando perfiles: " + pfError.message);
+        return;
+    }
+
+    // 2. Build Maps
+    const mapByRut = {};
+    const mapByName = {};
+    const cleanRut = (r) => String(r || '').replace(/[^0-9kK]/g, '').toUpperCase();
+    const normalize = (str) => String(str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
+
+    existingProfiles.forEach(p => {
+        if (p.rut) mapByRut[cleanRut(p.rut)] = p;
+        if (p.full_name) mapByName[normalize(p.full_name)] = p;
+        if (p.username) mapByName[normalize(p.username)] = p; // Fallback
+    });
+
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const proUpdates = [];
+    const attUpserts = [];
+    let processedCount = 0;
+    let notFoundCount = 0;
+
+    // Loop Rows
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 1) continue;
+
+        // Skip Header heuristics
+        const cell0 = String(row[0] || '').toUpperCase();
+        if (cell0.includes('NOMBRE') || cell0.includes('AGENTE')) continue;
+
+        // Match Logic
+        let matchedProfile = null;
+        const potentials = row.map(c => String(c).trim());
+
+        // Try to find profile
+        for (const val of potentials) {
+            // Try RUT
+            const asRut = cleanRut(val);
+            if (asRut.length > 5 && mapByRut[asRut]) {
+                matchedProfile = mapByRut[asRut];
+                break;
+            }
+            // Try Name
+            const asName = normalize(val);
+            if (asName.length > 4 && mapByName[asName]) {
+                matchedProfile = mapByName[asName];
+                break;
+            }
+        }
+
+        if (!matchedProfile) {
+            notFoundCount++;
+            continue;
+        }
+
+        const rowStr = potentials.join(' ').toUpperCase();
+
+        // 1. TICA Parsing
+        let ticaStatus = null;
+        if (rowStr.includes('VIGENTE') || rowStr.includes('CON TICA')) ticaStatus = 'vigente';
+        else if (rowStr.includes('VENCIDA') || rowStr.includes('CADUCADA')) ticaStatus = 'vencida';
+        else if (rowStr.includes('POR VENCER')) ticaStatus = 'por_vencer';
+        else if (rowStr.includes('SIN TICA') || rowStr.includes('NO TIENE')) ticaStatus = 'no_tiene';
+
+        if (ticaStatus) {
+            proUpdates.push({
+                id: matchedProfile.id,
+                tica_status: ticaStatus
+            });
+        }
+
+        // 2. Attendance Parsing
+        let attendanceStatus = 'presente'; // Default
+        if (rowStr.includes('AUSENTE') || rowStr.includes('FALTA')) attendanceStatus = 'ausente';
+        else if (rowStr.includes('LICENCIA') || rowStr.includes('MEDICA')) attendanceStatus = 'licencia';
+        else if (rowStr.includes('LIBRE')) attendanceStatus = 'libre';
+        else if (rowStr.includes('PRESENTE') || rowStr.includes('ASISTE')) attendanceStatus = 'presente';
+
+        // Map libre to ausente for DB consistency or keep if DB allows
+        // Check DB: attendance_status IN ('pending', 'presente', 'ausente', 'licencia')
+        if (attendanceStatus === 'libre') attendanceStatus = 'ausente';
+
+        attUpserts.push({
+            user_id: matchedProfile.id,
+            rut: matchedProfile.rut,
+            user_name: matchedProfile.full_name,
+            shift_date: today,
+            attendance_status: attendanceStatus,
+            observation: rowStr.includes('OBS:') ? 'LEER NOTA' : 'SIN OBS',
+            updated_at: new Date().toISOString()
+        });
+
+        processedCount++;
+    }
+
+    // Execute Updates
+    if (proUpdates.length > 0) {
+        const uniquePro = {};
+        proUpdates.forEach(u => uniquePro[u.id] = u);
+        const { error } = await supabase.from('profiles').upsert(Object.values(uniquePro), { onConflict: 'id' });
+        if (error) console.error("Error updating TICA:", error);
+    }
+
+    if (attUpserts.length > 0) {
+        const { error } = await supabase.from('attendance').upsert(attUpserts, { onConflict: 'rut, shift_date' });
+        if (error) {
+            console.error("Error updating Attendance:", error);
+            alert("Error guardando asistencia: " + error.message);
+        }
+    }
+
+    alert(`Reporte Diario Procesado 📅\n\nRegistros Procesados: ${processedCount}\nUsuarios No Encontrados: ${notFoundCount}\n\nTICA y Asistencia actualizadas para hoy.`);
+
+    // Refresh
+    if (typeof window.loadSettingTable === 'function') loadSettingTable('profiles');
+}

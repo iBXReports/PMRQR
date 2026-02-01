@@ -81,7 +81,7 @@ async function loadDailyRosterManagement() {
     container.innerHTML = '<div style="text-align:center;">Cargando gestión diaria...</div>';
 
     try {
-        // 1. Calculate Dates (Today, Tomorrow, Day After)
+        // 1. Calculate Dates (Yesterday, Today)
         // Use local date logic to avoid UTC offsets for "Today"
         const getLocalYMD = (offset) => {
             const d = new Date();
@@ -89,9 +89,11 @@ async function loadDailyRosterManagement() {
             return d.toLocaleDateString('fr-CA'); // YYYY-MM-DD
         };
 
+        const yesterday = getLocalYMD(-1);
         const today = getLocalYMD(0);
-        const tomorrow = getLocalYMD(1);
-        const dayAfter = getLocalYMD(2);
+
+        // Get current hour to determine if we need to show overnight shifts
+        const currentHour = new Date().getHours();
 
         // UI Formatters
         const formatDateUI = (ymd) => {
@@ -103,11 +105,11 @@ async function loadDailyRosterManagement() {
             return `${d}/${m}`;
         };
 
-        // Fetch Shifts for 3 Days
+        // Fetch Shifts for Today AND Yesterday (for overnight shifts)
         const { data: shifts, error } = await supabase
             .from('user_shifts')
             .select('*')
-            .in('shift_date', [today, tomorrow, dayAfter])
+            .in('shift_date', [yesterday, today])
             .order('user_name');
 
         if (error) throw error;
@@ -116,12 +118,20 @@ async function loadDailyRosterManagement() {
         const { data: pData } = await supabase.from('profiles').select('rut, id, tica_status, full_name');
         const profiles = pData || [];
 
-        // Helper to normalize RUT
+        // Helper to normalize RUT - handles all variations:
+        // 17737508-K, 17.737.508-K, 17737508K, 17737508
         const cleanRut = (r) => String(r || '').replace(/[^0-9kK]/g, '').toUpperCase();
 
         const profileMap = {};
         profiles.forEach(p => {
-            if (p.rut) profileMap[cleanRut(p.rut)] = p;
+            if (p.rut) {
+                const cleaned = cleanRut(p.rut);
+                profileMap[cleaned] = p;
+                // Also index without K at the end (for RUTs stored without verification digit)
+                if (cleaned.endsWith('K')) {
+                    profileMap[cleaned.slice(0, -1)] = p;
+                }
+            }
         });
 
         // Group Shifts by User (Key: Normalized RUT or Name fallback)
@@ -148,6 +158,42 @@ async function loadDailyRosterManagement() {
             });
         }
 
+        // Fetch existing attendance data for today and yesterday
+        const { data: attendanceData } = await supabase
+            .from('attendance')
+            .select('*')
+            .in('shift_date', [yesterday, today]);
+
+        // Create attendance lookup map: key = `${rut}_${date}`
+        const attendanceMap = {};
+        if (attendanceData) {
+            attendanceData.forEach(a => {
+                const key = `${a.rut || a.user_name}_${a.shift_date}`;
+                attendanceMap[key] = a;
+                // Also index by cleaned RUT
+                if (a.rut) {
+                    const cleanedKey = `${cleanRut(a.rut)}_${a.shift_date}`;
+                    attendanceMap[cleanedKey] = a;
+                }
+            });
+        }
+
+        // Fetch agent_predata for TICA status fallback (for agents without profile)
+        const { data: predataData } = await supabase
+            .from('agent_predata')
+            .select('rut, tica_status, full_name');
+
+        const predataMap = {};
+        if (predataData) {
+            predataData.forEach(p => {
+                if (p.rut) {
+                    const cleaned = cleanRut(p.rut);
+                    predataMap[cleaned] = p;
+                    predataMap[p.rut] = p;
+                }
+            });
+        }
+
         container.innerHTML = `
             <h4 style="margin-bottom: 1rem; color: var(--primary-color);">📋 Gestión Operativa del Día (${formatDateUI(today)})</h4>
             
@@ -158,21 +204,28 @@ async function loadDailyRosterManagement() {
             </div>
 
             <div style="background: var(--bg-card); border-radius: 12px; padding: 1rem; overflow-x: auto;">
-                <table class="modern-table" style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+                <table class="modern-table" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
                     <thead>
-                        <tr style="border-bottom: 1px solid rgba(0,0,0,0.1);">
-                            <th style="padding:10px; text-align:left;">Agente</th>
-                            <th style="padding:10px; text-align:center;">Hoy<br><small style="opacity:0.6">${formatDateHeader(today)}</small></th>
-                            <th style="padding:10px; text-align:center;">Mañana<br><small style="opacity:0.6">${formatDateHeader(tomorrow)}</small></th>
-                            <th style="padding:10px; text-align:center;">Subsig.<br><small style="opacity:0.6">${formatDateHeader(dayAfter)}</small></th>
-                            <th style="padding:10px; text-align:center;">Estado TICA</th>
-                            <th style="padding:10px; text-align:center;">Acciones</th>
+                        <tr style="border-bottom: 2px solid var(--primary-color);">
+                            <th class="table-header" style="padding:12px 10px; text-align:left; min-width:180px; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white; font-weight: 600;">Agente</th>
+                            <th class="table-header" style="padding:12px 10px; text-align:center; min-width:80px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-weight: 600;">🕐 TURNO<br><small style="opacity:0.8">${formatDateHeader(today)}</small></th>
+                            <th class="table-header" style="padding:12px 10px; text-align:center; min-width:130px; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 600;">📋 ASISTENCIA</th>
+                            <th class="table-header" style="padding:12px 10px; text-align:center; min-width:170px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-weight: 600;">📝 OBSERVACIONES</th>
+                            <th class="table-header" style="padding:12px 10px; text-align:center; min-width:130px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 600;">🪪 ESTADO TICA</th>
+                            <th class="table-header" style="padding:12px 10px; text-align:center; min-width:150px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; font-weight: 600;">🍽️ COLACIONES</th>
+                            <th class="table-header" style="padding:12px 10px; text-align:center; min-width:80px; background: linear-gradient(135deg, #64748b, #475569); color: white; font-weight: 600;">Acciones</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
         `;
+
+        // Store attendance map and dates globally for row rendering
+        window._attendanceMap = attendanceMap;
+        window._todayDate = today;
+        window._yesterdayDate = yesterday;
+        window._currentHour = currentHour;
 
         const tbody = container.querySelector('tbody');
 
@@ -189,7 +242,7 @@ async function loadDailyRosterManagement() {
         const userKeys = Object.keys(groupedUsers).sort((a, b) => groupedUsers[a].name.localeCompare(groupedUsers[b].name));
 
         if (userKeys.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem;">No hay turnos para estos días.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;">No hay turnos para estos días.</td></tr>';
             return;
         }
 
@@ -204,7 +257,69 @@ async function loadDailyRosterManagement() {
             return 'background:#374151; color:white;'; // Default Dark
         };
 
-        userKeys.forEach(key => {
+        // Helper to check if a shift is overnight (ends after midnight)
+        const isOvernightShift = (code) => {
+            if (!code) return false;
+            const c = code.trim().toUpperCase();
+            // Night shifts typically start with N
+            if (c.startsWith('N')) return true;
+            // Check for pattern like N2108 (starts 21, ends 08)
+            const patternMatch = c.match(/^([A-Z]*)(\\d{2})(\\d{2})$/);
+            if (patternMatch) {
+                const startHour = parseInt(patternMatch[2]);
+                const endHour = parseInt(patternMatch[3]);
+                // If start hour > end hour, it's overnight
+                if (startHour > endHour) return true;
+            }
+            return false;
+        };
+
+        // Helper to check if overnight shift from yesterday is still active
+        const isYesterdayShiftStillActive = (code) => {
+            if (!code || !isOvernightShift(code)) return false;
+            const c = code.trim().toUpperCase();
+
+            // Try to extract end hour from shift code
+            const patternMatch = c.match(/^([A-Z]*)(\\d{2})(\\d{2})$/);
+            if (patternMatch) {
+                const endHour = parseInt(patternMatch[3]);
+                // If current hour is before end hour, shift is still active
+                return currentHour < endHour;
+            }
+
+            // Default: assume overnight shifts end around 7-8 AM
+            return currentHour < 8;
+        };
+
+        // Filter agents: show if they have a shift today OR if they have an overnight shift from yesterday still active
+        const excludedShiftCodes = ['L', 'LI', 'X', 'V', 'LIBRE', 'VACACIONES', 'VAC'];
+        const filteredUserKeys = userKeys.filter(key => {
+            const u = groupedUsers[key];
+            const todayShift = (u.shifts[today] || '').trim().toUpperCase();
+            const yesterdayShift = (u.shifts[yesterday] || '').trim().toUpperCase();
+
+            // Case 1: Has an active shift today (not libre/vacaciones)
+            if (todayShift && !excludedShiftCodes.includes(todayShift)) {
+                return true;
+            }
+
+            // Case 2: Has an overnight shift from yesterday that's still active
+            if (yesterdayShift && isYesterdayShiftStillActive(yesterdayShift)) {
+                // Mark this user as having an overnight shift for display purposes
+                u.isOvernightFromYesterday = true;
+                u.activeShiftCode = yesterdayShift;
+                return true;
+            }
+
+            return false;
+        });
+
+        if (filteredUserKeys.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;">No hay agentes con turnos activos para hoy.</td></tr>';
+            return;
+        }
+
+        filteredUserKeys.forEach(key => {
             const u = groupedUsers[key];
             let profile = profileMap[u.cleanRut];
             let autoLinked = false;
@@ -224,17 +339,76 @@ async function loadDailyRosterManagement() {
             }
 
             const userId = profile ? profile.id : null;
-            const currentTica = profile ? profile.tica_status : 'unknown';
+
+            // Get TICA status: first from profile, then from predataMap
+            const predata = predataMap[u.cleanRut] || {};
+            const currentTica = profile?.tica_status || predata.tica_status || 'sin_tica';
+
+            // Get attendance data for today
+            const attendanceKey = `${u.cleanRut || u.name}_${today}`;
+            const attendance = attendanceMap[attendanceKey] || {};
+            const currentAttendance = attendance.attendance_status || 'pending';
+            const currentObservation = attendance.observation || 'SIN OBS';
+            const currentColation = attendance.colation_status || 'pendiente';
 
             const tr = document.createElement('tr');
             tr.style.borderBottom = '1px solid rgba(0,0,0,0.05)';
 
-            // Select Options
+            // TICA Select Options (complete list)
             const opts = [
                 { val: 'vigente', label: '✅ Vigente' },
                 { val: 'por_vencer', label: '⚠️ Por Vencer' },
-                { val: 'vencida', label: '❌ Vencida' }
+                { val: 'vencida', label: '❌ Vencida' },
+                { val: 'en_tramite', label: '🔄 En Trámite' },
+                { val: 'sin_tica', label: '❓ Sin TICA' }
             ].map(o => `<option value="${o.val}" ${o.val === currentTica ? 'selected' : ''}>${o.label}</option>`).join('');
+
+            // ATTENDANCE Select Options
+            const attendanceOpts = [
+                { val: 'pending', label: '⏳ Pendiente', color: '#9ca3af' },
+                { val: 'presente', label: '✅ Presente', color: '#10b981' },
+                { val: 'ausente', label: '❌ Ausente', color: '#ef4444' },
+                { val: 'licencia', label: '📋 Licencia', color: '#6366f1' }
+            ];
+            const attendanceOptsHtml = attendanceOpts.map(o =>
+                `<option value="${o.val}" ${o.val === currentAttendance ? 'selected' : ''}>${o.label}</option>`
+            ).join('');
+            const attendanceColor = attendanceOpts.find(o => o.val === currentAttendance)?.color || '#9ca3af';
+
+            // OBSERVATION Select Options (with colors for badge style)
+            const observationOpts = [
+                { val: 'SIN OBS', label: '✓ SIN OBS', color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
+                { val: 'RENUNCIA', label: '🚪 RENUNCIA', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+                { val: '2° DIA AUSENTE', label: '⚠️ 2° DIA AUSENTE', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+                { val: '3° DIA AUSENTE', label: '🚨 3° DIA AUSENTE', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+                { val: 'LLEGA TARDE', label: '🕐 LLEGA TARDE', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+                { val: 'NO LLEGA', label: '❌ NO LLEGA', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+                { val: 'NO TOMA VAN', label: '🚐 NO TOMA VAN', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
+                { val: 'NO RESPONDE', label: '📵 NO RESPONDE', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
+                { val: 'NO SE REPORTA', label: '📋 NO SE REPORTA', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+                { val: 'LICENCIA MEDICA', label: '🏥 LICENCIA MEDICA', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+                { val: 'EXTENDIDO//HRS EXTRA', label: '⏰ HRS EXTRA', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+                { val: 'NO SE LE ASIGNO MOVIL', label: '📱 SIN MOVIL', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
+                { val: 'ENFERM@', label: '🤒 ENFERM@', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+                { val: 'PROBLEMA PERSONAL', label: '👤 PROB. PERSONAL', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
+                { val: 'PERSONAL NUEVO', label: '🆕 PERSONAL NUEVO', color: '#10b981', bg: 'rgba(16,185,129,0.15)' }
+            ];
+            const currentObsData = observationOpts.find(o => o.val === currentObservation);
+            const obsColor = currentObsData?.color || '#6b7280';
+            const obsBg = currentObsData?.bg || 'rgba(107,114,128,0.15)';
+            const observationOptsHtml = observationOpts.map(o =>
+                `<option value="${o.val}" data-color="${o.color}" data-bg="${o.bg}" ${o.val === currentObservation ? 'selected' : ''}>${o.label}</option>`
+            ).join('');
+
+            // COLATION Select Options
+            const colationOpts = [
+                { val: 'pendiente', label: '⏳ COLACION PENDIENTE', color: '#f59e0b' },
+                { val: 'ok', label: '✅ COLACION OK', color: '#10b981' }
+            ];
+            const colationOptsHtml = colationOpts.map(o =>
+                `<option value="${o.val}" ${o.val === currentColation ? 'selected' : ''}>${o.label}</option>`
+            ).join('');
+            const colationColor = colationOpts.find(o => o.val === currentColation)?.color || '#f59e0b';
 
             // Warning
             let notFoundWarning = '';
@@ -258,56 +432,115 @@ async function loadDailyRosterManagement() {
             if (currentTica === 'por_vencer') selectBorder = '#f59e0b';
             if (currentTica === 'vencida') selectBorder = '#ef4444';
 
-            // Shift Columns
-            const renderShiftCell = (date) => {
-                const code = u.shifts[date] || '-';
+            // Determine which shift to display (today's or overnight from yesterday)
+            const displayShiftCode = u.isOvernightFromYesterday ? u.activeShiftCode : (u.shifts[today] || '-');
+            const isOvernight = u.isOvernightFromYesterday || false;
+
+            // Render shift cell with overnight indicator if applicable
+            const renderShiftCell = () => {
+                const code = displayShiftCode;
                 if (code === '-') return '<span style="opacity:0.3">-</span>';
-                return `<span class="badge" style="${getCodeStyle(code)} font-family:'Courier New', monospace; font-size:0.9rem; padding:4px 8px; border-radius:6px;">${code}</span>`;
+
+                let overnightBadge = '';
+                if (isOvernight) {
+                    overnightBadge = `<span style="font-size:0.6rem; background:#6366f1; color:white; padding:2px 4px; border-radius:4px; margin-left:4px;" title="Turno nocturno del día anterior">🌙</span>`;
+                }
+
+                return `<span class="badge" style="${getCodeStyle(code)} font-family:'Courier New', monospace; font-size:0.85rem; padding:4px 8px; border-radius:6px;">${code}</span>${overnightBadge}`;
             };
 
+            // Escape data for JS functions
+            const safeRut = (u.rut || '').replace(/'/g, "\\'");
+            const safeName = u.name.replace(/'/g, "\\'");
+            const safeCleanRut = u.cleanRut || u.name;
+
+            // Determine which date to use for attendance (today for regular, yesterday for overnight)
+            const attendanceDate = isOvernight ? yesterday : today;
+
             tr.innerHTML = `
-                <td style="padding: 12px 16px;">
-                    <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-color); margin-bottom: 4px;">${u.name}</div>
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <span style="font-size: 0.8rem; opacity: 0.7;">${u.role || 'Sin Cargo'}</span>
+                <td style="padding: 10px 12px;">
+                    <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-color); margin-bottom: 3px;">${u.name}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span style="font-size: 0.75rem; opacity: 0.7;">${u.role || 'Sin Cargo'}</span>
                         ${notFoundWarning}
                     </div>
                 </td>
-                <td style="padding: 12px; text-align: center;">${renderShiftCell(today)}</td>
-                <td style="padding: 12px; text-align: center;">${renderShiftCell(tomorrow)}</td>
-                <td style="padding: 12px; text-align: center;">${renderShiftCell(dayAfter)}</td>
-                <td style="padding: 12px; text-align: center;">
-                    ${userId ? `
-                    <div style="position: relative; width: 100%; max-width: 160px; margin: 0 auto;">
-                        <select onchange="updateAgentTica('${userId}', this.value)" 
-                                style="width: 100%; padding: 8px 12px; border-radius: 8px; 
-                                       border: 1px solid ${selectBorder}; 
-                                       background-color: var(--bg-card); 
-                                       color: var(--text-color); 
-                                       font-size: 0.85rem; 
-                                       cursor: pointer; 
-                                       outline: none; 
-                                       appearance: none;
-                                       -webkit-appearance: none;
-                                       font-family: inherit;
-                                       transition: all 0.2s ease;">
-                            ${opts}
-                        </select>
-                         <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.6;">
-                            <i class="fas fa-chevron-down" style="font-size: 0.7rem;"></i>
-                        </div>
-                    </div>` : '<span style="opacity:0.4; font-size:0.8rem;">—</span>'}
+                
+                <!-- TURNO -->
+                <td style="padding: 8px; text-align: center;">${renderShiftCell()}</td>
+                
+                <!-- ASISTENCIA -->
+                <td style="padding: 8px; text-align: center; background:rgba(16,185,129,0.05);">
+                    <select onchange="updateAttendance('${safeCleanRut}', '${safeName}', '${attendanceDate}', 'attendance_status', this.value, this)" 
+                            style="width: 100%; max-width: 130px; padding: 6px 8px; border-radius: 6px; 
+                                   border: 2px solid ${attendanceColor}; 
+                                   background: var(--input-bg, rgba(0,0,0,0.2)); 
+                                   color: var(--text-color); 
+                                   font-size: 0.75rem; 
+                                   cursor: pointer; 
+                                   outline: none; 
+                                   font-family: inherit;">
+                        ${attendanceOptsHtml}
+                    </select>
                 </td>
-                <td style="padding: 12px; text-align: center;">
+                
+                <!-- OBSERVACIONES -->
+                <td style="padding: 8px; text-align: center; background:rgba(245,158,11,0.05);">
+                    <select onchange="updateAttendance('${safeCleanRut}', '${safeName}', '${attendanceDate}', 'observation', this.value, this); this.style.borderColor=this.options[this.selectedIndex].dataset.color; this.style.background=this.options[this.selectedIndex].dataset.bg;" 
+                            style="width: 100%; max-width: 175px; padding: 6px 8px; border-radius: 8px; 
+                                   border: 2px solid ${obsColor}; 
+                                   background: ${obsBg}; 
+                                   color: var(--text-color); 
+                                   font-size: 0.7rem; 
+                                   font-weight: 500;
+                                   cursor: pointer; 
+                                   outline: none; 
+                                   font-family: inherit;">
+                        ${observationOptsHtml}
+                    </select>
+                </td>
+                
+                <!-- ESTADO TICA -->
+                <td style="padding: 8px; text-align: center; background:rgba(59,130,246,0.05);">
+                    <select onchange="updateAgentTica('${userId || ''}', '${safeCleanRut}', '${safeName}', this.value, this)" 
+                            style="width: 100%; max-width: 130px; padding: 6px 8px; border-radius: 6px; 
+                                   border: 2px solid ${selectBorder}; 
+                                   background: var(--input-bg, rgba(0,0,0,0.2)); 
+                                   color: var(--text-color); 
+                                   font-size: 0.75rem; 
+                                   cursor: pointer; 
+                                   outline: none; 
+                                   font-family: inherit;">
+                        ${opts}
+                    </select>
+                </td>
+                
+                <!-- COLACIONES -->
+                <td style="padding: 8px; text-align: center; background:rgba(139,92,246,0.05);">
+                    <select onchange="updateAttendance('${safeCleanRut}', '${safeName}', '${attendanceDate}', 'colation_status', this.value, this)" 
+                            style="width: 100%; max-width: 160px; padding: 6px 8px; border-radius: 6px; 
+                                   border: 2px solid ${colationColor}; 
+                                   background: var(--input-bg, rgba(0,0,0,0.2)); 
+                                   color: var(--text-color); 
+                                   font-size: 0.7rem; 
+                                   cursor: pointer; 
+                                   outline: none; 
+                                   font-family: inherit;">
+                        ${colationOptsHtml}
+                    </select>
+                </td>
+                
+                <!-- ACCIONES -->
+                <td style="padding: 8px; text-align: center;">
                     ${userId ? `
                         <button class="btn-icon" title="Editar Perfil" onclick="openEditProfile('${userId}')" 
-                                style="color: var(--text-color); background: var(--bg-card); width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--card-border); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                            <i class="fas fa-edit"></i>
+                                style="color: var(--text-color); background: var(--bg-card); width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--card-border); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-edit" style="font-size: 0.75rem;"></i>
                         </button>
                     ` : `
-                        <button class="btn-icon" title="Vincular Perfil Manualmente" onclick="openManualLink('${u.rut}', '${u.name.replace(/'/g, "\\'")}')" 
-                                style="color: #f59e0b; background: rgba(245,158,11,0.1); width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(245,158,11,0.3); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
-                            <i class="fas fa-link"></i>
+                        <button class="btn-icon" title="Vincular Perfil Manualmente" onclick="openManualLink('${safeRut}', '${safeName}')" 
+                                style="color: #f59e0b; background: rgba(245,158,11,0.1); width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(245,158,11,0.3); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;">
+                            <i class="fas fa-link" style="font-size: 0.75rem;"></i>
                         </button>
                     `}
                 </td>
@@ -321,25 +554,155 @@ async function loadDailyRosterManagement() {
     }
 }
 
-window.updateAgentTica = async function (userId, newStatus) {
-    if (!userId) return;
-    try {
-        // Show lightweight toast or processing indicator? For now just silent or console.
-        console.log(`Updating TICA for ${userId} to ${newStatus}`);
+window.updateAgentTica = async function (userId, rut, userName, newStatus, selectElement) {
+    if (!userId && !rut) return;
 
-        const { error } = await supabase
-            .from('profiles')
-            .update({ tica_status: newStatus })
-            .eq('id', userId);
+    const ticaColors = {
+        'vigente': '#10b981',
+        'por_vencer': '#f59e0b',
+        'vencida': '#ef4444',
+        'en_tramite': '#3b82f6',
+        'sin_tica': '#6b7280'
+    };
+
+    try {
+        let error = null;
+
+        if (userId) {
+            // Update in profiles table
+            console.log(`Updating TICA for profile ${userId} to ${newStatus}`);
+            const { error: updateErr } = await supabase
+                .from('profiles')
+                .update({ tica_status: newStatus })
+                .eq('id', userId);
+            error = updateErr;
+        } else if (rut) {
+            // No profile - try to update/insert in agent_predata
+            const cleanRut = String(rut).replace(/[^0-9kK]/g, '').toUpperCase();
+            console.log(`Updating TICA for agent_predata RUT ${cleanRut} to ${newStatus}`);
+
+            // Check if exists in agent_predata
+            const { data: existing } = await supabase
+                .from('agent_predata')
+                .select('id')
+                .eq('rut', cleanRut)
+                .maybeSingle();
+
+            if (existing) {
+                const { error: updateErr } = await supabase
+                    .from('agent_predata')
+                    .update({ tica_status: newStatus })
+                    .eq('id', existing.id);
+                error = updateErr;
+            } else {
+                // Insert new record in agent_predata
+                const { error: insertErr } = await supabase
+                    .from('agent_predata')
+                    .insert({
+                        rut: cleanRut,
+                        full_name: userName || null,
+                        tica_status: newStatus
+                    });
+                error = insertErr;
+            }
+        }
 
         if (error) throw error;
 
-        // Optional: Show visual success (green outline?)
-        // const select = document.activeElement; 
-        // if(select) select.style.borderColor = 'green';
+        // Visual feedback
+        if (selectElement) {
+            selectElement.style.borderColor = ticaColors[newStatus] || '#6b7280';
+            selectElement.style.boxShadow = '0 0 0 2px rgba(16,185,129,0.3)';
+            setTimeout(() => {
+                selectElement.style.boxShadow = 'none';
+            }, 500);
+        }
 
     } catch (err) {
-        alert("Error actualizando TICA: " + err.message);
+        console.error("Error actualizando TICA:", err);
+        if (selectElement) {
+            selectElement.style.borderColor = '#ef4444';
+        }
+    }
+};
+
+// --- ATTENDANCE UPDATE FUNCTION ---
+window.updateAttendance = async function (rut, userName, shiftDate, field, value, selectElement) {
+    console.log(`Updating attendance: ${field} = ${value} for ${userName} (${rut}) on ${shiftDate}`);
+
+    try {
+        // Get current user for updated_by field
+        const { data: { user } } = await supabase.auth.getUser();
+        const updatedBy = user?.id || null;
+
+        // Check if record exists
+        const { data: existing } = await supabase
+            .from('attendance')
+            .select('id')
+            .eq('rut', rut)
+            .eq('shift_date', shiftDate)
+            .maybeSingle();
+
+        if (existing) {
+            // Update existing record
+            const updateData = { [field]: value, updated_by: updatedBy };
+            const { error } = await supabase
+                .from('attendance')
+                .update(updateData)
+                .eq('id', existing.id);
+
+            if (error) throw error;
+        } else {
+            // Insert new record
+            const insertData = {
+                rut: rut,
+                user_name: userName,
+                shift_date: shiftDate,
+                [field]: value,
+                updated_by: updatedBy
+            };
+            const { error } = await supabase
+                .from('attendance')
+                .insert(insertData);
+
+            if (error) throw error;
+        }
+
+        // Visual feedback - flash green border
+        if (selectElement) {
+            const originalBorder = selectElement.style.border;
+            selectElement.style.border = '2px solid #10b981';
+            selectElement.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.3)';
+
+            setTimeout(() => {
+                // Update border color based on field and value
+                if (field === 'attendance_status') {
+                    const colors = { pending: '#9ca3af', presente: '#10b981', ausente: '#ef4444', licencia: '#6366f1' };
+                    selectElement.style.border = `2px solid ${colors[value] || '#9ca3af'}`;
+                } else if (field === 'colation_status') {
+                    const colors = { pendiente: '#f59e0b', ok: '#10b981' };
+                    selectElement.style.border = `2px solid ${colors[value] || '#f59e0b'}`;
+                } else {
+                    selectElement.style.border = originalBorder;
+                }
+                selectElement.style.boxShadow = 'none';
+            }, 500);
+        }
+
+        console.log('Attendance updated successfully');
+
+    } catch (err) {
+        console.error('Error updating attendance:', err);
+        alert("Error actualizando asistencia: " + err.message);
+
+        // Visual feedback - flash red border on error
+        if (selectElement) {
+            const originalBorder = selectElement.style.border;
+            selectElement.style.border = '2px solid #ef4444';
+            setTimeout(() => {
+                selectElement.style.border = originalBorder;
+            }, 1000);
+        }
     }
 };
 
@@ -954,22 +1317,54 @@ window.saveManualLink = async function () {
     const userId = document.getElementById('link-profile-select').value;
     const targetRut = document.getElementById('link-target-rut').value;
 
+    console.log("Start Manual Link:", { userId, targetRut });
+
     if (!userId) {
-        alert("Por favor selecciona un usuario.");
+        alert("Por favor selecciona un usuario de la lista.");
         return;
     }
 
-    if (!confirm("¿Estás seguro de vincular este RUT al usuario seleccionado? Esto actualizará su perfil.")) return;
+    if (!confirm("¿Estás seguro de vincular este RUT al usuario seleccionado?")) return;
 
+    // 1. Check duplicate RUT
+    const { data: existing, error: checkErr } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('rut', targetRut)
+        .neq('id', userId)
+        .maybeSingle();
+
+    if (checkErr) {
+        console.error("Link check error:", checkErr);
+        alert("Error verificando RUT: " + checkErr.message);
+        return;
+    }
+
+    if (existing) {
+        alert(`⚠️ El RUT ${targetRut} ya está asignado a otro usuario: ${existing.full_name}.\n\nNo se puede vincular.`);
+        return;
+    }
+
+    // 2. Update Profile
     const { error } = await supabase.from('profiles').update({ rut: targetRut }).eq('id', userId);
 
     if (error) {
-        alert("Error al vincular: " + error.message);
+        console.error("Link update error:", error);
+        alert("Error al guardar en base de datos: " + error.message);
     } else {
+        alert("✅ Vinculación exitosa. El perfil ha sido actualizado.");
         closeLinkModal();
+
+        // Reload Rosters view
         if (typeof loadDailyRosterManagement === 'function') {
             loadDailyRosterManagement();
         }
+        // Force reload main dashboard too if available
+        if (window.loadTodayShifts) {
+            window.loadTodayShifts();
+        }
+        // Refresh page fallback if needed
+        // location.reload();
     }
 }
 

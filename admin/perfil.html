@@ -435,10 +435,27 @@
                             <label for="username">Nombre de Usuario (Login)</label>
                             <input type="text" id="username" name="username" placeholder="usuario123">
                         </div>
-                        <div class="form-group">
-                            <label for="full_name">Nombre Completo</label>
-                            <input type="text" id="full_name" name="full_name" placeholder="Juan Pérez">
+
+                        <!-- Split Name Fields -->
+                        <div class="form-grid" style="grid-column: 1 / -1; margin: 0; gap: 1.5rem;">
+                            <div class="form-group">
+                                <label for="first_name">Primer Nombre</label>
+                                <input type="text" id="first_name" name="first_name" placeholder="Juan">
+                            </div>
+                            <div class="form-group">
+                                <label for="middle_name">Segundo Nombre</label>
+                                <input type="text" id="middle_name" name="middle_name" placeholder="Andrés">
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name_1">Primer Apellido</label>
+                                <input type="text" id="last_name_1" name="last_name_1" placeholder="Pérez">
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name_2">Segundo Apellido</label>
+                                <input type="text" id="last_name_2" name="last_name_2" placeholder="González">
+                            </div>
                         </div>
+
                         <div class="form-group">
                             <label for="email">Correo Electrónico</label>
                             <input type="email" id="email" name="email" disabled>
@@ -562,6 +579,7 @@
 
     <script type="module">
         import { supabase } from '../assets/js/client.js';
+        import '../assets/js/common.js';
 
         let currentUser = null;
         let profileData = null;
@@ -615,32 +633,49 @@
             // Populate form
             document.getElementById('rut').value = data.rut || '';
             document.getElementById('username').value = data.username || '';
-            document.getElementById('full_name').value = data.full_name || '';
+
+            // Name Fields
+            document.getElementById('first_name').value = data.first_name || '';
+            document.getElementById('middle_name').value = data.middle_name || '';
+            document.getElementById('last_name_1').value = data.last_name_1 || '';
+            document.getElementById('last_name_2').value = data.last_name_2 || '';
+            // Only use legacy full_name if separate fields are empty (migration fallback)
+            if (!data.first_name && data.full_name) {
+                // Heuristic split could go here, but maybe better to leave blank and let user correct?
+                // Let's just put it in first name as fallback
+                // document.getElementById('first_name').value = data.full_name;
+            }
+
             document.getElementById('email').value = currentUser.email;
             document.getElementById('phone').value = data.phone || '';
             document.getElementById('commune').value = data.commune || '';
 
-            // Address Parse
-            const addrFull = data.address || '';
-            let street = addrFull;
-            let num = '';
-            let unit = '';
-            // Heuristic split if saved with template `${street} #${number} ${unit}`
-            if (addrFull.includes('#')) {
-                // Try to split by last #
-                const parts = addrFull.split('#');
-                if (parts.length > 1) {
-                    street = parts[0].trim();
-                    const right = parts.slice(1).join('#').trim();
-                    // Right side is "Number Unit"
-                    const rightParts = right.split(' ');
-                    num = rightParts[0];
-                    unit = rightParts.slice(1).join(' ');
+            // Address Fields
+            // Use specific columns if available
+            document.getElementById('addr_street').value = data.address_street || '';
+            document.getElementById('addr_number').value = data.address_number || '';
+            document.getElementById('addr_unit').value = data.address_unit || '';
+
+            // Fallback: Parse 'address' legacy string if new fields are empty
+            if (!data.address_street && data.address) {
+                const addrFull = data.address || '';
+                let street = addrFull;
+                let num = '';
+                let unit = '';
+                if (addrFull.includes('#')) {
+                    const parts = addrFull.split('#');
+                    if (parts.length > 1) {
+                        street = parts[0].trim();
+                        const right = parts.slice(1).join('#').trim();
+                        const rightParts = right.split(' ');
+                        num = rightParts[0];
+                        unit = rightParts.slice(1).join(' ');
+                    }
                 }
+                document.getElementById('addr_street').value = street;
+                document.getElementById('addr_number').value = num;
+                document.getElementById('addr_unit').value = unit;
             }
-            document.getElementById('addr_street').value = street;
-            document.getElementById('addr_number').value = num;
-            document.getElementById('addr_unit').value = unit;
 
             document.getElementById('team').value = data.team || 'LATAM';
             document.getElementById('tica_status').value = data.tica_status || 'no_tiene';
@@ -656,9 +691,9 @@
             }
 
             // Certifications
-            document.getElementById('cert_golf').checked = data.cert_golf || false;
-            document.getElementById('cert_duplex').checked = data.cert_duplex || false;
-            document.getElementById('cert_oruga').checked = data.cert_oruga || false;
+            document.getElementById('cert_golf').checked = data.course_golf || false;
+            document.getElementById('cert_duplex').checked = data.course_duplex || false;
+            document.getElementById('cert_oruga').checked = data.course_oruga || false;
             updateCertBadges();
         }
 
@@ -779,19 +814,43 @@
         document.getElementById('profile-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            const firstName = document.getElementById('first_name').value;
+            const middleName = document.getElementById('middle_name').value;
+            const lastName1 = document.getElementById('last_name_1').value;
+            const lastName2 = document.getElementById('last_name_2').value;
+            const fullName = `${firstName} ${middleName} ${lastName1} ${lastName2}`.replace(/\s+/g, ' ').trim();
+
+            const addrStreet = document.getElementById('addr_street').value;
+            const addrNumber = document.getElementById('addr_number').value;
+            const addrUnit = document.getElementById('addr_unit').value;
+            const fullAddress = `${addrStreet} #${addrNumber} ${addrUnit}`;
+
             const payload = {
                 rut: document.getElementById('rut').value,
                 username: document.getElementById('username').value,
-                full_name: document.getElementById('full_name').value,
+                full_name: fullName,
+                first_name: firstName,
+                middle_name: middleName,
+                last_name_1: lastName1,
+                last_name_2: lastName2,
+
                 phone: document.getElementById('phone').value,
                 commune: document.getElementById('commune').value,
-                address: `${document.getElementById('addr_street').value} #${document.getElementById('addr_number').value || 'S/N'} ${document.getElementById('addr_unit').value}`,
+
+                address: fullAddress, // Legacy
+                address_street: addrStreet,
+                address_number: addrNumber,
+                address_unit: addrUnit,
+
                 team: document.getElementById('team').value,
                 tica_status: document.getElementById('tica_status').value,
                 role: document.getElementById('role').value,
-                cert_golf: document.getElementById('cert_golf').checked,
-                cert_duplex: document.getElementById('cert_duplex').checked,
-                cert_oruga: document.getElementById('cert_oruga').checked
+
+                // Fix: DB columns are course_*, form is cert_* (need to match what I created in DB)
+                // db_update_users.sql used 'course_golf', 'course_duplex', 'course_oruga'
+                course_golf: document.getElementById('cert_golf').checked,
+                course_duplex: document.getElementById('cert_duplex').checked,
+                course_oruga: document.getElementById('cert_oruga').checked
             };
 
             const { error } = await supabase

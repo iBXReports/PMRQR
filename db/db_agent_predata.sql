@@ -16,12 +16,24 @@ CREATE TABLE IF NOT EXISTS agent_predata (
     -- House number (separate from address)
     commune TEXT,
     team TEXT,
+    tica_status TEXT DEFAULT 'sin_tica' CHECK (
+        tica_status IN (
+            'vigente',
+            'por_vencer',
+            'vencida',
+            'en_tramite',
+            'sin_tica'
+        )
+    ),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 -- Add addr_number column if table already exists
 ALTER TABLE agent_predata
 ADD COLUMN IF NOT EXISTS addr_number TEXT;
+-- Add tica_status column if table already exists
+ALTER TABLE agent_predata
+ADD COLUMN IF NOT EXISTS tica_status TEXT DEFAULT 'sin_tica';
 -- Create index on rut for fast lookups
 CREATE INDEX IF NOT EXISTS idx_agent_predata_rut ON agent_predata(rut);
 -- Create index on full_name for name-based lookups

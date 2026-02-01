@@ -95,3 +95,60 @@ export function showSuccess(message) {
         alert(message);
     }
 }
+
+// --- GLOBAL RIGHT CLICK BLOCKER ---
+document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+
+    // Check if lock message already exists
+    let lockMsg = document.getElementById('context-lock-msg');
+
+    if (!lockMsg) {
+        lockMsg = document.createElement('div');
+        lockMsg.id = 'context-lock-msg';
+        lockMsg.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: rgba(20, 20, 30, 0.95);
+            color: #f59e0b; /* Primary accent color */
+            padding: 30px 50px;
+            border-radius: 20px;
+            font-family: 'Outfit', sans-serif;
+            text-align: center;
+            z-index: 999999;
+            pointer-events: none;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        `;
+        lockMsg.innerHTML = `
+            <div style="font-size: 3.5rem;">🔒❌</div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: #fff;">Acceso Restringido</div>
+            <div style="font-size: 1rem; opacity: 0.8; color: #ccc;">Esta acción no está permitida por seguridad.</div>
+        `;
+        document.body.appendChild(lockMsg);
+    }
+
+    // Animate In
+    requestAnimationFrame(() => {
+        lockMsg.style.opacity = '1';
+        lockMsg.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+
+    // Clear previous timeout if user clicks fast
+    if (window.contextLockTimeout) clearTimeout(window.contextLockTimeout);
+
+    // Animate Out
+    window.contextLockTimeout = setTimeout(() => {
+        lockMsg.style.opacity = '0';
+        lockMsg.style.transform = 'translate(-50%, -50%) scale(0.9)';
+    }, 2000);
+});

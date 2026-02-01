@@ -126,6 +126,17 @@
                 </div>
 
                 <div class="form-group">
+                    <label>🎫 Estado TICA (Credencial Aeroportuaria)</label>
+                    <select name="tica_status"
+                        style="width: 100%; padding: 1rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-color); font-family: inherit;">
+                        <option value="no_tiene" style="background:#2d2d2d;">No tengo TICA</option>
+                        <option value="vigente" style="background:#2d2d2d;">✅ TICA Vigente</option>
+                        <option value="por_vencer" style="background:#2d2d2d;">⚠️ TICA Por Vencer</option>
+                        <option value="vencida" style="background:#2d2d2d;">❌ TICA Vencida</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label>📧 Correo Electrónico</label>
                     <input type="email" name="email" placeholder="ejemplo@correo.com" required>
                 </div>
@@ -146,25 +157,14 @@
                         <input type="text" name="addr_number" placeholder="Ej: 1234">
                     </div>
                     <div class="form-group">
-                        <label>🏢 Depto/Casa/Block</label>
-                        <input type="text" name="addr_unit" placeholder="Ej: 204-B">
+                        <label>🏢 Depto</label>
+                        <input type="text" name="addr_unit" placeholder="Ej: 204">
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>📍 Comuna</label>
                     <input type="text" name="commune" placeholder="Ej: Santiago" required>
-                </div>
-
-                <div class="form-group">
-                    <label>🎫 Estado TICA (Credencial Aeroportuaria)</label>
-                    <select name="tica_status"
-                        style="width: 100%; padding: 1rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border); border-radius: 8px; color: var(--text-color); font-family: inherit;">
-                        <option value="no_tiene" style="background:#2d2d2d;">No tengo TICA</option>
-                        <option value="vigente" style="background:#2d2d2d;">✅ TICA Vigente</option>
-                        <option value="por_vencer" style="background:#2d2d2d;">⚠️ TICA Por Vencer</option>
-                        <option value="vencida" style="background:#2d2d2d;">❌ TICA Vencida</option>
-                    </select>
                 </div>
 
                 <div class="form-group">
@@ -219,11 +219,15 @@
             const fullName = formData.get('fullName');
             const rut = formData.get('rut');
 
-            // Address Composition
+            // Address
             const street = formData.get('addr_street');
-            const number = formData.get('addr_number') || 'S/N';
+            const number = formData.get('addr_number') || '';
             const unit = formData.get('addr_unit') || '';
-            const address = `${street} #${number} ${unit}`;
+
+            // Compose Full Address String for legacy 'address' column
+            let fullAddress = street;
+            if (number) fullAddress += ` #${number}`;
+            if (unit) fullAddress += ` ${unit}`;
 
             const commune = formData.get('commune');
             const phone = formData.get('phone');
@@ -257,7 +261,10 @@
                             username,
                             full_name: fullName,
                             rut,
-                            address,
+                            address: fullAddress, // Legacy support
+                            address_street: street,
+                            address_number: number,
+                            address_unit: unit,
                             commune,
                             phone,
                             tica_status: ticaStatus
@@ -292,7 +299,7 @@
             let val = input.value.replace(/[^0-9kK]/g, '');
             if (val.length === 0) return;
 
-            // Limit length (9 digits max for RUT body+dv)
+            // Limit length
             if (val.length > 9) val = val.substring(0, 9);
 
             // Format
@@ -306,7 +313,6 @@
             }
         };
     </script>
-
     <script type="module" src="assets/js/common.js"></script>
 </body>
 

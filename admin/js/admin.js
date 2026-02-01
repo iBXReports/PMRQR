@@ -9,6 +9,115 @@ let filteredShifts = [];
 let currentShiftsPage = 0;
 const shiftsPerPage = 20;
 
+// --- GLOBAL HELPERS FOR DASHBOARD STATS ---
+window._dashboardData = {
+    onShift: [],
+    upcoming: [],
+    ticaActive: [],
+    sinTica: [],
+    ausencias: []
+};
+
+window.showStatDetail = function (type) {
+    const modal = document.getElementById('stat-detail-modal');
+    const title = document.getElementById('stat-detail-title');
+    const content = document.getElementById('stat-detail-content');
+
+    if (!modal || !title || !content) return;
+
+    const data = window._dashboardData || {};
+    let titleText = '';
+    let agents = [];
+    let badgeColor = '#6b7280';
+
+    switch (type) {
+        case 'on-shift':
+            titleText = '🟢 Agentes En Turno (Presentes)';
+            agents = data.onShift || [];
+            badgeColor = '#10b981';
+            break;
+        case 'upcoming':
+            titleText = '⏰ Agentes Por Ingresar (Próximas 4 hrs)';
+            agents = data.upcoming || [];
+            badgeColor = '#f59e0b';
+            break;
+        case 'tica-active':
+            titleText = '✅ Agentes con TICA Vigente (Presentes)';
+            agents = data.ticaActive || [];
+            badgeColor = '#0ea5e9';
+            break;
+        case 'sin-tica':
+            titleText = '❌ Agentes Sin TICA';
+            agents = data.sinTica || [];
+            badgeColor = '#6b7280';
+            break;
+        case 'ausencias':
+            titleText = '🚫 Ausencias del Día';
+            agents = data.ausencias || [];
+            badgeColor = '#ef4444';
+            break;
+    }
+
+    title.textContent = titleText;
+
+    if (agents.length === 0) {
+        content.innerHTML = '<p style="text-align:center; opacity:0.6;">No hay agentes en esta categoría.</p>';
+    } else {
+        let html = `<div style="display:grid; gap:0.5rem;">`;
+        agents.forEach(a => {
+            const teamColor = a.team === 'LATAM' ? '#ef4444' : '#3b82f6';
+            const obs = a.observation || '';
+            html += `
+                <div style="display:flex; align-items:center; gap:0.75rem; padding:0.75rem; background:rgba(255,255,255,0.05); border-radius:8px; border-left:3px solid ${badgeColor};">
+                    <div style="flex:1;">
+                        <div style="font-weight:600; font-size:0.9rem;">${a.name || 'Sin Nombre'}</div>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.25rem;">
+                            <span style="font-size:0.7rem; opacity:0.7;">${a.role || 'Sin Cargo'}</span>
+                            <span style="font-size:0.65rem; padding:2px 6px; border-radius:4px; background:rgba(${a.team === 'LATAM' ? '239,68,68' : '59,130,246'},0.2); color:${teamColor};">${a.team || 'OLA'}</span>
+                            ${a.shiftCode ? `<span style="font-size:0.7rem; padding:2px 6px; border-radius:4px; background:rgba(99,102,241,0.2); color:#6366f1; font-family:monospace;">${a.shiftCode}</span>` : ''}
+                            ${obs && obs !== 'SIN OBS' ? `<span style="font-size:0.65rem; padding:2px 6px; border-radius:4px; background:rgba(245,158,11,0.2); color:#f59e0b;">${obs}</span>` : ''}
+                        </div>
+                    </div>
+                    ${a.ticaStatus ? `<span style="font-size:0.7rem; padding:3px 8px; border-radius:6px; background:${window.getTicaBg(a.ticaStatus)}; color:${window.getTicaColor(a.ticaStatus)}; white-space:nowrap;">${window.getTicaLabel(a.ticaStatus)}</span>` : ''}
+                </div>
+            `;
+        });
+        html += '</div>';
+        content.innerHTML = html;
+    }
+
+    modal.style.display = 'flex';
+};
+
+window.getTicaColor = function (status) {
+    const colors = { 'vigente': '#10b981', 'por_vencer': '#f59e0b', 'vencida': '#ef4444', 'en_tramite': '#3b82f6', 'sin_tica': '#6b7280' };
+    return colors[status] || '#6b7280';
+};
+
+window.getTicaBg = function (status) {
+    const bgs = { 'vigente': 'rgba(16,185,129,0.2)', 'por_vencer': 'rgba(245,158,11,0.2)', 'vencida': 'rgba(239,68,68,0.2)', 'en_tramite': 'rgba(59,130,246,0.2)', 'sin_tica': 'rgba(107,114,128,0.2)' };
+    return bgs[status] || 'rgba(107,114,128,0.2)';
+};
+
+window.getTicaLabel = function (status) {
+    const labels = { 'vigente': '✅ Vigente', 'por_vencer': '⚠️ Por Vencer', 'vencida': '❌ Vencida', 'en_tramite': '🔄 Trámite', 'sin_tica': '❓ Sin TICA' };
+    return labels[status] || '❓ Sin TICA';
+};
+
+window.updateDashStats = function (active, upcoming, additionalStats = {}) {
+    const elActive = document.getElementById('stat-on-shift');
+    const elUpcoming = document.getElementById('stat-upcoming');
+    const elTicaActive = document.getElementById('stat-tica-active');
+    const elSinTica = document.getElementById('stat-sin-tica');
+    const elAusencias = document.getElementById('stat-ausencias');
+
+    if (elActive) elActive.textContent = active;
+    if (elUpcoming) elUpcoming.textContent = upcoming;
+    if (elTicaActive) elTicaActive.textContent = additionalStats.ticaActive || 0;
+    if (elSinTica) elSinTica.textContent = additionalStats.sinTica || 0;
+    if (elAusencias) elAusencias.textContent = additionalStats.ausencias || 0;
+};
+
 
 console.log("Admin JS loading...");
 // alert("Admin JS Script Executing");
@@ -1623,6 +1732,19 @@ async function loadTodayShifts() {
     container.innerHTML = '<div style="text-align:center; padding:2rem;">Cargando turnos desplegados...</div>';
 
     // 1. Calculate Dates
+    // HELPERS (Moved to top to prefer hoisting issues)
+    const cleanRut = (s) => {
+        if (!s) return '';
+        return String(s).replace(/[^0-9kK]/g, '').toUpperCase();
+    };
+    const normalizeName = (s) => String(s || '').toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const getTokens = (str) => {
+        return normalizeName(str)
+            .replace(/[.,()\-]/g, ' ')
+            .split(/\s+/)
+            .filter(t => t.length > 2 && !['latam', 'ola', 'practica', 'sin', 'perfil', 'cargo', 'turn', 'turno'].includes(t));
+    };
+    window.debugGetTokens = getTokens;
     const now = new Date();
     const dates = [];
     for (let i = 0; i < 3; i++) {
@@ -1659,21 +1781,46 @@ async function loadTodayShifts() {
             return;
         }
 
-        // 4. Fetch Profiles (for clean names and formatting)
-        const distinctRuts = [...new Set(shifts.map(s => s.rut))].filter(Boolean);
-        let profilesData = [];
-        if (distinctRuts.length > 0) {
-            const { data: pData } = await supabase
-                .from('profiles')
-                .select('rut, tica_status, phone, full_name, role, team')
-                .in('rut', distinctRuts);
-            profilesData = pData || [];
+        // 4. Fetch ALL Profiles (to match by RUT or Name)
+        const { data: allProfiles } = await supabase
+            .from('profiles')
+            .select('id, rut, tica_status, phone, full_name, role, team, username')
+            .not('username', 'in', '("Administrador","StbcK")');
+
+        const profilesData = allProfiles || [];
+
+        // MOVED UP: Get predata for transitive linking & TICA
+        const { data: predataData } = await supabase.from('agent_predata').select('rut, tica_status, full_name');
+        const predataMap = {};
+        const predataByName = {};
+
+        if (predataData) {
+            predataData.forEach(p => {
+                if (p.rut) {
+                    predataMap[cleanRut(p.rut)] = p;
+                }
+                if (p.full_name) {
+                    predataByName[normalizeName(p.full_name)] = p;
+                }
+            });
         }
 
         const profileMap = {};
-        const clean = (s) => String(s || '').replace(/[^0-9kK]/g, '').toUpperCase();
+        const profileByName = {};
+
+
+
+        // Index profiles by cleaned RUT and by full name
         profilesData.forEach(p => {
-            if (p.rut) profileMap[clean(p.rut)] = p;
+            if (p.rut) {
+                const cleanedRut = cleanRut(p.rut);
+                profileMap[cleanedRut] = p;
+                // Also index without the verification digit (last char if K)
+                if (cleanedRut.endsWith('K')) {
+                    profileMap[cleanedRut.slice(0, -1)] = p;
+                }
+            }
+            if (p.full_name) profileByName[normalizeName(p.full_name)] = p;
         });
 
         // 5. Structure Data & Calculate Stats
@@ -1683,7 +1830,90 @@ async function loadTodayShifts() {
 
         shifts.forEach(s => {
             if (!users[s.rut]) {
-                const profile = profileMap[clean(s.rut)] || {};
+                // Try to find profile by RUT first (handles all variations), then by name
+                let profile = profileMap[cleanRut(s.rut)];
+
+                // If found by RUT, great. If not, try by exact name match.
+                if (!profile && s.user_name) {
+                    profile = profileByName[normalizeName(s.user_name)];
+                }
+
+                // If still not found, try SMART MATCH (token based)
+                if (!profile && s.user_name) {
+                    const shiftNameTokens = getTokens(s.user_name).sort();
+                    const isTrace = s.user_name.toUpperCase().includes('CAPRISTAN');
+
+                    if (shiftNameTokens.length >= 2) { // Need at least 2 words to match safely
+                        // Search in all profiles
+                        profile = profilesData.find(p => {
+                            if (!p.full_name) return false;
+                            const profileTokens = getTokens(p.full_name).sort();
+
+                            if (isTrace && p.full_name.toUpperCase().includes('CAPRISTAN')) {
+                                console.log(`Comparing '${s.user_name}' vs '${p.full_name}'`);
+                                console.log(`Tokens S: ${JSON.stringify(shiftNameTokens)}`);
+                                console.log(`Tokens P: ${JSON.stringify(profileTokens)}`);
+                            }
+
+                            // Check if exact set of tokens matches (ignoring order)
+                            // e.g. "ANA CAMILA CAPRISTAN" vs "CAPRISTAN ANA CAMILA"
+                            const s1 = JSON.stringify(shiftNameTokens);
+                            const s2 = JSON.stringify(profileTokens);
+                            if (s1 === s2) return true;
+
+                            // Check intersection (if one name is a subset of the other with high confidence)
+                            // We need at least 3 matching tokens for a strong fuzzy link if lengths differ
+                            let matches = 0;
+                            shiftNameTokens.forEach(t => {
+                                if (profileTokens.includes(t)) matches++;
+                            });
+
+                            // Strict Logic:
+                            // 1. If we have 3 or more matching MEANINGFUL words -> Match
+                            if (matches >= 3) return true;
+
+                            // 2. Short match
+                            const minLen = Math.min(shiftNameTokens.length, profileTokens.length);
+                            if (matches === minLen && minLen >= 2) return true;
+
+                            return false;
+                        });
+
+                        if (profile) {
+                            console.log("✅ SMART MATCH SUCCESS:", profile.full_name);
+                            // AUTO-HEALING
+                            if (!profile.rut && s.rut) {
+                                console.log("🔧 AUTO-HEALING: Updating profile RUT to", s.rut);
+                                const cleanRutVal = cleanRut(s.rut);
+                                supabase.from('profiles').update({ rut: s.rut }).eq('id', profile.id).then(({ error }) => {
+                                    if (error) console.error("Auto-heal failed:", error);
+                                });
+                                profile.rut = s.rut;
+                                profileMap[cleanRutVal] = profile;
+                            }
+                        } else {
+                            const isTrace = s.user_name.toUpperCase().includes('CAPRISTAN');
+                            if (isTrace) console.warn("❌ SMART MATCH FAILED for Capristan");
+                        }
+                    }
+                }
+
+                // Transitive Link: Shift Name -> Agent Predata (Name) -> Agent Predata (RUT) -> Profile (RUT)
+                if (!profile && s.user_name) {
+                    const normShiftName = normalizeName(s.user_name);
+                    const predataHit = predataByName[normShiftName];
+                    if (predataHit && predataHit.rut) {
+                        const pRutClean = cleanRut(predataHit.rut);
+                        const potentialProfile = profileMap[pRutClean];
+
+                        if (potentialProfile) {
+                            profile = potentialProfile;
+                            console.log(`🔗 TRANSITIVE LINK SUCCESS: ${s.user_name} -> Predata -> Profile(${profile.full_name})`);
+                        }
+                    }
+                }
+
+                profile = profile || {};
 
                 // Determine Category
                 let rawRole = (s.role_raw || '').toUpperCase();
@@ -1749,7 +1979,7 @@ async function loadTodayShifts() {
             let diff = startMins - nowMins;
             if (diff < 0) diff += 24 * 60; // wrapped around? unlikely for "upcoming" today, but logical
 
-            if (diff > 0 && diff <= 120) return { status: 'upcoming', diffMins: diff }; // Upcoming < 2h
+            if (diff > 0 && diff <= 240) return { status: 'upcoming', diffMins: diff }; // Upcoming < 4h
 
             return { status: 'other' };
         };
@@ -1757,72 +1987,153 @@ async function loadTodayShifts() {
         const todayUsers = Object.values(users);
 
         // Filter Loop
+        // -- Fetch attendance and TICA data BEFORE processing list to use for sorting --
+
+
+        // Get attendance for today
+        const { data: attData } = await supabase
+            .from('attendance')
+            .select('rut, attendance_status, observation')
+            .eq('shift_date', today);
+
+        const attendanceMap = {};
+        if (attData) {
+            attData.forEach(a => {
+                if (a.rut) {
+                    attendanceMap[cleanRut(a.rut)] = a;
+                    attendanceMap[a.rut] = a;
+                }
+            });
+        }
+
+        // Get predata for TICA fallback AND for transitive linking (Name -> Predata -> Rut -> Profile)
+
+
+        // Globals for detail views
+        window._dashboardData = {
+            onShift: [],
+            upcoming: [],
+            ticaActive: [],
+            sinTica: [],
+            ausencias: []
+        };
+
+        let ticaActiveCount = 0;
+        let sinTicaCount = 0;
+        let ausenciasCount = 0;
+
+
+        // Filter Loop
         todayUsers.forEach(u => {
             const shiftCode = u.shifts[today];
-            const statusInfo = checkStatus(shiftCode);
+            if (shiftCode === 'LI') return; // Exclude 'LI' shifts
 
-            // Increment Stats
+            // DEBUG: Capristan Diagnostics
+            if (u.name && u.name.toUpperCase().includes('CAPRISTAN')) {
+                console.group("Diagnóstico Capristan");
+                console.log("Turno User Name:", u.name);
+                console.log("Turno RUT:", u.rut);
+                console.log("Tokens Turno:", window.debugGetTokens ? window.debugGetTokens(u.name) : 'N/A');
+
+                // Search manually in profiles
+                const pFound = profilesData.find(p => p.full_name && p.full_name.toUpperCase().includes('CAPRISTAN'));
+                console.log("Perfil en BD:", pFound);
+                if (pFound) {
+                    console.log("RUT Perfil:", pFound.rut);
+                    console.log("Tokens Perfil:", window.debugGetTokens ? window.debugGetTokens(pFound.full_name) : 'N/A');
+                } else {
+                    console.warn("¡No se encontró ningún perfil con 'Capristan' en profilesData!");
+                }
+                console.groupEnd();
+            }
+
+            let statusInfo = checkStatus(shiftCode);
+
+            // Match attendance data
+            const userCleanRut = cleanRut(u.rut);
+            const att = attendanceMap[userCleanRut] || attendanceMap[u.rut] || {};
+            const predata = predataMap[userCleanRut] || {};
+            const ticaStatus = u.profile?.tica_status || predata.tica_status || 'sin_tica';
+            const attendanceStatus = att.attendance_status || 'pending';
+
+            // FORCE ACTIVE IF PRESENT - REMOVED to prevent past shifts appearing
+            // if (attendanceStatus === 'presente') {
+            //     statusInfo.status = 'active';
+            // }
+
             if (statusInfo.status === 'active') statsActive++;
             if (statusInfo.status === 'upcoming') statsUpcoming++;
 
-            // Special Rule for Leadership (SPRV/CDO)
-            const isBoss = u.category.includes('SPRV') || u.category.includes('CDO');
+            // Data for Detail Views
+            const agentData = {
+                name: u.name, role: u.role, team: u.team, shiftCode: shiftCode,
+                ticaStatus: ticaStatus, observation: att.observation || ''
+            };
 
+            // Calculate categories
+            // FIX: Only include in onShift if actually active OR (upcoming AND present - early arrival)
+            // Exclude if shift is 'other' (finished), even if present.
+            if (statusInfo.status === 'active' || (statusInfo.status === 'upcoming' && attendanceStatus === 'presente')) {
+                window._dashboardData.onShift.push(agentData);
+            }
+            if (statusInfo.status === 'upcoming' && attendanceStatus !== 'presente') window._dashboardData.upcoming.push(agentData);
+            if (attendanceStatus === 'presente' && ticaStatus === 'vigente') { ticaActiveCount++; window._dashboardData.ticaActive.push(agentData); }
+            if (ticaStatus === 'sin_tica' && (statusInfo.status !== 'unknown' || attendanceStatus === 'presente')) { sinTicaCount++; window._dashboardData.sinTica.push(agentData); }
+            if (attendanceStatus === 'ausente' || attendanceStatus === 'licencia') { ausenciasCount++; window._dashboardData.ausencias.push(agentData); }
+
+            // Filter for Table List
+            const isBoss = u.category.includes('SPRV') || u.category.includes('CDO');
             if (isBoss) {
-                // strict filter: active or upcoming < 2h
                 if (statusInfo.status === 'active' || statusInfo.status === 'upcoming') {
-                    u.realStatus = statusInfo.status; // Attach for renderer
+                    u.realStatus = statusInfo.status;
                     unifiedList.push(u);
                 }
             } else {
-                // Regular Agents
-                // Show "all" but we will sort active/upcoming first?
-                // User said "muestrame todo junto". 
-                // Implicit: if limit is 20, we should prioritize visible/relevant shifts.
-                // If I just dump everyone, the 20 limit might cut off active workers.
-                // So I will prioritize: Active > Upcoming > Others (if space)
-
                 u.realStatus = statusInfo.status;
-
-                // Optional: Filter out 'SIN TURNO' / 'LIBRE' if we want to save space?
-                // "muestrame todo junto" might mean all *working* shifts.
-                // I'll include them but sort them lower.
                 unifiedList.push(u);
             }
         });
 
-        // Sort: Active First, then Upcoming, then others
+        // Update Stats UI
+        updateDashStats(window._dashboardData.onShift.length, window._dashboardData.upcoming.length, {
+            ticaActive: ticaActiveCount,
+            sinTica: sinTicaCount,
+            ausencias: ausenciasCount
+        });
+
+        // Sort: Alphabetical by Shift Code, then by Name
         unifiedList.sort((a, b) => {
-            const score = (status) => {
-                if (status === 'active') return 0;
-                if (status === 'upcoming') return 1;
-                return 2;
-            };
-            const scA = score(a.realStatus);
-            const scB = score(b.realStatus);
-            if (scA !== scB) return scA - scB;
+            const shiftA = a.shifts[today] || '';
+            const shiftB = b.shifts[today] || '';
+
+            // Compare shifts alphabetically (e.g., M01 vs M02 vs T01)
+            const shiftCompare = shiftA.localeCompare(shiftB);
+            if (shiftCompare !== 0) return shiftCompare;
+
+            // Then by name
             return a.name.localeCompare(b.name);
         });
 
         // LIMIT TO 20
         const limitedList = unifiedList.slice(0, 20);
 
-        updateDashStats(statsActive, statsUpcoming);
+
+
         allGroupedShifts = limitedList; // Cache for simple local reuse if needed
-        renderUnifiedShifts(limitedList, today);
+        await renderUnifiedShifts(limitedList, today);
 
         // Setup Search (Simple filtering on the already fethed list?)
         // If searching, we might search the FULL list, not just the top 20.
         const searchInput = document.getElementById('today-shifts-search');
         if (searchInput) {
             // Remove old listeners to avoid dupes or use oninput
-            searchInput.oninput = (e) => {
+            searchInput.oninput = async (e) => {
                 const term = e.target.value.toLowerCase();
                 if (!term) {
-                    renderUnifiedShifts(unifiedList.slice(0, 20), today);
+                    await renderUnifiedShifts(unifiedList.slice(0, 20), today);
                 } else {
                     const searchRes = unifiedList.filter(u => u.name.toLowerCase().includes(term) || u.rut.toLowerCase().includes(term));
-                    renderUnifiedShifts(searchRes.slice(0, 20), today);
+                    await renderUnifiedShifts(searchRes.slice(0, 20), today);
                 }
             };
         }
@@ -1834,7 +2145,7 @@ async function loadTodayShifts() {
 }
 
 // Replaces renderGroupedShifts
-function renderUnifiedShifts(list, todayDate) {
+async function renderUnifiedShifts(list, todayDate) {
     const container = document.getElementById('shifts-grouped-container');
     if (!container) return;
     container.innerHTML = '';
@@ -1844,19 +2155,60 @@ function renderUnifiedShifts(list, todayDate) {
         return;
     }
 
+    // Fetch attendance data for today
+    const ruts = list.map(u => u.rut).filter(Boolean);
+    // Normalize RUTs for querying
+    const cleanRut = (s) => String(s || '').replace(/[^0-9kK]/g, '').toUpperCase();
+    const cleanedRuts = ruts.map(r => cleanRut(r)).filter(Boolean);
+
+    let attendanceMap = {};
+    let predataMap = {};
+
+    if (cleanedRuts.length > 0) {
+        // Fetch attendance data
+        const { data: attendanceData } = await supabase
+            .from('attendance')
+            .select('*')
+            .eq('shift_date', todayDate)
+            .in('rut', cleanedRuts);
+
+        if (attendanceData) {
+            attendanceData.forEach(a => {
+                attendanceMap[a.rut] = a;
+                attendanceMap[cleanRut(a.rut)] = a; // Also index by cleaned version
+            });
+        }
+
+        // Fetch agent_predata for TICA status fallback
+        const { data: predataData } = await supabase
+            .from('agent_predata')
+            .select('rut, tica_status, full_name')
+            .in('rut', cleanedRuts);
+
+        if (predataData) {
+            predataData.forEach(p => {
+                predataMap[p.rut] = p;
+                predataMap[cleanRut(p.rut)] = p;
+            });
+        }
+    }
+
     const table = document.createElement('table');
     table.className = 'unified-shift-table';
     table.style.width = '100%';
     table.style.borderCollapse = 'collapse';
-    table.style.fontSize = '0.9rem';
+    table.style.fontSize = '0.85rem';
 
     table.innerHTML = `
-        <thead style="background:rgba(255,255,255,0.05); color:var(--text-color); border-bottom:1px solid rgba(255,255,255,0.1);">
-            <tr>
-                <th style="padding:10px; text-align:left;">Agente</th>
-                <th style="padding:10px; text-align:left;">Cargo</th>
-                <th style="padding:10px; text-align:center;">Turno Hoy</th>
-                <th style="padding:10px; text-align:center;">Estado</th>
+        <thead>
+            <tr style="border-bottom: 2px solid var(--primary-color);">
+                <th style="padding:10px 8px; text-align:left; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white; font-weight: 600;">Agente</th>
+                <th style="padding:10px 8px; text-align:center; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-weight: 600;">🕐 Turno</th>
+                <th style="padding:10px 8px; text-align:center; min-width:100px; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 600;">📋 Asistencia</th>
+                <th style="padding:10px 8px; text-align:center; min-width:140px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-weight: 600;">📝 Observaciones</th>
+                <th style="padding:10px 8px; text-align:center; min-width:110px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 600;">🪪 TICA</th>
+                <th style="padding:10px 8px; text-align:center; min-width:120px; background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: white; font-weight: 600;">🍽️ Colación</th>
+                <th style="padding:10px 8px; text-align:center; background: linear-gradient(135deg, #64748b, #475569); color: white; font-weight: 600;">Estado</th>
             </tr>
         </thead>
         <tbody></tbody>
@@ -1875,15 +2227,54 @@ function renderUnifiedShifts(list, todayDate) {
         document.head.appendChild(style);
     }
 
+    // Options for selects
+    const attendanceOpts = [
+        { val: 'pending', label: '⏳ Pendiente', color: '#6b7280' },
+        { val: 'presente', label: '✅ Presente', color: '#10b981' },
+        { val: 'ausente', label: '❌ Ausente', color: '#ef4444' },
+        { val: 'licencia', label: '📋 Licencia', color: '#3b82f6' }
+    ];
+
+    const observationOpts = [
+        { val: 'SIN OBS', label: '✓ SIN OBS', color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
+        { val: 'RENUNCIA', label: '🚪 RENUNCIA', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+        { val: '2° DIA AUSENTE', label: '⚠️ 2° DIA AUSENTE', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+        { val: '3° DIA AUSENTE', label: '🚨 3° DIA AUSENTE', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+        { val: 'LLEGA TARDE', label: '🕐 LLEGA TARDE', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+        { val: 'NO LLEGA', label: '❌ NO LLEGA', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' },
+        { val: 'NO TOMA VAN', label: '🚐 NO TOMA VAN', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
+        { val: 'NO RESPONDE', label: '📵 NO RESPONDE', color: '#f97316', bg: 'rgba(249,115,22,0.15)' },
+        { val: 'NO SE REPORTA', label: '📋 NO SE REPORTA', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+        { val: 'LICENCIA MEDICA', label: '🏥 LICENCIA MEDICA', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+        { val: 'EXTENDIDO//HRS EXTRA', label: '⏰ HRS EXTRA', color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+        { val: 'NO SE LE ASIGNO MOVIL', label: '📱 SIN MOVIL', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
+        { val: 'ENFERM@', label: '🤒 ENFERM@', color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+        { val: 'PROBLEMA PERSONAL', label: '👤 PROB. PERSONAL', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' },
+        { val: 'PERSONAL NUEVO', label: '🆕 PERSONAL NUEVO', color: '#10b981', bg: 'rgba(16,185,129,0.15)' }
+    ];
+
+    const ticaOpts = [
+        { val: 'vigente', label: '✅ Vigente', color: '#10b981' },
+        { val: 'por_vencer', label: '⚠️ Por Vencer', color: '#f59e0b' },
+        { val: 'vencida', label: '❌ Vencida', color: '#ef4444' },
+        { val: 'en_tramite', label: '🔄 En Trámite', color: '#3b82f6' },
+        { val: 'sin_tica', label: '❓ Sin TICA', color: '#6b7280' }
+    ];
+
+    const colationOpts = [
+        { val: 'pendiente', label: '⏳ Pendiente', color: '#f59e0b' },
+        { val: 'ok', label: '✅ OK', color: '#10b981' }
+    ];
+
     list.forEach(u => {
         const tr = document.createElement('tr');
-        tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.08)';
 
         let statusBadge = '-';
         if (u.realStatus === 'active') {
-            statusBadge = `<span class="badge" style="background:#10b981; color:white;">En Turno</span>`;
+            statusBadge = `<span class="badge" style="background:#10b981; color:white; font-size:0.7rem;">En Turno</span>`;
         } else if (u.realStatus === 'upcoming') {
-            statusBadge = `<span class="badge badge-pulse" style="background:#f59e0b; color:black; font-weight:bold;">⚠️ Próximo a Ingresar</span>`;
+            statusBadge = `<span class="badge badge-pulse" style="background:#f59e0b; color:black; font-weight:bold; font-size:0.7rem;">⚠️ Próximo</span>`;
         }
 
         // Colorize Shift Code
@@ -1894,18 +2285,86 @@ function renderUnifiedShifts(list, todayDate) {
         else if (shiftCode.startsWith('N')) codeStyle = 'background:#4f46e5; color:white;';
         else if (['L', 'LI'].includes(shiftCode)) codeStyle = 'background:#15803d; color:white;';
 
+        // Get attendance data (using cleaned RUT for lookup)
+        const userCleanRut = cleanRut(u.rut);
+        const att = attendanceMap[userCleanRut] || attendanceMap[u.rut] || {};
+        const currentAttendance = att.attendance_status || 'pending';
+        const currentObs = att.observation || 'SIN OBS';
+        const currentColation = att.colation_status || 'pendiente';
+
+        // Get TICA status: first from profile, then from predataMap
+        const predata = predataMap[userCleanRut] || predataMap[u.rut] || {};
+        const currentTica = u.profile?.tica_status || predata.tica_status || 'sin_tica';
+        const userId = u.profile?.id;
+
+        // Generate select options HTML
+        const attendanceOptsHtml = attendanceOpts.map(o =>
+            `<option value="${o.val}" ${o.val === currentAttendance ? 'selected' : ''}>${o.label}</option>`
+        ).join('');
+        const attendanceColor = attendanceOpts.find(o => o.val === currentAttendance)?.color || '#6b7280';
+
+        const obsOptsHtml = observationOpts.map(o =>
+            `<option value="${o.val}" ${o.val === currentObs ? 'selected' : ''}>${o.label}</option>`
+        ).join('');
+        const currentObsData = observationOpts.find(o => o.val === currentObs);
+        const obsColor = currentObsData?.color || '#6b7280';
+        const obsBg = currentObsData?.bg || 'rgba(107,114,128,0.15)';
+
+        const ticaOptsHtml = ticaOpts.map(o =>
+            `<option value="${o.val}" ${o.val === currentTica ? 'selected' : ''}>${o.label}</option>`
+        ).join('');
+        const ticaColor = ticaOpts.find(o => o.val === currentTica)?.color || '#6b7280';
+
+        const colationOptsHtml = colationOpts.map(o =>
+            `<option value="${o.val}" ${o.val === currentColation ? 'selected' : ''}>${o.label}</option>`
+        ).join('');
+        const colationColor = colationOpts.find(o => o.val === currentColation)?.color || '#f59e0b';
+
+        const safeRut = (u.rut || '').replace(/'/g, "\\'");
+        const safeName = u.name.replace(/'/g, "\\'");
+
         tr.innerHTML = `
-            <td style="padding:10px; font-weight:600;">
-                <div style="display:flex; flex-direction:column;">
-                    <span>${u.name}</span>
-                    <span style="font-size:0.75rem; opacity:0.6;">${u.team}</span>
+            <td style="padding:8px;">
+                <div style="display:flex; flex-direction:column; gap:2px;">
+                    <span style="font-size:0.85rem; font-weight:600; color:var(--text-color);">${u.name}</span>
+                    <div style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                        <span style="font-size:0.7rem; opacity:0.7;">${u.role || 'Sin Cargo'}</span>
+                        <span style="font-size:0.6rem; padding:2px 5px; border-radius:4px; background:${u.team === 'LATAM' ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)'}; color:${u.team === 'LATAM' ? '#ef4444' : '#3b82f6'};">${u.team}</span>
+                    </div>
                 </div>
             </td>
-            <td style="padding:10px; font-size:0.85rem; opacity:0.8;">${u.role}</td>
-            <td style="padding:10px; text-align:center;">
-                 <span class="badge" style="${codeStyle} font-family:monospace; font-size:0.85rem;">${shiftCode}</span>
+            <td style="padding:8px; text-align:center;">
+                 <span class="badge" style="${codeStyle} font-family:monospace; font-size:0.8rem; padding:3px 6px;">${shiftCode}</span>
             </td>
-            <td style="padding:10px; text-align:center;">${statusBadge}</td>
+            <td style="padding:6px; text-align:center; background:rgba(16,185,129,0.05);">
+                <select onchange="updateDashboardAttendance('${safeRut}', '${safeName}', '${todayDate}', 'attendance_status', this.value, this)" 
+                        style="width:100%; max-width:100px; padding:4px; border-radius:4px; border:2px solid ${attendanceColor}; 
+                               background:var(--input-bg, rgba(0,0,0,0.2)); color:var(--text-color); font-size:0.7rem; cursor:pointer;">
+                    ${attendanceOptsHtml}
+                </select>
+            </td>
+            <td style="padding:6px; text-align:center; background:rgba(245,158,11,0.05);">
+                <select onchange="updateDashboardAttendance('${safeRut}', '${safeName}', '${todayDate}', 'observation', this.value, this); this.style.borderColor=this.options[this.selectedIndex].dataset.color; this.style.background=this.options[this.selectedIndex].dataset.bg;" 
+                        style="width:100%; max-width:145px; padding:5px 6px; border-radius:6px; border:2px solid ${obsColor}; 
+                               background:${obsBg}; color:var(--text-color); font-size:0.65rem; cursor:pointer; font-weight:500;">
+                    ${observationOpts.map(o => `<option value="${o.val}" data-color="${o.color}" data-bg="${o.bg}" ${o.val === currentObs ? 'selected' : ''}>${o.label}</option>`).join('')}
+                </select>
+            </td>
+            <td style="padding:6px; text-align:center; background:rgba(59,130,246,0.05);">
+                <select onchange="updateDashboardTica('${userId || ''}', '${safeRut}', '${safeName}', this.value, this)" 
+                        style="width:100%; max-width:100px; padding:4px; border-radius:4px; border:2px solid ${ticaColor}; 
+                               background:var(--input-bg, rgba(0,0,0,0.2)); color:var(--text-color); font-size:0.7rem; cursor:pointer;">
+                    ${ticaOptsHtml}
+                </select>
+            </td>
+            <td style="padding:6px; text-align:center; background:rgba(139,92,246,0.05);">
+                <select onchange="updateDashboardAttendance('${safeRut}', '${safeName}', '${todayDate}', 'colation_status', this.value, this)" 
+                        style="width:100%; max-width:110px; padding:4px; border-radius:4px; border:2px solid ${colationColor}; 
+                               background:var(--input-bg, rgba(0,0,0,0.2)); color:var(--text-color); font-size:0.7rem; cursor:pointer;">
+                    ${colationOptsHtml}
+                </select>
+            </td>
+            <td style="padding:8px; text-align:center;">${statusBadge}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -1913,11 +2372,129 @@ function renderUnifiedShifts(list, todayDate) {
     container.appendChild(table);
 }
 
-function updateDashStats(active, upcoming) {
-    const elActive = document.getElementById('stat-on-shift');
-    const elUpcoming = document.getElementById('stat-upcoming');
-    if (elActive) elActive.textContent = active;
-    if (elUpcoming) elUpcoming.textContent = upcoming;
-}
+// Dashboard Attendance Update Function
+window.updateDashboardAttendance = async function (rut, userName, shiftDate, field, value, selectElement) {
+    try {
+        // Check if record exists
+        const { data: existing } = await supabase
+            .from('attendance')
+            .select('id')
+            .eq('rut', rut)
+            .eq('shift_date', shiftDate)
+            .maybeSingle();
+
+        let error;
+        if (existing) {
+            // Update existing
+            const { error: updateErr } = await supabase
+                .from('attendance')
+                .update({ [field]: value, updated_at: new Date().toISOString() })
+                .eq('id', existing.id);
+            error = updateErr;
+        } else {
+            // Insert new
+            const { error: insertErr } = await supabase
+                .from('attendance')
+                .insert({
+                    rut: rut,
+                    user_name: userName,
+                    shift_date: shiftDate,
+                    [field]: value
+                });
+            error = insertErr;
+        }
+
+        if (error) {
+            console.error('Attendance update error:', error);
+            if (selectElement) selectElement.style.borderColor = '#ef4444';
+            return;
+        }
+
+        // Visual feedback
+        if (selectElement) {
+            const origBorder = selectElement.style.borderColor;
+            selectElement.style.borderColor = '#10b981';
+            selectElement.style.boxShadow = '0 0 0 2px rgba(16,185,129,0.3)';
+            setTimeout(() => {
+                selectElement.style.boxShadow = 'none';
+            }, 500);
+        }
+    } catch (err) {
+        console.error('Dashboard attendance error:', err);
+    }
+};
+
+// Dashboard TICA Update Function - works with userId OR rut
+window.updateDashboardTica = async function (userId, rut, userName, newStatus, selectElement) {
+    if (!userId && !rut) return;
+
+    const ticaColors = {
+        'vigente': '#10b981',
+        'por_vencer': '#f59e0b',
+        'vencida': '#ef4444',
+        'en_tramite': '#3b82f6',
+        'sin_tica': '#6b7280'
+    };
+
+    try {
+        let error = null;
+
+        if (userId) {
+            // Update in profiles table
+            const { error: updateErr } = await supabase
+                .from('profiles')
+                .update({ tica_status: newStatus })
+                .eq('id', userId);
+            error = updateErr;
+        } else if (rut) {
+            // No profile - try to update/insert in agent_predata
+            const cleanRut = String(rut).replace(/[^0-9kK]/g, '').toUpperCase();
+
+            // Check if exists in agent_predata
+            const { data: existing } = await supabase
+                .from('agent_predata')
+                .select('id')
+                .eq('rut', cleanRut)
+                .maybeSingle();
+
+            if (existing) {
+                const { error: updateErr } = await supabase
+                    .from('agent_predata')
+                    .update({ tica_status: newStatus })
+                    .eq('id', existing.id);
+                error = updateErr;
+            } else {
+                // Insert new record in agent_predata
+                const { error: insertErr } = await supabase
+                    .from('agent_predata')
+                    .insert({
+                        rut: cleanRut,
+                        full_name: userName || null,
+                        tica_status: newStatus
+                    });
+                error = insertErr;
+            }
+        }
+
+        if (error) {
+            console.error('TICA update error:', error);
+            if (selectElement) selectElement.style.borderColor = '#ef4444';
+            return;
+        }
+
+        // Visual feedback
+        if (selectElement) {
+            selectElement.style.borderColor = ticaColors[newStatus] || '#6b7280';
+            selectElement.style.boxShadow = '0 0 0 2px rgba(16,185,129,0.3)';
+            setTimeout(() => {
+                selectElement.style.boxShadow = 'none';
+            }, 500);
+        }
+    } catch (err) {
+        console.error('Dashboard TICA error:', err);
+    }
+};
+
+
 
 

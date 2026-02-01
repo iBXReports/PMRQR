@@ -18,14 +18,14 @@ async function loadProfilesForAutoComplete() {
         // Query agent_predata table (pre-registration data from Excel imports)
         const { data, error } = await supabase
             .from('agent_predata')
-            .select('full_name, rut, email, phone, address, addr_number, commune');
+            .select('full_name, rut, email, phone, address, addr_number, commune, first_name, middle_name, last_name_1, last_name_2');
 
         if (error) {
             console.error('Error loading predata for autocomplete:', error);
             // Fallback: try profiles table if agent_predata doesn't exist yet
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .select('full_name, rut, email, phone, address, commune');
+                .select('full_name, rut, email, phone, address, commune, first_name, middle_name, last_name_1, last_name_2');
 
             if (profileError) {
                 console.error('Fallback profiles error:', profileError);
@@ -117,6 +117,11 @@ function fillFormFromProfile(profile) {
     const unitInput = form.querySelector('[name="addr_unit"]');
     const communeInput = form.querySelector('[name="commune"]');
 
+    const firstNameInput = form.querySelector('[name="first_name"]');
+    const middleNameInput = form.querySelector('[name="middle_name"]');
+    const lastName1Input = form.querySelector('[name="last_name_1"]');
+    const lastName2Input = form.querySelector('[name="last_name_2"]');
+
     // Parse address as fallback (for old data that might have combined address)
     const parsedAddress = parseAddress(profile.address);
 
@@ -133,7 +138,7 @@ function fillFormFromProfile(profile) {
 
     // Use address field directly (street only)
     if (streetInput && !streetInput.value && profile.address) {
-        streetInput.value = profile.address;
+        streetInput.value = profile.address; // Fallback to full address if street not parsed
         highlightField(streetInput);
     } else if (streetInput && !streetInput.value && parsedAddress.street) {
         streetInput.value = parsedAddress.street;
@@ -157,6 +162,24 @@ function fillFormFromProfile(profile) {
     if (communeInput && !communeInput.value && profile.commune) {
         communeInput.value = profile.commune;
         highlightField(communeInput);
+    }
+
+    // Fill Names
+    if (firstNameInput && !firstNameInput.value && profile.first_name) {
+        firstNameInput.value = profile.first_name;
+        highlightField(firstNameInput);
+    }
+    if (middleNameInput && !middleNameInput.value && profile.middle_name) {
+        middleNameInput.value = profile.middle_name;
+        highlightField(middleNameInput);
+    }
+    if (lastName1Input && !lastName1Input.value && profile.last_name_1) {
+        lastName1Input.value = profile.last_name_1;
+        highlightField(lastName1Input);
+    }
+    if (lastName2Input && !lastName2Input.value && profile.last_name_2) {
+        lastName2Input.value = profile.last_name_2;
+        highlightField(lastName2Input);
     }
 
     // Show success message

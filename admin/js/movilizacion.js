@@ -38,7 +38,6 @@ const normalizeRut = (r) => {
 };
 
 // Helper: Resolve Shift Times from Code
-// Helper: Resolve Shift Times from Code
 const getShiftTimes = (code) => {
     if (!code) return { start: null, end: null };
     code = code.toUpperCase().trim();
@@ -50,7 +49,7 @@ const getShiftTimes = (code) => {
         'LI': { s: null, e: null },
         'V': { s: null, e: null },
         'VAC': { s: null, e: null },
-        'S': { s: null, e: null }, // Saliente usually implies no active work hours for the day's start?
+        'S': { s: null, e: null },
         'X': { s: null, e: null },
         'AU': { s: null, e: null },
         'LM': { s: null, e: null }
@@ -58,8 +57,6 @@ const getShiftTimes = (code) => {
     if (staticMap[code]) return { start: staticMap[code].s, end: staticMap[code].e };
 
     // 2. Dynamic Parse (M0817, T1322, N2107, M0817CU)
-    // Regex: Starts with Letters, then 2 digits (Start Hour), then 2 digits (End Hour), optional suffix
-    // Example: T1322 -> T, 13, 22
     const match = code.match(/^([A-Z]+)(\d{2})(\d{2})([A-Z]*)?$/);
 
     if (match) {
@@ -68,13 +65,11 @@ const getShiftTimes = (code) => {
         return { start: `${startH}:00`, end: `${endH}:00` };
     }
 
-    // 3. Fallback or specific manual overrides from database if needed
-    // For now, return null if no match
     return { start: null, end: null };
 };
 
 window.generateMovilExcel = async function () {
-    const VERSION = 'v8';
+    const VERSION = 'v9';
     const date = document.getElementById('movil-date').value;
     const requester = document.getElementById('movil-requester').value;
     const msg = document.getElementById('movil-msg');
@@ -89,23 +84,18 @@ window.generateMovilExcel = async function () {
     if (!requester) { alert(`[${VERSION}] Seleccione Solicitante`); return; }
 
     msg.style.display = 'block';
-    msg.textContent = `[${VERSION}] Consultando turnos...`;
+    msg.textContent = `[${VERSION}] Consultando turnos y direcciones...`;
 
-    // CAPTURE NOW ONCE - before all processing
+    // CAPTURE NOW ONCE
     const now = new Date();
 
     // --- CUTOFF CALCULATION ---
-    // Cutoff = Tomorrow at 07:00 (or 08:00 if Sunday)
-    // Movements AFTER this cutoff are NOT included (they belong to the next transport cycle)
     const cutoffTimestamp = new Date(nextDateObj);
     const isSundayCutoff = cutoffTimestamp.getDay() === 0;
     const cutoffHour = isSundayCutoff ? 8 : 7; // 08:00 for Sunday, 07:00 otherwise
     cutoffTimestamp.setHours(cutoffHour, 0, 0, 0);
 
     console.log(`[MOVIL ${VERSION}] Generation Time:`, now.toISOString());
-    console.log(`[MOVIL ${VERSION}] Selected Date:`, date, 'Next Date:', nextDate);
-    console.log(`[MOVIL ${VERSION}] Cutoff (incl):`, cutoffTimestamp.toISOString(), `(Sunday: ${isSundayCutoff})`);
-
 
     try {
         // Fetch Shifts for Today AND Tomorrow
@@ -130,64 +120,75 @@ window.generateMovilExcel = async function () {
 
         if (pError) throw pError;
 
-        // Also fetch pre-registration data (from Excel imports)
+        // Fetch Pre-Data (Historical/Imports)
         const { data: preData, error: preError } = await supabase
             .from('agent_predata')
             .select('rut, full_name, address, addr_number, commune, phone');
 
-        // Create preData map by normalized RUT
-        const preDataMap = {};
-        if (preData && !preError) {
-            preData.forEach(p => {
-                const nr = normalizeRut(p.rut);
-                if (nr) {
-                    // Combine address + addr_number into full address
-                    if (p.address && p.addr_number) {
-                        p.full_address = `${p.address} #${p.addr_number}`;
-                    } else if (p.address) {
-                        p.full_address = p.address;
-                    } else {
-                        p.full_address = '';
-                    }
-                    preDataMap[nr] = p;
-                }
-            });
-            console.log(`[MOVIL ${VERSION}] Loaded ${preData.length} pre-data records for fallback`);
-        }
+        // --- INTELLIGENT MATCHING SYSTEM ---
+        const kbByRut = {};
+        const kbByName = {};
 
-        // Hash Map Profiles by Normalized RUT, merging with preData
-        const profileMap = {};
-        profiles.forEach(p => {
-            const nr = normalizeRut(p.rut);
-            if (nr) {
-                // Check if we have preData for this RUT and merge missing fields
-                const pre = preDataMap[nr];
-                if (pre) {
-                    // Fill missing fields from preData
-                    // Use full_address (with number) from preData
-                    if (!p.address && pre.full_address) p.address = pre.full_address;
-                    else if (!p.address && pre.address) p.address = pre.address;
-                    if (!p.commune && pre.commune) p.commune = pre.commune;
-                    if (!p.phone && pre.phone) p.phone = pre.phone;
-                    if (!p.full_name && pre.full_name) p.full_name = pre.full_name;
-                }
-                profileMap[nr] = p;
-            }
-        });
+        const normName = (n) => {
+            if (!n) return '';
+            return n.trim().toUpperCase().replace(/\s+/g, ' ');
+        };
 
-        // Also add preData entries that are NOT in profiles (agents without accounts)
-        Object.keys(preDataMap).forEach(nr => {
-            if (!profileMap[nr]) {
-                // Use full_address instead of address for entries from preData
-                const pre = preDataMap[nr];
-                pre.address = pre.full_address || pre.address;
-                profileMap[nr] = pre;
+        const addToKB = (source, type) => {
+            const nr = normalizeRut(source.rut);
+            const nn = normName(source.full_name);
+
+            // Determine effective address for this record
+            let effAddr = source.address || '';
+            if (type === 'predata' && source.addr_number) {
+                effAddr = `${effAddr} #${source.addr_number}`.trim();
             }
-        });
+
+            let entry = null;
+
+            if (nr && kbByRut[nr]) entry = kbByRut[nr];
+            else if (nn && kbByName[nn]) entry = kbByName[nn];
+
+            if (!entry) {
+                entry = {
+                    rut: source.rut,
+                    name: source.full_name,
+                    address: '',
+                    commune: '',
+                    phone: '',
+                    sources: []
+                };
+            }
+
+            entry.sources.push(type);
+
+            if (type === 'profile') {
+                entry.rut = source.rut || entry.rut;
+                entry.name = source.full_name || entry.name;
+                if (source.address) entry.address = source.address;
+                if (source.commune) entry.commune = source.commune;
+                if (source.phone) entry.phone = source.phone;
+            } else {
+                if (!entry.rut) entry.rut = source.rut;
+                if (!entry.name) entry.name = source.full_name;
+                if (!entry.address) entry.address = effAddr;
+                if (!entry.commune) entry.commune = source.commune;
+                if (!entry.phone) entry.phone = source.phone;
+            }
+
+            if (nr) kbByRut[nr] = entry;
+            if (nn) kbByName[nn] = entry;
+        };
+
+        // 1. Load PreData first (base layer)
+        if (preData) preData.forEach(p => addToKB(p, 'predata'));
+
+        // 2. Load Profiles (authoritative layer)
+        if (profiles) profiles.forEach(p => addToKB(p, 'profile'));
+
+        console.log(`[MOVIL ${VERSION}] KB Size -> RUTs: ${Object.keys(kbByRut).length}, Names: ${Object.keys(kbByName).length}`);
 
         const rows = [];
-
-        // Date Formatter for Date objects
         const formatDateObj = (d) => {
             const day = String(d.getDate()).padStart(2, '0');
             const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -197,104 +198,108 @@ window.generateMovilExcel = async function () {
 
         shifts.forEach(s => {
             const shiftRut = normalizeRut(s.rut);
-            const p = profileMap[shiftRut] || {};
+            const shiftName = normName(s.user_name);
+
+            // --- FIND PERSON ---
+            // 1. Try by RUT
+            let person = kbByRut[shiftRut];
+
+            // 2. If no match (or matched person has no address), try by NAME
+            if (!person || (!person.address && shiftName)) {
+
+                // Do we have a name match?
+                const personByName = kbByName[shiftName];
+
+                if (personByName) {
+                    if (!person) {
+                        person = personByName;
+                    } else if (personByName.address && !person.address) {
+                        // Found by RUT but no address. Found by Name AND has address.
+                        // Assume same person and use the name-matched record for address
+                        person = personByName;
+                        console.log(`[MOVIL] Enhanced via Name: "${s.user_name}" matched address via name lookup.`);
+                    }
+                }
+            }
+
+            /* 
+               If we STILL don't have an address, we can try one more desperate check:
+               Does agent_predata have this exact name but maybe slightly diff RUT?
+               (Already handled by name lookup above)
+            */
+
+            const pName = person?.name || s.user_name || 'Desconocido';
+            const pAddr = person?.address || 'SIN DIRECCIÓN';
+            const pCommune = person?.commune || '';
+            const pPhone = person?.phone || '';
+            const pRutDisplay = person?.rut || s.rut || '';
+
             const times = getShiftTimes(s.shift_code);
 
             if (!times.start && !times.end) {
-                console.log(`[MOVIL ${VERSION}] SKIP ${s.user_name}: No times for code ${s.shift_code}`);
                 return;
             }
 
-            // Parse shift date (Robust Local Time)
             const [sY, sM, sD] = s.shift_date.split('-').map(Number);
             const shiftDateLocal = new Date(sY, sM - 1, sD, 0, 0, 0, 0);
 
-            // Address parsing
-            let street = p.address || 'SIN DIRECCIÓN';
+            // Helper to clean address
+            let street = pAddr;
             let numberUnit = '';
-            if (p.address && p.address.includes('#')) {
-                const parts = p.address.split('#');
+            if (street.includes('#')) {
+                const parts = street.split('#');
                 street = parts[0].trim();
                 numberUnit = parts.slice(1).join('#').trim();
             }
 
-            // Row creator - now accepts the movement date
             const createRow = (servicio, hora, movementDate) => ({
                 FECHA: formatDateObj(movementDate),
-                ID_PASAJERO: s.rut || shiftRut,
-                NOMBRE_COLABORADOR: p.full_name || s.user_name || 'Desconocido',
+                ID_PASAJERO: pRutDisplay,
+                NOMBRE_COLABORADOR: pName,
                 DIRECCION: street,
                 NUMERO: numberUnit,
-                COMUNA: p.commune || '',
-                CONTACTO: (p.phone || '').replace('+569', '').replace(/\D/g, ''),
+                COMUNA: pCommune,
+                CONTACTO: (pPhone || '').replace('+569', '').replace(/\D/g, ''),
                 SERVICIO: servicio,
                 HORA: hora,
                 SOLICITANTE: requester
             });
 
-            // --- RECOGIDA (Entry) Logic ---
+            // Entry
             if (times.start) {
                 const [sh, sm] = times.start.split(':').map(Number);
                 const startMins = sh * 60 + sm;
-
-                // Calculate exact entry timestamp
                 const entryTimestamp = new Date(shiftDateLocal);
                 entryTimestamp.setHours(sh, sm, 0, 0);
-
-                // Check if FUTURE (after now)
                 const isFuture = entryTimestamp > now;
-
-                // Check if BEFORE CUTOFF (within this transport cycle)
                 const isBeforeCutoff = entryTimestamp <= cutoffTimestamp;
-
-                // Check if in WINDOW (21:00-07:00, Sunday exception 08:00)
                 const isSunday = shiftDateLocal.getDay() === 0;
-                const limitMorning = isSunday ? 480 : 420; // 08:00 or 07:00
+                const limitMorning = isSunday ? 480 : 420;
                 const isInWindow = (startMins >= 1260) || (startMins <= limitMorning);
-
-                console.log(`[MOVIL ${VERSION}] ENTRY ${s.user_name} | Date: ${s.shift_date} | Code: ${s.shift_code} | Time: ${times.start} | Future: ${isFuture} | BeforeCutoff: ${isBeforeCutoff} | InWindow: ${isInWindow}`);
 
                 if (isFuture && isBeforeCutoff && isInWindow) {
                     rows.push(createRow('RECOGIDA', times.start, shiftDateLocal));
-                    console.log(`[MOVIL ${VERSION}]   -> ADDED RECOGIDA for ${formatDateObj(shiftDateLocal)}`);
                 }
             }
 
-            // --- ZARPE (Exit) Logic ---
+            // Exit
             if (times.end) {
                 const [eh, em] = times.end.split(':').map(Number);
                 const endMins = eh * 60 + em;
-                const startMins = times.start ? times.start.split(':').map(Number)[0] * 60 + (times.start.split(':').map(Number)[1] || 0) : 0;
+                const crossesMidnight = endMins < (times.start ? parseInt(times.start.split(':')[0]) * 60 : 0);
 
-                // Check if crosses midnight (exit is on next day)
-                const crossesMidnight = endMins < startMins;
-
-                // Calculate exact exit timestamp
                 let exitDateLocal = new Date(shiftDateLocal);
-                if (crossesMidnight) {
-                    exitDateLocal.setDate(exitDateLocal.getDate() + 1);
-                }
+                if (crossesMidnight) exitDateLocal.setDate(exitDateLocal.getDate() + 1);
                 exitDateLocal.setHours(eh, em, 0, 0);
 
-                // Check if FUTURE (after now)
                 const isFuture = exitDateLocal > now;
-
-                // Check if BEFORE CUTOFF (within this transport cycle)
                 const isBeforeCutoff = exitDateLocal <= cutoffTimestamp;
-
-                // Check if in WINDOW (21:00-07:00, NO Sunday exception for Zarpe)
                 const isInWindow = (endMins >= 1260) || (endMins <= 420);
 
-                console.log(`[MOVIL ${VERSION}] EXIT ${s.user_name} | Date: ${s.shift_date} | Code: ${s.shift_code} | Time: ${times.end} | CrossMN: ${crossesMidnight} | Future: ${isFuture} | BeforeCutoff: ${isBeforeCutoff} | InWindow: ${isInWindow}`);
-
                 if (isFuture && isBeforeCutoff && isInWindow) {
-                    // Create a clean date for FECHA (just the date portion of exitDateLocal)
                     const exitDateForFecha = new Date(shiftDateLocal);
-                    if (crossesMidnight) {
-                        exitDateForFecha.setDate(exitDateForFecha.getDate() + 1);
-                    }
+                    if (crossesMidnight) exitDateForFecha.setDate(exitDateForFecha.getDate() + 1);
                     rows.push(createRow('ZARPE', times.end, exitDateForFecha));
-                    console.log(`[MOVIL ${VERSION}]   -> ADDED ZARPE for ${formatDateObj(exitDateForFecha)}`);
                 }
             }
         });
