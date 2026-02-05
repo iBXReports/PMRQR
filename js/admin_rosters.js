@@ -184,7 +184,8 @@ window.calculateMatchingTokens = function (str1, str2) {
 };
 
 // --- DAILY ROSTER MANAGEMENT ---
-async function loadDailyRosterManagement() {
+// --- DAILY ROSTER MANAGEMENT ---
+window.loadDailyRosterManagement = async function (targetDateStr) {
     let container = document.getElementById('daily-roster-container');
 
     // Inject Container if missing (Below the rosters list)
@@ -201,18 +202,38 @@ async function loadDailyRosterManagement() {
     container.innerHTML = '<div style="text-align:center;">Cargando gestión diaria...</div>';
 
     try {
-        // 1. Calculate Dates (Yesterday, Today)
-        // Use local date logic to avoid UTC offsets for "Today"
-        const getLocalYMD = (offset) => {
-            const d = new Date();
-            d.setDate(d.getDate() + offset);
-            return d.toLocaleDateString('fr-CA'); // YYYY-MM-DD
+        // 1. Calculate Dates
+        // If targetDateStr is supplied (YYYY-MM-DD), use it. Else default to today (Local).
+        const getLocalYMD = (dateObj) => {
+            // Returns YYYY-MM-DD
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
         };
 
-        const yesterday = getLocalYMD(-1);
-        const today = getLocalYMD(0);
+        let todayObj;
+        if (targetDateStr) {
+            // Construct date at noon to avoid timezone rollover issues
+            const [y, m, d] = targetDateStr.split('-').map(Number);
+            todayObj = new Date(y, m - 1, d, 12, 0, 0);
+        } else {
+            todayObj = new Date();
+        }
+
+        const today = getLocalYMD(todayObj);
+
+        // Yesterday is relative to "today"
+        const yesterdayObj = new Date(todayObj);
+        yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+        const yesterday = getLocalYMD(yesterdayObj);
 
         // Get current hour to determine if we need to show overnight shifts
+        // Note: Logic for "active" overnight shift implies "is the shift code from yesterday valid right now?"
+        // This logic holds mostly for "real-time" viewing. If viewing past/future, this check might be slightly misleading visually, 
+        // but we'll keep the logic consistent: 
+        // "Show yesterday's overnight shifts if they would 'overlap' into the morning of the target day"
+        // This essentially means just showing them. The "active" check might return false if we are not literally at that time, but that's fine.
         const currentHour = new Date().getHours();
 
         // UI Formatters
@@ -329,7 +350,7 @@ async function loadDailyRosterManagement() {
                 </div>
                 
                 <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <input type="date" id="export-date-picker" value="${today}" 
+                    <input type="date" id="export-date-picker" value="${today}" onchange="window.loadDailyRosterManagement(this.value)"
                         style="padding: 8px; border-radius: 6px; border: 1px solid var(--card-border); background: var(--bg-card); color: var(--text-color);">
                     <button class="btn btn-primary" id="btn-export-daily" style="white-space:nowrap;" onclick="window.triggerExportDaily()">
                         <i class="fas fa-file-excel"></i> Descargar Planilla
