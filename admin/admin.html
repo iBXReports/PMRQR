@@ -742,9 +742,9 @@
 
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <button class="btn-action" onclick="document.getElementById('admin-guide-modal').style.display='flex'"
-                    style="background:transparent; border:none; color:var(--text-color); font-size:1.2rem; cursor:pointer;"
-                    title="Guía Admin">
-                    <i class="fas fa-question-circle"></i>
+                    style="background:transparent; border:none; cursor:pointer;" title="Guía Admin">
+                    <img src="../assets/imagenes/ayuda.png" alt="Ayuda"
+                        style="width: 32px; height: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); transition: transform 0.2s;">
                 </button>
                 <div class="user-dropdown" id="admin-user-dropdown">
                     <!-- Name -->
@@ -853,8 +853,6 @@
                     panel</button>
             </div>
 
-            <button class="btn" onclick="document.getElementById('admin-guide-modal').style.display='none'">Cerrar
-                Guía</button>
         </div>
         </div>
 
@@ -1872,10 +1870,10 @@
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script type="module" src="../assets/js/client.js"></script>
     <script type="module" src="../assets/js/common.js"></script>
-    <script type="module" src="js/admin.js?v=7"></script>
+    <script type="module" src="js/admin.js?v=8"></script>
     <script type="module" src="js/crud_logic.js?v=1"></script>
     <script type="module" src="js/movilizacion.js?v=17"></script>
-    <script type="module" src="js/admin_rosters.js?v=9"></script>
+    <script type="module" src="js/admin_rosters.js?v=12"></script>
     <!-- Fallback Script -->
     <script>
         console.log("Loading Fallback Script...");

@@ -78,22 +78,59 @@ function setupTopbar(profileData) {
         }
     }
 
-    // 3. Admin Link Visibility
-    const allowedRoles = ['CDO', 'Supervisor', 'Administrador'];
+    // 3. Admin Link Visibility & Dynamic Dropdown
+    const allowedRoles = ['CDO', 'Supervisor', 'Administrador', 'SPRV'];
     const userRole = profileData?.role || '';
     const hasAccess = allowedRoles.some(r => r.toLowerCase() === userRole.toLowerCase());
-
-    if (hasAccess && adminLink) {
-        adminLink.classList.remove('hidden');
-    } else if (adminLink) {
-        adminLink.classList.add('hidden');
-    }
 
     // 4. Clone Dropdown and Setup Events
     const dropdown = document.querySelector('.user-dropdown');
     if (dropdown) {
         const newDropdown = dropdown.cloneNode(true);
         dropdown.parentNode.replaceChild(newDropdown, dropdown);
+
+        const content = newDropdown.querySelector('.dropdown-content');
+        if (content) {
+            content.innerHTML = '';
+
+            // 1. Profile Link (Redundant on profile page? Maybe "Volver a Inicio" is better?)
+            // But per request to keep it consistent or standard:
+            // "en profile.html igual me estas mostrando el panel admin aun que NO soy ni administrador... ocultalo"
+            // Let's standardise the menu.
+
+            const homeLink = document.createElement('a');
+            homeLink.href = 'index.html';
+            homeLink.innerHTML = `<span class="dropdown-icon">🏠</span> Volver a Inicio`;
+            content.appendChild(homeLink);
+
+            // 2. Admin Link (Conditional)
+            if (hasAccess) {
+                const adminLinkEl = document.createElement('a');
+                adminLinkEl.href = 'admin/admin.html';
+                adminLinkEl.id = 'nav-admin-link';
+                adminLinkEl.innerHTML = `<span class="dropdown-icon">🛡️</span> Panel Admin`;
+                content.appendChild(adminLinkEl);
+            }
+
+            // 3. Theme Toggle
+            const themeBtnEl = document.createElement('button');
+            themeBtnEl.id = 'nav-theme-toggle';
+            themeBtnEl.innerHTML = `<span class="dropdown-icon">🌓</span> Cambiar Tema`;
+            content.appendChild(themeBtnEl);
+
+            // 4. Divider
+            const divider = document.createElement('div');
+            divider.className = 'dropdown-divider';
+            content.appendChild(divider);
+
+            // 5. Logout
+            const logoutBtnEl = document.createElement('button');
+            logoutBtnEl.id = 'nav-logout-btn';
+            logoutBtnEl.className = 'logout-btn';
+            logoutBtnEl.style.color = '#ef4444';
+            logoutBtnEl.innerHTML = `<span class="dropdown-icon">🚪</span> Cerrar Sesión`;
+            content.appendChild(logoutBtnEl);
+        }
 
         // Toggle on click
         newDropdown.onclick = (e) => {
@@ -144,11 +181,25 @@ async function loadProfile() {
         if (error) throw error;
 
         // Populate Fields
+        document.getElementById('rut').value = data.rut || '';
         document.getElementById('username').value = data.username || '';
-        document.getElementById('full_name').value = data.full_name || '';
+        // document.getElementById('full_name').value = data.full_name || ''; // Removed generic full name input
+
+        document.getElementById('first_name').value = data.first_name || '';
+        document.getElementById('middle_name').value = data.middle_name || '';
+        document.getElementById('last_name_1').value = data.last_name_1 || '';
+        document.getElementById('last_name_2').value = data.last_name_2 || '';
+
         document.getElementById('phone').value = data.phone || '';
         document.getElementById('commune').value = data.commune || '';
-        document.getElementById('address').value = data.address || '';
+
+        document.getElementById('address_street').value = data.address_street || data.address || ''; // Fallback
+        document.getElementById('address_number').value = data.address_number || '';
+        document.getElementById('address_unit').value = data.address_unit || '';
+
+        // Operational Data
+        if (document.getElementById('team')) document.getElementById('team').value = data.team || 'OLA';
+        if (document.getElementById('tica_status')) document.getElementById('tica_status').value = data.tica_status || 'NO_APLICA';
 
         // Auth Email
         document.getElementById('email').value = currentUser.email;
@@ -175,12 +226,14 @@ async function loadProfile() {
                 if (active) {
                     el.style.opacity = '1';
                     el.style.background = 'var(--success-color, #10b981)';
+                    el.style.borderColor = 'var(--success-color, #10b981)';
                     el.style.color = 'white';
                     el.style.fontWeight = 'bold';
                     el.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.4)';
                 } else {
                     el.style.opacity = '0.3';
-                    el.style.background = 'var(--card-border, #eee)';
+                    el.style.background = 'transparent';
+                    el.style.borderColor = 'var(--text-color)';
                     el.style.color = 'inherit';
                 }
             }
@@ -194,8 +247,9 @@ async function loadProfile() {
     }
 }
 
-async function uploadAvatar(e) {
+async function uploadAvatar(e) { /* ... same ... */
     const file = e.target.files[0];
+    // ... [No changes needed in uploadAvatar, using existing] ...
     if (!file) return;
 
     try {
@@ -205,19 +259,16 @@ async function uploadAvatar(e) {
         const fileName = `${currentUser.id}-${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Upload
         const { error: uploadError } = await supabase.storage
             .from('uploads')
             .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        // Get Public URL
         const { data: { publicUrl } } = supabase.storage
             .from('uploads')
             .getPublicUrl(filePath);
 
-        // Update Profile
         const { error: updateError } = await supabase
             .from('profiles')
             .update({ avatar_url: publicUrl })
@@ -240,21 +291,47 @@ async function updateProfile(e) {
     loader.classList.remove('hidden');
 
     try {
+        const rut = document.getElementById('rut').value;
         const username = document.getElementById('username').value;
-        const full_name = document.getElementById('full_name').value;
+
+        const first_name = document.getElementById('first_name').value;
+        const middle_name = document.getElementById('middle_name').value;
+        const last_name_1 = document.getElementById('last_name_1').value;
+        const last_name_2 = document.getElementById('last_name_2').value;
+
+        // Reconstruction for compatibility
+        const full_name = `${first_name} ${middle_name} ${last_name_1} ${last_name_2}`.replace(/\s+/g, ' ').trim();
+
         const phone = document.getElementById('phone').value;
         const commune = document.getElementById('commune').value;
-        const address = document.getElementById('address').value;
+
+        const address_street = document.getElementById('address_street').value;
+        const address_number = document.getElementById('address_number').value;
+        const address_unit = document.getElementById('address_unit').value;
+        const address = `${address_street} #${address_number} ${address_unit}`.trim();
+
+        const team = document.getElementById('team').value;
+        const tica_status = document.getElementById('tica_status').value;
 
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
 
         const updates = {
+            rut,
             username,
+            first_name,
+            middle_name,
+            last_name_1,
+            last_name_2,
             full_name,
             phone,
             commune,
+            address_street,
+            address_number,
+            address_unit,
             address,
+            team,
+            tica_status,
             updated_at: new Date()
         };
 

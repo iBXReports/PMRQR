@@ -144,23 +144,65 @@ function setupTopbar() {
         }
     }
 
-    // 3. Admin Link Visibility
-    const allowedRoles = ['CDO', 'Supervisor', 'Administrador'];
+    // 3. Admin Link Visibility & Profile Link
+    const allowedRoles = ['CDO', 'Supervisor', 'Administrador', 'SPRV'];
     const userRole = userProfile?.role || '';
     const hasAccess = allowedRoles.some(r => r.toLowerCase() === userRole.toLowerCase());
 
-    if (hasAccess && adminLink) {
-        adminLink.classList.remove('hidden');
-    } else if (adminLink) {
-        adminLink.classList.add('hidden');
-    }
-
-    // 5. Click Toggle for Dropdown (Must clone first to attach events properly)
+    // 5. Clone for events (and dynamic modification)
     const dropdown = document.querySelector('.user-dropdown');
     if (dropdown) {
         // Clone entire dropdown to remove old listeners
         const newDropdown = dropdown.cloneNode(true);
         dropdown.parentNode.replaceChild(newDropdown, dropdown);
+
+        const content = newDropdown.querySelector('.dropdown-content');
+        if (content) {
+            // Clear current content to rebuild safely or just modify visibility?
+            // "cuando estoy en index.html y NO soy admin... en el desplegable del topbar NO me muestres panel admin. solo muestrame ir al perfil (profile.html), cambiar tema o cerrar sesion"
+
+            // Rebuild content for clearer control
+            content.innerHTML = '';
+
+            // 1. Profile Link (Always for Agents/Everyone now per request)
+            // "solo para usuarios de cargo AGENTE muestrales profile.html" -> But actually "ir al perfil" is useful for everyone? 
+            // User said: "si NO pertenezco al grupo CDO... solo muestrame ir al perfil". 
+            // Let's add it for everyone for better UX, or strictly per request. 
+            // Assuming "Ir al Perfil" is good for all.
+            const profileMsg = 'Ir al Perfil';
+            const profileLink = document.createElement('a');
+            profileLink.href = 'profile.html';
+            profileLink.innerHTML = `<span class="dropdown-icon">😎</span> ${profileMsg}`;
+            content.appendChild(profileLink);
+
+            // 2. Admin Link (Conditional)
+            if (hasAccess) {
+                const adminLinkEl = document.createElement('a');
+                adminLinkEl.href = 'admin/admin.html';
+                adminLinkEl.id = 'nav-admin-link'; // Keep ID just in case
+                adminLinkEl.innerHTML = `<span class="dropdown-icon">🛡️</span> Panel Admin`;
+                content.appendChild(adminLinkEl);
+            }
+
+            // 3. Theme Toggle
+            const themeBtnEl = document.createElement('button');
+            themeBtnEl.id = 'nav-theme-toggle';
+            themeBtnEl.innerHTML = `<span class="dropdown-icon">🌓</span> Cambiar Tema`;
+            content.appendChild(themeBtnEl);
+
+            // 4. Divider
+            const divider = document.createElement('div');
+            divider.className = 'dropdown-divider';
+            content.appendChild(divider);
+
+            // 5. Logout
+            const logoutBtnEl = document.createElement('button');
+            logoutBtnEl.id = 'nav-logout-btn';
+            logoutBtnEl.className = 'logout-btn';
+            logoutBtnEl.style.color = '#ef4444';
+            logoutBtnEl.innerHTML = `<span class="dropdown-icon">🚪</span> Cerrar Sesión`;
+            content.appendChild(logoutBtnEl);
+        }
 
         // Toggle on click
         newDropdown.onclick = (e) => {
@@ -576,9 +618,17 @@ function startTimer(startTime) {
 }
 
 // --- END OPERATION ---
-function handleReturnScan(e) {
+async function handleReturnScan(e) {
     const code = typeof e.detail === 'object' ? e.detail.code : e.detail;
-    if (!currentOperationId) return;
+
+    // Fix: If no local operation ID, try to fetch it again (recovery)
+    if (!currentOperationId) {
+        await checkActiveOperation();
+        if (!currentOperationId) {
+            showError("⚠️ No se encontró una operación activa para finalizar.");
+            return;
+        }
+    }
 
     const pointSelect = document.getElementById('input-end-point');
     if (pointSelect) {

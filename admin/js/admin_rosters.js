@@ -184,7 +184,8 @@ window.calculateMatchingTokens = function (str1, str2) {
 };
 
 // --- DAILY ROSTER MANAGEMENT ---
-async function loadDailyRosterManagement() {
+// --- DAILY ROSTER MANAGEMENT ---
+window.loadDailyRosterManagement = async function (targetDateStr) {
     let container = document.getElementById('daily-roster-container');
 
     // Inject Container if missing (Below the rosters list)
@@ -201,18 +202,38 @@ async function loadDailyRosterManagement() {
     container.innerHTML = '<div style="text-align:center;">Cargando gestión diaria...</div>';
 
     try {
-        // 1. Calculate Dates (Yesterday, Today)
-        // Use local date logic to avoid UTC offsets for "Today"
-        const getLocalYMD = (offset) => {
-            const d = new Date();
-            d.setDate(d.getDate() + offset);
-            return d.toLocaleDateString('fr-CA'); // YYYY-MM-DD
+        // 1. Calculate Dates
+        // If targetDateStr is supplied (YYYY-MM-DD), use it. Else default to today (Local).
+        const getLocalYMD = (dateObj) => {
+            // Returns YYYY-MM-DD
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
         };
 
-        const yesterday = getLocalYMD(-1);
-        const today = getLocalYMD(0);
+        let todayObj;
+        if (targetDateStr) {
+            // Construct date at noon to avoid timezone rollover issues
+            const [y, m, d] = targetDateStr.split('-').map(Number);
+            todayObj = new Date(y, m - 1, d, 12, 0, 0);
+        } else {
+            todayObj = new Date();
+        }
+
+        const today = getLocalYMD(todayObj);
+
+        // Yesterday is relative to "today"
+        const yesterdayObj = new Date(todayObj);
+        yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+        const yesterday = getLocalYMD(yesterdayObj);
 
         // Get current hour to determine if we need to show overnight shifts
+        // Note: Logic for "active" overnight shift implies "is the shift code from yesterday valid right now?"
+        // This logic holds mostly for "real-time" viewing. If viewing past/future, this check might be slightly misleading visually, 
+        // but we'll keep the logic consistent: 
+        // "Show yesterday's overnight shifts if they would 'overlap' into the morning of the target day"
+        // This essentially means just showing them. The "active" check might return false if we are not literally at that time, but that's fine.
         const currentHour = new Date().getHours();
 
         // UI Formatters
@@ -329,7 +350,7 @@ async function loadDailyRosterManagement() {
                 </div>
                 
                 <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <input type="date" id="export-date-picker" value="${today}" 
+                    <input type="date" id="export-date-picker" value="${today}" onchange="window.loadDailyRosterManagement(this.value)"
                         style="padding: 8px; border-radius: 6px; border: 1px solid var(--card-border); background: var(--bg-card); color: var(--text-color);">
                     <button class="btn btn-primary" id="btn-export-daily" style="white-space:nowrap;" onclick="window.triggerExportDaily()">
                         <i class="fas fa-file-excel"></i> Descargar Planilla
@@ -341,8 +362,12 @@ async function loadDailyRosterManagement() {
                 <table class="modern-table" style="width:100%; border-collapse:collapse; font-size:0.85rem;">
                     <thead>
                         <tr style="border-bottom: 2px solid var(--primary-color);">
-                            <th class="table-header" style="padding:12px 10px; text-align:left; min-width:180px; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white; font-weight: 600;">Agente</th>
-                            <th class="table-header" style="padding:12px 10px; text-align:center; min-width:80px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-weight: 600;">🕐 TURNO<br><small style="opacity:0.8">${formatDateHeader(today)}</small></th>
+                            <th class="table-header" onclick="window.sortDailyTable('name')" style="padding:12px 10px; text-align:left; min-width:180px; background: linear-gradient(135deg, var(--primary-color), var(--accent-color)); color: white; font-weight: 600; cursor: pointer;">
+                                Agente <i id="sort-icon-name" class="fas fa-sort"></i>
+                            </th>
+                            <th class="table-header" onclick="window.sortDailyTable('shift')" style="padding:12px 10px; text-align:center; min-width:80px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; font-weight: 600; cursor: pointer;">
+                                🕐 TURNO <i id="sort-icon-shift" class="fas fa-sort"></i><br><small style="opacity:0.8">${formatDateHeader(today)}</small>
+                            </th>
                             <th class="table-header" style="padding:12px 10px; text-align:center; min-width:130px; background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 600;">📋 ASISTENCIA</th>
                             <th class="table-header" style="padding:12px 10px; text-align:center; min-width:170px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; font-weight: 600;">📝 OBSERVACIONES</th>
                             <th class="table-header" style="padding:12px 10px; text-align:center; min-width:130px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-weight: 600;">🪪 ESTADO TICA</th>
@@ -674,6 +699,9 @@ async function loadDailyRosterManagement() {
 
             // Determine which date to use for attendance (today for regular, yesterday for overnight)
             const attendanceDate = isOvernight ? yesterday : today;
+
+            tr.dataset.name = u.name.toLowerCase(); // Normalized for case-insensitive sort
+            tr.dataset.shift = displayShiftCode;
 
             tr.innerHTML = `
                 <td style="padding: 10px 12px;">
@@ -1886,5 +1914,53 @@ window.exportDailyAttendanceExcel = async function (targetDate) {
         alert("Error al exportar: " + err.message);
     } finally {
         if (btn) btn.innerHTML = originalText;
+    }
+};
+
+// --- SORTING LOGIC ---
+let currentSort = { col: null, dir: 'asc' };
+
+window.sortDailyTable = function (col) {
+    const tbody = document.querySelector('#daily-roster-container tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Toggle direction
+    if (currentSort.col === col) {
+        currentSort.dir = currentSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.col = col;
+        currentSort.dir = 'asc';
+    }
+
+    // Sort
+    rows.sort((a, b) => {
+        let valA = a.dataset[col] || '';
+        let valB = b.dataset[col] || '';
+
+        if (col === 'shift') {
+            // Specialized shift sort? Alphanumeric is fine for now.
+        }
+
+        if (valA < valB) return currentSort.dir === 'asc' ? -1 : 1;
+        if (valA > valB) return currentSort.dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    // Re-append
+    rows.forEach(r => tbody.appendChild(r));
+
+    // Update Icons
+    document.querySelectorAll('.table-header i.fa-sort, .table-header i.fa-sort-up, .table-header i.fa-sort-down').forEach(i => {
+        i.className = 'fas fa-sort'; // Reset
+        i.style.opacity = '0.3';
+    });
+
+    const iconId = `sort-icon-${col}`;
+    const icon = document.getElementById(iconId);
+    if (icon) {
+        icon.className = currentSort.dir === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+        icon.style.opacity = '1';
     }
 };

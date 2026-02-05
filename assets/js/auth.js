@@ -363,7 +363,8 @@ if (registerForm) {
                         address_number: number,
                         address_unit: unit,
                         commune,
-                        phone
+                        phone,
+                        role: 'Agente' // Default role for all new registrations
                     }
                 }
             });

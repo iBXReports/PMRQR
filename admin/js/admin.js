@@ -149,12 +149,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (profile) {
-            currentUser = profile;
+            // 2. Fetch extended profile to check Role
+            // The 'profile' object from the previous fetch should already contain the role.
+            // No need to re-fetch unless the initial fetch was partial.
+            // Assuming 'profile' already has the necessary data.
+
+            // Gatekeeper: Only allow CDO, Supervisor, Admin, SPRV
+            if (profile) {
+                currentUser = profile; // Use profile as current user object for extra fields
+
+                const allowed = ['CDO', 'Supervisor', 'Administrador', 'SPRV'];
+                const userRole = (profile.role || '').trim();
+                const hasAccess = allowed.some(r => r.toLowerCase() === userRole.toLowerCase());
+
+                if (!hasAccess) {
+                    alert("⛔ Acceso Restringido: No tienes permisos para ver esta página.");
+                    window.location.href = '../index.html';
+                    return;
+                }
+            } else {
+                // If no profile found, kick them out just in case
+                console.warn("No profile found for user, redirecting...");
+                window.location.href = '../index.html';
+                return;
+            }
+
+            // 3. Add to UI
             updateUIProfile(profile);
         }
 
 
-        // 2. Load Initial Data
+        // 4. Load Initial Data
         await loadDashboard();
 
 
@@ -905,6 +930,20 @@ async function loadAssets() {
                     // Open full image on click
                     card.onclick = () => window.open(op.return_photo_url, '_blank');
 
+                    // Delete Button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    deleteBtn.className = 'btn-action btn-delete';
+                    deleteBtn.style.cssText = 'position: absolute; top: 10px; right: 10px; z-index: 10; background: rgba(239, 68, 68, 0.9); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.2);';
+                    deleteBtn.title = 'Eliminar Foto';
+
+                    deleteBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteReturnPhoto(op.id, op.return_photo_url);
+                    };
+
+                    card.appendChild(deleteBtn);
+
                     galleryContainer.appendChild(card);
                 });
             } else {
@@ -916,6 +955,42 @@ async function loadAssets() {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center error">Error: ${err.message}</td></tr>`;
     }
 }
+
+// --- DELETE PHOTO FUNCTION ---
+window.deleteReturnPhoto = async function (opId, photoUrl) {
+    if (!confirm("⚠️ ¿Estás seguro de que quieres eliminar esta foto? Esta acción no se puede deshacer.")) return;
+
+    try {
+        // 1. Try to delete from Storage (optional, but good for cleanup)
+        // Parse path from URL assuming standard Supabase structure
+        // URL: .../storage/v1/object/public/uploads/filename.jpg
+        const urlParts = photoUrl.split('/uploads/');
+        if (urlParts.length > 1) {
+            const filePath = urlParts[1];
+            const { error: storageError } = await supabase.storage
+                .from('uploads')
+                .remove([filePath]);
+
+            if (storageError) console.warn("Storage deletion warning:", storageError);
+        }
+
+        // 2. Update DB Record (Set to NULL)
+        const { error: dbError } = await supabase
+            .from('operations')
+            .update({ return_photo_url: null })
+            .eq('id', opId);
+
+        if (dbError) throw dbError;
+
+        alert("✅ Foto eliminada correctamente.");
+        // Reload assets (which reloads gallery)
+        loadAssets();
+
+    } catch (err) {
+        console.error("Error deleting photo:", err);
+        alert("Error al eliminar foto: " + err.message);
+    }
+};
 
 window.copyToClipboard = function (text) {
     if (!text || text === 'null' || text === 'undefined') return;

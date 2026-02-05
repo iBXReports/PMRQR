@@ -325,16 +325,41 @@
 
                 <h3 class="section-title">👤 Información Personal</h3>
 
+                <div class="form-group">
+                    <label>RUT</label>
+                    <input type="text" id="rut" placeholder="12.345.678-9" oninput="window.formatRut(this)">
+                </div>
+
                 <div class="grid-2">
                     <div class="form-group">
                         <label>Nombre de Usuario</label>
                         <input type="text" id="username" placeholder="Usuario">
                     </div>
+                </div>
+
+                <h4 style="margin-top: 1.5rem; color: var(--primary-color);">Nombres y Apellidos</h4>
+                <div class="grid-2">
                     <div class="form-group">
-                        <label>Nombre Completo</label>
-                        <input type="text" id="full_name" placeholder="Tu nombre">
+                        <label>Primer Nombre</label>
+                        <input type="text" id="first_name">
+                    </div>
+                    <div class="form-group">
+                        <label>Segundo Nombre</label>
+                        <input type="text" id="middle_name">
                     </div>
                 </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Primer Apellido</label>
+                        <input type="text" id="last_name_1">
+                    </div>
+                    <div class="form-group">
+                        <label>Segundo Apellido</label>
+                        <input type="text" id="last_name_2">
+                    </div>
+                </div>
+
+                <h3 class="section-title" style="margin-top: 2rem;">🏠 Contacto y Dirección</h3>
 
                 <div class="grid-2">
                     <div class="form-group">
@@ -343,26 +368,64 @@
                     </div>
                     <div class="form-group">
                         <label>Comuna</label>
-                        <input type="text" id="commune" placeholder="Ej: Santiago">
+                        <input type="text" id="commune">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Dirección</label>
-                    <input type="text" id="address" placeholder="Tu dirección">
+                    <label>Calle / Pasaje</label>
+                    <input type="text" id="address_street">
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Número</label>
+                        <input type="text" id="address_number">
+                    </div>
+                    <div class="form-group">
+                        <label>Depto / Casa / Block</label>
+                        <input type="text" id="address_unit">
+                    </div>
+                </div>
+
+                <h3 class="section-title" style="margin-top: 2rem;">🆔 Datos Operativos</h3>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Equipo / Grupo</label>
+                        <select id="team" class="input-style"
+                            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-color); border-radius: 12px;">
+                            <option value="OLA">OLA</option>
+                            <option value="LATAM">LATAM</option>
+                            <option value="OTRO">OTRO</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado TICA</label>
+                        <select id="tica_status" class="input-style"
+                            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-color); border-radius: 12px;">
+                            <option value="VIGENTE">VIGENTE</option>
+                            <option value="VENCIDA">VENCIDA</option>
+                            <option value="EN_TRAMITE">EN TRÁMITE</option>
+                            <option value="NO_APLICA">NO APLICA</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div id="certifications-section" style="margin-top: 2rem;">
                     <h3 class="section-title">🎓 Aptitudes y Cursos</h3>
-                    <p style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 1rem;">Cursos aprobados para el manejo de
-                        equipos especiales (Solo Admin puede modificar).</p>
+                    <p style="font-size: 0.8rem; opacity: 0.7; margin-bottom: 1rem;">Cursos aprobados (Solo Lectura -
+                        Gestionado por Admin).</p>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <span id="badge-golf" class="badge warning" style="opacity: 0.3; padding: 10px 15px;">🏌️
+                        <span id="badge-golf" class="badge"
+                            style="opacity: 0.3; padding: 10px 15px; border-radius: 8px; border: 1px solid currentColor;">🏌️
                             Carrito Golf</span>
-                        <span id="badge-duplex" class="badge warning" style="opacity: 0.3; padding: 10px 15px;">🚌
+                        <span id="badge-duplex" class="badge"
+                            style="opacity: 0.3; padding: 10px 15px; border-radius: 8px; border: 1px solid currentColor;">🚌
                             Carrito Duplex</span>
-                        <span id="badge-oruga" class="badge warning" style="opacity: 0.3; padding: 10px 15px;">🚜 Silla
-                            Oruga</span>
+                        <span id="badge-oruga" class="badge"
+                            style="opacity: 0.3; padding: 10px 15px; border-radius: 8px; border: 1px solid currentColor;">🚜
+                            Silla Oruga</span>
                     </div>
                 </div>
 
