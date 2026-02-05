@@ -63,6 +63,126 @@ async function loadRosters() {
 // Ensure function is exposed
 window.loadRosters = loadRosters;
 
+// --- UTILS: FUZZY MATCHING ---
+// --- UTILS: FUZZY MATCHING ---
+window.levenshteinDistance = function (a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+    const matrix = [];
+    for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                matrix[i][j] = matrix[i - 1][j - 1];
+            } else {
+                matrix[i][j] = Math.min(
+                    matrix[i - 1][j - 1] + 1, // substitution
+                    matrix[i][j - 1] + 1,     // insertion
+                    matrix[i - 1][j] + 1      // deletion
+                );
+            }
+        }
+    }
+    return matrix[b.length][a.length];
+}
+
+window.calculateTokenSimilarity = function (str1, str2) {
+    if (!str1 || !str2) return 0;
+
+    // Normalize: remove special chars, lowercase, replace common phonetic variations
+    const normalize = s => s.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // remove accents
+        .replace(/ñ/g, "n")
+        .replace(/[^a-z0-9\s]/g, "");
+
+    const tokens1 = normalize(str1).split(/\s+/).filter(t => t.length > 1);
+    const tokens2 = normalize(str2).split(/\s+/).filter(t => t.length > 1);
+
+    if (tokens1.length === 0 || tokens2.length === 0) return 0;
+
+    let matches = 0;
+    const usedIndices = new Set();
+
+    tokens1.forEach(t1 => {
+        let bestMatch = null;
+        let bestDist = 2; // Tolerance threshold
+
+        // Find best match in tokens2
+        for (let i = 0; i < tokens2.length; i++) {
+            if (usedIndices.has(i)) continue;
+            const t2 = tokens2[i];
+
+            // Exact or includes
+            if (t1 === t2) { bestMatch = i; bestDist = 0; break; }
+
+            // Levenshtein for typos
+            const dist = window.levenshteinDistance(t1, t2);
+            if (dist < bestDist || (dist === bestDist && dist < 2)) {
+                // Allow dist 1 for short words, dist 2 for longer
+                if (dist <= 1 || (dist <= 2 && t1.length > 4 && t2.length > 4)) {
+                    bestMatch = i;
+                    bestDist = dist;
+                }
+            }
+        }
+
+        if (bestMatch !== null) {
+            matches++;
+            usedIndices.add(bestMatch);
+        }
+    });
+
+    // Score: matches / max(tokens1.length, tokens2.length)
+    // We want high recall. If I match most of the names, it's good.
+    return matches / Math.max(tokens1.length, tokens2.length);
+};
+
+window.calculateMatchingTokens = function (str1, str2) {
+    if (!str1 || !str2) return { matches: 0, len1: 0, len2: 0 };
+
+    // Normalize
+    const normalize = s => s.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/ñ/g, "n")
+        .replace(/[^a-z0-9\s]/g, "");
+
+    const tokens1 = normalize(str1).split(/\s+/).filter(t => t.length > 1);
+    const tokens2 = normalize(str2).split(/\s+/).filter(t => t.length > 1);
+
+    if (tokens1.length === 0 || tokens2.length === 0) return { matches: 0, len1: tokens1.length, len2: tokens2.length };
+
+    let matches = 0;
+    const usedIndices = new Set();
+
+    tokens1.forEach(t1 => {
+        let bestMatch = null;
+        let bestDist = 2;
+
+        for (let i = 0; i < tokens2.length; i++) {
+            if (usedIndices.has(i)) continue;
+            const t2 = tokens2[i];
+
+            if (t1 === t2) { bestMatch = i; bestDist = 0; break; }
+
+            const dist = window.levenshteinDistance(t1, t2);
+            if (dist < bestDist || (dist === bestDist && dist < 2)) {
+                if (dist <= 1 || (dist <= 2 && t1.length > 4 && t2.length > 4)) {
+                    bestMatch = i;
+                    bestDist = dist;
+                }
+            }
+        }
+
+        if (bestMatch !== null) {
+            matches++;
+            usedIndices.add(bestMatch);
+        }
+    });
+
+    return { matches, len1: tokens1.length, len2: tokens2.length };
+};
+
 // --- DAILY ROSTER MANAGEMENT ---
 async function loadDailyRosterManagement() {
     let container = document.getElementById('daily-roster-container');
@@ -115,7 +235,8 @@ async function loadDailyRosterManagement() {
         if (error) throw error;
 
         // Fetch profiles
-        const { data: pData } = await supabase.from('profiles').select('rut, id, tica_status, full_name');
+        // Fetch profiles with extended fields for matching
+        const { data: pData } = await supabase.from('profiles').select('rut, id, tica_status, full_name, email, phone, address, address_street, first_name, last_name_1, last_name_2');
         const profiles = pData || [];
 
         // Helper to normalize RUT - handles all variations:
@@ -150,6 +271,9 @@ async function loadDailyRosterManagement() {
                         cleanRut: sRutClean,
                         name: s.user_name, // Take first name found
                         role: s.role_raw,  // Take first role found
+                        email: s.email,
+                        phone: s.phone,
+                        address: s.address,
                         shifts: {}
                     };
                 }
@@ -197,10 +321,20 @@ async function loadDailyRosterManagement() {
         container.innerHTML = `
             <h4 style="margin-bottom: 1rem; color: var(--primary-color);">📋 Gestión Operativa del Día (${formatDateUI(today)})</h4>
             
-            <div style="margin-bottom: 1rem; position: relative; max-width: 400px;">
-                <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events:none;"></i>
-                <input type="text" id="daily-roster-search" placeholder="Buscar por Nombre, RUT o Cargo..." 
-                       style="width: 100%; padding: 10px 16px 10px 36px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--input-bg, rgba(255,255,255,0.05)); color: var(--text-color); font-size: 0.9rem; outline:none;">
+            <div style="display:flex; gap:1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items:center;">
+                <div style="position: relative; max-width: 400px; flex-grow:1;">
+                    <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events:none;"></i>
+                    <input type="text" id="daily-roster-search" placeholder="Buscar por Nombre, RUT o Cargo..." 
+                        style="width: 100%; padding: 10px 16px 10px 36px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--input-bg, rgba(255,255,255,0.05)); color: var(--text-color); font-size: 0.9rem; outline:none;">
+                </div>
+                
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <input type="date" id="export-date-picker" value="${today}" 
+                        style="padding: 8px; border-radius: 6px; border: 1px solid var(--card-border); background: var(--bg-card); color: var(--text-color);">
+                    <button class="btn btn-primary" id="btn-export-daily" style="white-space:nowrap;" onclick="window.triggerExportDaily()">
+                        <i class="fas fa-file-excel"></i> Descargar Planilla
+                    </button>
+                </div>
             </div>
 
             <div style="background: var(--bg-card); border-radius: 12px; padding: 1rem; overflow-x: auto;">
@@ -220,6 +354,13 @@ async function loadDailyRosterManagement() {
                 </table>
             </div>
         `;
+
+        // Wrapper for onclick
+        window.triggerExportDaily = async () => {
+            const dateVal = document.getElementById('export-date-picker').value;
+            if (!dateVal) return alert("Seleccione una fecha válida");
+            await window.exportDailyAttendanceExcel(dateVal);
+        };
 
         // Store attendance map and dates globally for row rendering
         window._attendanceMap = attendanceMap;
@@ -325,15 +466,92 @@ async function loadDailyRosterManagement() {
             let autoLinked = false;
 
             // Link logic
+            // Enhanced Link linking logic
             if (!profile) {
-                const nameMatch = profiles.find(p => p.full_name && p.full_name.trim().toLowerCase() === u.name.trim().toLowerCase());
-                if (nameMatch) {
-                    profile = nameMatch;
+                // Strategy 1: RUT Match (already tried via profileMap, but let's be sure about cleaning)
+                // (Handled by profileMap[u.cleanRut])
+
+                // Strategy 2: Email Match
+                if (!profile && u.email) {
+                    profile = profiles.find(p => p.email && p.email.trim().toLowerCase() === u.email.trim().toLowerCase());
+                    if (profile) console.log(`SmartMatch: Linked by Email ${u.email}`);
+                }
+
+                // Strategy 3: Phone Match (Last 8 digits)
+                if (!profile && u.phone) {
+                    const cleanPhone = u.phone.replace(/\D/g, '').slice(-8);
+                    if (cleanPhone.length >= 8) {
+                        profile = profiles.find(p => {
+                            if (!p.phone) return false;
+                            const pPhone = p.phone.replace(/\D/g, '').slice(-8);
+                            return pPhone === cleanPhone;
+                        });
+                        if (profile) console.log(`SmartMatch: Linked by Phone ${u.phone}`);
+                    }
+                }
+
+                // Strategy 4: Name Match (Fuzzy & Phonetic)
+                if (!profile) {
+                    const targetName = u.name;
+
+                    // Try exact full name first (normalized)
+                    profile = profiles.find(p => p.full_name && p.full_name.trim().toLowerCase() === targetName.trim().toLowerCase());
+
+                    if (!profile) {
+                        // Use Token Similarity
+                        let bestCandidate = null;
+                        let bestScore = 0;
+
+                        profiles.forEach(p => {
+                            if (!p.full_name) return;
+                            const score = window.calculateTokenSimilarity(targetName, p.full_name);
+                            if (score > bestScore) {
+                                bestScore = score;
+                                bestCandidate = p;
+                            }
+                        });
+
+                        // Threshold: 0.75 means 3/4 tokens match, or similar
+                        // e.g. "Juan Perez Gonzalez" vs "Juan Perez" -> 2/3 = 0.66 (might fail strict)
+                        // But "ACUÑA LEYTON FRANCISCA ARACELLY" (4) vs "Francisca Araceli Acuña Leiton" (4) -> 4/4 matches (fuzzy) -> 1.0
+                        if (bestScore >= 0.7) {
+                            profile = bestCandidate;
+                            console.log(`SmartMatch: Fuzzy Name Match (${bestScore.toFixed(2)}) for ${targetName} -> ${profile.full_name}`);
+                        }
+                    }
+                }
+
+                // Strategy 5: Address Match (Very basic fuzzy)
+                if (!profile && u.address) {
+                    const cleanAddr = u.address.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    if (cleanAddr.length > 5) {
+                        profile = profiles.find(p => {
+                            // Check legacy address
+                            if (p.address && p.address.toLowerCase().replace(/[^a-z0-9]/g, '') === cleanAddr) return true;
+                            // Check street match
+                            if (p.address_street && cleanAddr.includes(p.address_street.toLowerCase().replace(/[^a-z0-9]/g, ''))) return true;
+                            return false;
+                        });
+                        if (profile) console.log(`SmartMatch: Linked by Address ${u.address}`);
+                    }
+                }
+
+                // If found via smart match, verify RUT consistency
+                if (profile) {
                     autoLinked = true;
-                    // Auto-update RUT if needed
-                    if (cleanRut(nameMatch.rut) !== u.cleanRut) {
-                        console.log(`Auto-linking RUT ${u.rut} for user ${u.name}`);
-                        supabase.from('profiles').update({ rut: u.rut }).eq('id', nameMatch.id).then(() => { });
+                    // Auto-update RUT if needed (Trusting the link found via other strong methods)
+                    // Only update if profile has NO RUT or filtered RUT is different
+                    const pRutClean = cleanRut(profile.rut);
+                    if (!pRutClean || (u.cleanRut && u.cleanRut !== 'SIN-RUT' && u.cleanRut !== pRutClean)) {
+                        // Double check: if profile already has a RUT, do we overwrite it? 
+                        // Only if we matched by Email or Phone which are strong identifiers.
+                        // Name/Address are weaker.
+
+                        // For now, let's update if profile has NO RUT.
+                        if (!profile.rut || profile.rut === 'SIN-RUT') {
+                            console.log(`Auto-linking: Updating RUT for ${profile.full_name} to ${u.rut}`);
+                            supabase.from('profiles').update({ rut: u.rut }).eq('id', profile.id).then(() => { });
+                        }
                     }
                 }
             }
@@ -797,6 +1015,17 @@ window.uploadRoster = async function () {
                 // If still -1, default to 0 (Row 1 is Header, Data starts Row 2/Index 1)
                 if (headerIndex === -1) headerIndex = 0;
 
+                // Identify Columns for extended matching
+                const headerRow = rows[headerIndex].map(c => String(c).toLowerCase().trim());
+                let colEmail = -1, colPhone = -1, colAddress = -1;
+
+                headerRow.forEach((h, idx) => {
+                    if (h.includes('email') || h.includes('correo')) colEmail = idx;
+                    if (h.includes('fono') || h.includes('celular') || h.includes('telefono') || h.includes('teléfono')) colPhone = idx;
+                    if (h.includes('direccion') || h.includes('dirección') || h.includes('domicilio')) colAddress = idx;
+                });
+                console.log("Column Mapping:", { colEmail, colPhone, colAddress });
+
                 const shiftsToInsert = [];
                 const monthYearParts = monthVal.split('-'); // ["2026", "01"]
                 const year = parseInt(monthYearParts[0]);
@@ -851,7 +1080,10 @@ window.uploadRoster = async function () {
                             role_raw: cargo,
                             team: team,
                             shift_date: dateStr,
-                            shift_code: shiftCode
+                            shift_code: shiftCode,
+                            email: colEmail > -1 ? String(row[colEmail] || '').trim() : null,
+                            phone: colPhone > -1 ? String(row[colPhone] || '').trim() : null,
+                            address: colAddress > -1 ? String(row[colAddress] || '').trim() : null
                         });
                     }
                 }
@@ -1316,6 +1548,7 @@ window.closeLinkModal = function () {
 window.saveManualLink = async function () {
     const userId = document.getElementById('link-profile-select').value;
     const targetRut = document.getElementById('link-target-rut').value;
+    const targetName = document.getElementById('link-target-name').textContent; // Name from the roster/shift
 
     console.log("Start Manual Link:", { userId, targetRut });
 
@@ -1326,12 +1559,19 @@ window.saveManualLink = async function () {
 
     if (!confirm("¿Estás seguro de vincular este RUT al usuario seleccionado?")) return;
 
-    // 1. Check duplicate RUT
+    // 1. Check duplicate RUT in profiles (Strict check to avoid conflicts)
+    // We clean the RUT for the check to be safe
+    const cleanRutVal = String(targetRut).replace(/[^0-9kK]/g, '').toUpperCase();
+
+    // Check if this physical RUT exists on ANY profile
+    // We search profiles by clean rut logic if possible, but postgres usually stores strict string
+    // Let's filter client side or assume strict format in DB?
+    // Best: Check strict match on 'rut' column first
     const { data: existing, error: checkErr } = await supabase
         .from('profiles')
-        .select('id, full_name')
-        .eq('rut', targetRut)
+        .select('id, full_name, rut')
         .neq('id', userId)
+        .eq('rut', targetRut) // Try exact string match
         .maybeSingle();
 
     if (checkErr) {
@@ -1345,26 +1585,64 @@ window.saveManualLink = async function () {
         return;
     }
 
-    // 2. Update Profile
+    // 2. Update Profile with the EXACT RUT from input (to match what user sees/entered)
+    // OR should we save the clean version? 
+    // If we save the clean version, we guarantee matches.
+    // Let's save the RAW version as requested, but also ensure consistency.
+    // Actually, saving the CLEAN version is safer for the system.
+    // But user might want formatting. 
+    // Compromise: Save what was passed, but we know loadDailyRoster cleans it for matching.
+
     const { error } = await supabase.from('profiles').update({ rut: targetRut }).eq('id', userId);
 
     if (error) {
         console.error("Link update error:", error);
         alert("Error al guardar en base de datos: " + error.message);
-    } else {
-        alert("✅ Vinculación exitosa. El perfil ha sido actualizado.");
-        closeLinkModal();
+        return;
+    }
 
-        // Reload Rosters view
-        if (typeof loadDailyRosterManagement === 'function') {
+    // 3. Sync to agent_predata (Smart Learning)
+    try {
+        // Check if this RUT exists in predata
+        const { data: preExisting } = await supabase
+            .from('agent_predata')
+            .select('id')
+            .eq('rut', cleanRutVal)
+            .maybeSingle();
+
+        if (preExisting) {
+            // Update existing predata to ensure name matches roster reference
+            await supabase.from('agent_predata').update({
+                full_name: targetName,
+                updated_at: new Date()
+            }).eq('id', preExisting.id);
+        } else {
+            // Insert new predata record
+            await supabase.from('agent_predata').insert({
+                rut: cleanRutVal,
+                full_name: targetName,
+                tica_status: 'no_tiene' // Default
+            });
+        }
+    } catch (err) {
+        console.warn("Non-fatal error syncing agent_predata:", err);
+    }
+
+    alert("✅ Vinculación exitosa. El perfil ha sido actualizado.");
+    closeLinkModal();
+
+    // Reload Rosters view with a slight delay to ensure propagation
+    if (typeof loadDailyRosterManagement === 'function') {
+        setTimeout(() => {
             loadDailyRosterManagement();
-        }
-        // Force reload main dashboard too if available
-        if (window.loadTodayShifts) {
+        }, 500);
+    }
+
+    // Also try to refresh the main dashboard if available
+    if (typeof window.loadTodayShifts === 'function') {
+        setTimeout(() => {
             window.loadTodayShifts();
-        }
-        // Refresh page fallback if needed
-        // location.reload();
+        }, 500);
     }
 }
 
@@ -1472,3 +1750,141 @@ async function loadMovilRequesters() {
 
 // NOTE: generateMovilExcel has been moved to movilizacion.js (the authoritative source)
 // Do NOT define it here as it will overwrite the correct version.
+
+// --- EXPORT DAILY ATTENDANCE EXCEL ---
+window.exportDailyAttendanceExcel = async function (targetDate) {
+    if (!targetDate) return;
+
+    // Show loading state on button
+    const btn = document.getElementById('btn-export-daily');
+    const originalText = btn ? btn.innerHTML : 'Descargar';
+    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando...';
+
+    try {
+        console.log(`Starting export for ${targetDate}`);
+
+        // 1. Fetch Data (Parallel)
+        const [shiftsRes, profilesRes, attendanceRes, predataRes] = await Promise.all([
+            // Shifts for target date
+            supabase.from('user_shifts').select('*').eq('shift_date', targetDate),
+            // Profiles
+            supabase.from('profiles').select('id, rut, full_name, tica_status, email, phone'),
+            // Attendance for target date
+            supabase.from('attendance').select('*').eq('shift_date', targetDate),
+            // Predata
+            supabase.from('agent_predata').select('rut, full_name, tica_status')
+        ]);
+
+        if (shiftsRes.error) throw shiftsRes.error;
+        const shifts = shiftsRes.data || [];
+        const profiles = profilesRes.data || [];
+        const attendanceData = attendanceRes.data || [];
+        const predata = predataRes.data || [];
+
+        // 2. Index Data
+        const cleanRut = (s) => String(s || '').replace(/[^0-9kK]/g, '').toUpperCase();
+
+        const profileMap = {}; // Key: CleanRut -> Profile
+        const profileByName = {}; // Key: Name -> Profile (for manual links)
+        profiles.forEach(p => {
+            if (p.rut) profileMap[cleanRut(p.rut)] = p;
+            if (p.full_name) profileByName[p.full_name.trim().toUpperCase()] = p;
+        });
+
+        const attendanceMap = {}; // Key: CleanRut -> Attendance Row
+        attendanceData.forEach(a => {
+            if (a.rut) attendanceMap[cleanRut(a.rut)] = a;
+        });
+
+        const predataMap = {}; // Key: CleanRut -> Predata
+        predata.forEach(p => {
+            if (p.rut) predataMap[cleanRut(p.rut)] = p;
+        });
+
+        // 3. Process Rows
+        const rows = [];
+
+        // Exclude these shift codes
+        const excluded = ['L', 'LI', 'X', 'V', 'LIBRE', 'VACACIONES', 'VAC'];
+
+        for (const s of shifts) {
+            const code = (s.shift_code || '').trim().toUpperCase();
+            if (excluded.includes(code)) continue;
+
+            const sRutClean = cleanRut(s.rut);
+
+            // Resolve Profile (Logic similar to dashboard/roster)
+            let profile = profileMap[sRutClean];
+            if (!profile && s.user_name) {
+                profile = profileByName[s.user_name.trim().toUpperCase()];
+            }
+
+            // Resolve Attendance
+            // Primary key is RUT, fallback to name if absolutely necessary but RUT is standard here
+            let att = attendanceMap[sRutClean] || {};
+
+            // Resolve TICA
+            const ticaStatus = profile?.tica_status || predataMap[sRutClean]?.tica_status || 'sin_tica';
+
+            // Resolve values
+            const rut = s.rut || profile?.rut || 'SIN-RUT';
+            const name = profile?.full_name || s.user_name || 'Desconocido';
+            const role = s.role_raw || '-';
+            const shiftCode = s.shift_code || '-';
+
+            // Format Attendance Status
+            const attStatus = att.attendance_status || 'Pendiente';
+            const attLabel = {
+                'presente': 'Presente',
+                'ausente': 'Ausente',
+                'licencia': 'Licencia',
+                'pending': 'Pendiente',
+                'pendiente': 'Pendiente'
+            }[attStatus.toLowerCase()] || attStatus;
+
+            const obs = att.observation || '';
+            const colacion = att.colation_status || 'Pendiente';
+
+            rows.push({
+                "RUT": rut,
+                "Nombre": name,
+                "ORIGEN (CARGO O ROL)": role,
+                "TURNOS": shiftCode,
+                "ASISTENCIA": attLabel,
+                "OBSERVACIONES": obs,
+                "Estado ticas": ticaStatus,
+                "COLACIONES": colacion
+            });
+        }
+
+        // Sort by Name
+        rows.sort((a, b) => a.Nombre.localeCompare(b.Nombre));
+
+        // 4. Generate Excel
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+
+        // Auto-width columns (simple estimation)
+        const wscols = [
+            { wch: 15 }, // RUT
+            { wch: 40 }, // Nombre
+            { wch: 25 }, // Role
+            { wch: 10 }, // Turno
+            { wch: 15 }, // Asistencia
+            { wch: 30 }, // Obs
+            { wch: 15 }, // Tica
+            { wch: 15 }  // Colacion
+        ];
+        worksheet['!cols'] = wscols;
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Asistencia");
+
+        XLSX.writeFile(workbook, `Asistencia_${targetDate}.xlsx`);
+
+    } catch (err) {
+        console.error("Export Error:", err);
+        alert("Error al exportar: " + err.message);
+    } finally {
+        if (btn) btn.innerHTML = originalText;
+    }
+};

@@ -1645,13 +1645,93 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 2rem; text-align: right;">
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; flex-wrap: wrap;">
+                    <button onclick="toggleAgentPanel()" class="btn"
+                        style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #3b82f6;">
+                        <i class="fas fa-search"></i> Gestionar Agentes
+                    </button>
+
                     <button onclick="generateMovilExcel()" class="btn"
                         style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #10b981;">
                         <i class="fas fa-file-excel"></i> Descargar Planilla (.xlsx)
                     </button>
-                    <p id="movil-msg" style="margin-top: 1rem; color: #f59e0b; display: none;">Generando...</p>
+
+                    <button onclick="document.getElementById('movil-db-upload').click()" class="btn"
+                        style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #6366f1;">
+                        <i class="fas fa-upload"></i> Cargar Base Maestra
+                    </button>
+                    <input type="file" id="movil-db-upload" accept=".xlsx, .xls" style="display: none;"
+                        onchange="handleMovilDatabaseUpload(this)">
                 </div>
+
+                <!-- INLINE AGENT MANAGEMENT PANEL -->
+                <div id="agent-management-panel"
+                    style="display: none; margin-top: 1rem; background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <h3 style="margin-top: 0; color: #3b82f6; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-users-cog"></i> Gestión de Agentes
+                    </h3>
+
+                    <!-- Search -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                        <input type="text" id="agent-search-input" class="input-style"
+                            placeholder="Buscar por Nombre, RUT o Email..."
+                            style="flex: 1; padding: 12px; border-radius: 8px;"
+                            onkeypress="if(event.key === 'Enter') searchAgents()">
+                        <button onclick="searchAgents()" class="btn-primary"
+                            style="width: auto; padding: 0 20px;">Buscar</button>
+                    </div>
+
+                    <!-- Results -->
+                    <div id="agent-search-results"
+                        style="max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; padding-right: 5px;">
+                        <!-- Results via JS -->
+                    </div>
+
+                    <!-- Edit Form -->
+                    <div id="agent-edit-form"
+                        style="display: none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                        <h4 style="margin-bottom: 1rem; color: #a855f7;">✏️ Editar Información</h4>
+                        <input type="hidden" id="edit-agent-id">
+                        <input type="hidden" id="edit-agent-source">
+
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <!-- Fields -->
+                            <div><label>Nombre Completo</label><input type="text" id="edit-full-name"
+                                    class="input-style" style="width: 100%;"></div>
+                            <div><label>RUT</label><input type="text" id="edit-rut" class="input-style"
+                                    style="width: 100%; opacity: 0.6;" disabled></div>
+                            <div><label>Email</label><input type="email" id="edit-email" class="input-style"
+                                    style="width: 100%;"></div>
+                            <div><label>Teléfono</label><input type="text" id="edit-phone" class="input-style"
+                                    style="width: 100%;"></div>
+                            <div style="grid-column: span 2;"><label>Dirección</label><input type="text"
+                                    id="edit-address" class="input-style" style="width: 100%;"></div>
+                            <div><label>Número</label><input type="text" id="edit-number" class="input-style"
+                                    style="width: 100%;"></div>
+                            <div><label>Comuna</label><input type="text" id="edit-commune" class="input-style"
+                                    style="width: 100%;"></div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                            <button onclick="cancelAgentEdit()" class="btn"
+                                style="background: rgba(255,255,255,0.1);">Cancelar</button>
+                            <button onclick="saveAgentChanges()" class="btn-primary"
+                                style="background: #10b981;">Guardar Cambios</button>
+                        </div>
+                    </div>
+                </div>
+                <p id="movil-msg" style="margin-top: 1rem; color: #f59e0b; display: none; text-align: right;">
+                    Generando...</p>
+
+                <!-- Progress Bar -->
+                <div id="movil-progress-container"
+                    style="display: none; margin-top: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; height: 10px;">
+                    <div id="movil-progress-bar"
+                        style="width: 0%; height: 100%; background: #6366f1; transition: width 0.3s;"></div>
+                </div>
+                <p id="movil-progress-text"
+                    style="text-align: right; font-size: 0.8rem; opacity: 0.8; display: none; margin-top: 5px;">0%</p>
             </div>
         </div>
 
@@ -1792,10 +1872,16 @@
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script type="module" src="../assets/js/client.js"></script>
     <script type="module" src="../assets/js/common.js"></script>
-    <script type="module" src="js/admin.js?v=6"></script>
+    <script type="module" src="js/admin.js?v=7"></script>
     <script type="module" src="js/crud_logic.js?v=1"></script>
-    <script type="module" src="js/movilizacion.js?v=8"></script>
-    <script type="module" src="js/admin_rosters.js?v=6"></script>
-</body>
+    <script type="module" src="js/movilizacion.js?v=17"></script>
+    <script type="module" src="js/admin_rosters.js?v=9"></script>
+    <!-- Fallback Script -->
+    <script>
+        console.log("Loading Fallback Script...");
 
-</html>
+        // Define immediately to override any module issues
+
+
+</body >
+</html >
