@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil | Admin PMRQR</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 240px;
+            --header-height: 80px;
+            --sidebar-bg: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
+        }
+
+        [data-theme="dark"] {
+            --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- SIDEBAR (Minimal for Profile Page) --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1000;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1.5rem 1rem;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        .sidebar-logo img {
+            width: 200px;
+            height: auto;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 0.5rem;
+            padding: 0 10px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .nav-item i {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .profile-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .profile-header-card {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .avatar-wrapper {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            flex-shrink: 0;
+        }
+
+        .avatar-wrapper img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--primary-color);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .avatar-upload-btn {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: var(--secondary-color);
+            color: white;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-size: 1.2rem;
+        }
+
+        .avatar-upload-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .profile-info h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 2rem;
+        }
+
+        .profile-info p {
+            margin: 0;
+            opacity: 0.7;
+        }
+
+        .role-badge {
+            display: inline-block;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        /* Form Sections */
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .form-section h3 {
+            margin: 0 0 1.5rem 0;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--card-border);
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            background: var(--input-bg, rgba(255, 255, 255, 0.05));
+            color: var(--text-color);
+            font-size: 1rem;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .form-group input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Certifications */
+        .cert-grid {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .cert-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 2px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cert-badge.active {
+            border-color: var(--success-color, #10b981);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .cert-badge input {
+            display: none;
+        }
+
+        .cert-badge i {
+            font-size: 1.5rem;
+        }
+
+        /* Warning Box */
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-top: 0.5rem;
+        }
+
+        .warning-box i {
+            color: #f59e0b;
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        .warning-box p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: var(--text-color);
+            opacity: 0.9;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-box h3 {
+            margin: 0 0 1rem 0;
+            color: #ef4444;
+        }
+
+        .modal-box p {
+            margin: 0 0 1.5rem 0;
+            opacity: 0.8;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .modal-actions button {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .btn-confirm {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            background: #dc2626;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header-card {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <a href="admin.html"><img src="../assets/imagenes/logoclaro.png" alt="Logo"></a>
+        </div>
+        <nav class="nav-menu">
+            <a href="admin.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="perfil.html" class="nav-item active">
+                <i class="fas fa-user-circle"></i>
+                <span>Mi Perfil</span>
+            </a>
+            <div style="flex: 1;"></div>
+            <a href="../index.html" class="nav-item" style="margin-top: auto;">
+                <i class="fas fa-arrow-left"></i>
+                <span>Volver a Inicio</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <div class="profile-container">
+            <!-- Header Card -->
+            <div class="glass profile-header-card">
+                <div class="avatar-wrapper">
+                    <img id="avatar-preview" src="../assets/imagenes/avatarcargo.png" alt="Avatar">
+                    <label for="avatar-input" class="avatar-upload-btn" title="Cambiar Foto">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="avatar-input" accept="image/*" style="display: none;">
+                </div>
+                <div class="profile-info">
+                    <h1 id="display-name">Cargando...</h1>
+                    <p id="display-email">...</p>
+                    <span class="role-badge" id="display-role">...</span>
+                </div>
+            </div>
+
+            <!-- Profile Form -->
+            <form id="profile-form">
+                <!-- Personal Info -->
+                <div class="glass form-section">
+                    <h3><i class="fas fa-user"></i> Información Personal</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="rut">RUT</label>
+                            <input type="text" id="rut" name="rut" placeholder="Ej: 17.737.508-K"
+                                oninput="formatRut(this)">
+                        </div>
+                        <div class="form-group">
+                            <label for="username">Nombre de Usuario (Login)</label>
+                            <input type="text" id="username" name="username" placeholder="usuario123">
+                        </div>
+
+                        <!-- Split Name Fields -->
+                        <div class="form-grid" style="grid-column: 1 / -1; margin: 0; gap: 1.5rem;">
+                            <div class="form-group">
+                                <label for="first_name">Primer Nombre</label>
+                                <input type="text" id="first_name" name="first_name" placeholder="Juan">
+                            </div>
+                            <div class="form-group">
+                                <label for="middle_name">Segundo Nombre</label>
+                                <input type="text" id="middle_name" name="middle_name" placeholder="Andrés">
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name_1">Primer Apellido</label>
+                                <input type="text" id="last_name_1" name="last_name_1" placeholder="Pérez">
+                            </div>
+                            <div class="form-group">
+                                <label for="last_name_2">Segundo Apellido</label>
+                                <input type="text" id="last_name_2" name="last_name_2" placeholder="González">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Correo Electrónico</label>
+                            <input type="email" id="email" name="email" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Teléfono</label>
+                            <input type="tel" id="phone" name="phone" placeholder="+56 9 1234 5678">
+                        </div>
+                        <div class="form-group">
+                            <label for="commune">Comuna</label>
+                            <input type="text" id="commune" name="commune" placeholder="Santiago">
+                        </div>
+                        <div class="form-group">
+                            <label for="addr_street">Calle / Pasaje</label>
+                            <input type="text" id="addr_street" name="addr_street" placeholder="Av. Principal">
+                        </div>
+                        <div class="form-group">
+                            <label for="addr_number">Número</label>
+                            <input type="text" id="addr_number" name="addr_number" placeholder="1234">
+                        </div>
+                        <div class="form-group">
+                            <label for="addr_unit">Depto / Casa / Block</label>
+                            <input type="text" id="addr_unit" name="addr_unit" placeholder="Block B">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Role & Team -->
+                <div class="glass form-section">
+                    <h3><i class="fas fa-briefcase"></i> Rol y Equipo</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="team">Equipo / Grupo</label>
+                            <select id="team" name="team">
+                                <option value="LATAM">LATAM</option>
+                                <option value="OLA">OLA</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="role">Rol / Cargo</label>
+                            <select id="role" name="role">
+                                <!-- Options will be dynamically populated based on current role -->
+                            </select>
+                            <div class="warning-box">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p><strong>Advertencia:</strong> Cambiar tu rol es una acción irreversible. Solo un
+                                    Administrador puede restaurar roles superiores.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TICA Status -->
+                <div class="glass form-section">
+                    <h3><i class="fas fa-id-card"></i> Estado TICA</h3>
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label for="tica_status">Estado de su credencial (TICA)</label>
+                            <select id="tica_status" name="tica_status">
+                                <option value="no_tiene">No tengo TICA</option>
+                                <option value="vigente">✅ TICA Vigente</option>
+                                <option value="por_vencer">⚠️ TICA Por Vencer</option>
+                                <option value="vencida">❌ TICA Vencida</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certifications -->
+                <div class="glass form-section">
+                    <h3><i class="fas fa-certificate"></i> Certificaciones</h3>
+                    <div class="cert-grid">
+                        <label class="cert-badge" id="cert-golf-badge">
+                            <input type="checkbox" id="cert_golf" name="cert_golf">
+                            <i class="fas fa-car"></i>
+                            <span>Carrito de Golf</span>
+                        </label>
+                        <label class="cert-badge" id="cert-duplex-badge">
+                            <input type="checkbox" id="cert_duplex" name="cert_duplex">
+                            <i class="fas fa-bus"></i>
+                            <span>Carrito Duplex</span>
+                        </label>
+                        <label class="cert-badge" id="cert-oruga-badge">
+                            <input type="checkbox" id="cert_oruga" name="cert_oruga">
+                            <i class="fas fa-truck-monster"></i>
+                            <span>Silla Oruga</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn"
+                        style="background: rgba(255,255,255,0.1); width: auto; padding: 12px 24px;"
+                        onclick="window.location.href='admin.html'">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn" style="width: auto; padding: 12px 24px;">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <!-- Role Change Confirmation Modal -->
+    <div class="modal-overlay" id="role-change-modal">
+        <div class="modal-box">
+            <h3><i class="fas fa-exclamation-circle"></i> ¡Atención!</h3>
+            <p>Estás a punto de cambiar tu rol a <strong id="modal-new-role">...</strong>. Esta acción <strong>NO se
+                    puede deshacer</strong>. Solo un Administrador con permisos completos puede restaurar tu rol a uno
+                superior.</p>
+            <p style="font-size: 0.9rem; color: #ef4444;">¿Estás seguro de continuar?</p>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="cancelRoleChange()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmRoleChange()">Sí, Cambiar Rol</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabase } from '../assets/js/client.js';
+        import '../assets/js/common.js';
+
+        let currentUser = null;
+        let profileData = null;
+        let originalRole = null;
+        let pendingRoleChange = null;
+
+        // Role hierarchy (lower number = higher privilege)
+        const ROLE_HIERARCHY = {
+            'Administrador': 1,
+            'Supervisor': 2,
+            'CDO': 3,
+            'Agente': 4
+        };
+
+        // Apply theme
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+        applyTheme(localStorage.getItem('theme') || 'dark');
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = 'admin.html';
+                return;
+            }
+            currentUser = user;
+            await loadProfile();
+            setupCertBadges();
+            setupRoleSelect();
+        });
+
+        async function loadProfile() {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', currentUser.id)
+                .single();
+
+            if (error) {
+                console.error(error);
+                alert('Error al cargar perfil');
+                return;
+            }
+
+            profileData = data;
+            originalRole = data.role;
+
+            // Populate form
+            document.getElementById('rut').value = data.rut || '';
+            document.getElementById('username').value = data.username || '';
+
+            // Name Fields
+            document.getElementById('first_name').value = data.first_name || '';
+            document.getElementById('middle_name').value = data.middle_name || '';
+            document.getElementById('last_name_1').value = data.last_name_1 || '';
+            document.getElementById('last_name_2').value = data.last_name_2 || '';
+            // Only use legacy full_name if separate fields are empty (migration fallback)
+            if (!data.first_name && data.full_name) {
+                // Heuristic split could go here, but maybe better to leave blank and let user correct?
+                // Let's just put it in first name as fallback
+                // document.getElementById('first_name').value = data.full_name;
+            }
+
+            document.getElementById('email').value = currentUser.email;
+            document.getElementById('phone').value = data.phone || '';
+            document.getElementById('commune').value = data.commune || '';
+
+            // Address Fields
+            // Use specific columns if available
+            document.getElementById('addr_street').value = data.address_street || '';
+            document.getElementById('addr_number').value = data.address_number || '';
+            document.getElementById('addr_unit').value = data.address_unit || '';
+
+            // Fallback: Parse 'address' legacy string if new fields are empty
+            if (!data.address_street && data.address) {
+                const addrFull = data.address || '';
+                let street = addrFull;
+                let num = '';
+                let unit = '';
+                if (addrFull.includes('#')) {
+                    const parts = addrFull.split('#');
+                    if (parts.length > 1) {
+                        street = parts[0].trim();
+                        const right = parts.slice(1).join('#').trim();
+                        const rightParts = right.split(' ');
+                        num = rightParts[0];
+                        unit = rightParts.slice(1).join(' ');
+                    }
+                }
+                document.getElementById('addr_street').value = street;
+                document.getElementById('addr_number').value = num;
+                document.getElementById('addr_unit').value = unit;
+            }
+
+            document.getElementById('team').value = data.team || 'LATAM';
+            document.getElementById('tica_status').value = data.tica_status || 'no_tiene';
+
+            // Display info
+            document.getElementById('display-name').textContent = data.full_name || data.username || 'Usuario';
+            document.getElementById('display-email').textContent = currentUser.email;
+            document.getElementById('display-role').textContent = data.role || 'Agente';
+
+            // Avatar
+            if (data.avatar_url) {
+                document.getElementById('avatar-preview').src = data.avatar_url;
+            }
+
+            // Certifications
+            document.getElementById('cert_golf').checked = data.course_golf || false;
+            document.getElementById('cert_duplex').checked = data.course_duplex || false;
+            document.getElementById('cert_oruga').checked = data.course_oruga || false;
+            updateCertBadges();
+        }
+
+        function setupCertBadges() {
+            ['cert_golf', 'cert_duplex', 'cert_oruga'].forEach(id => {
+                const checkbox = document.getElementById(id);
+                checkbox.addEventListener('change', updateCertBadges);
+            });
+        }
+
+        function updateCertBadges() {
+            const mapping = {
+                'cert_golf': 'cert-golf-badge',
+                'cert_duplex': 'cert-duplex-badge',
+                'cert_oruga': 'cert-oruga-badge'
+            };
+            Object.entries(mapping).forEach(([checkId, badgeId]) => {
+                const checked = document.getElementById(checkId).checked;
+                const badge = document.getElementById(badgeId);
+                if (checked) {
+                    badge.classList.add('active');
+                } else {
+                    badge.classList.remove('active');
+                }
+            });
+        }
+
+        function setupRoleSelect() {
+            const roleSelect = document.getElementById('role');
+            const currentRole = originalRole || 'Agente';
+            const currentLevel = ROLE_HIERARCHY[currentRole] || 4;
+
+            const allRoles = ['Administrador', 'Supervisor', 'CDO', 'Agente'];
+
+            roleSelect.innerHTML = '';
+
+            allRoles.forEach(role => {
+                const roleLevel = ROLE_HIERARCHY[role];
+                const option = document.createElement('option');
+                option.value = role;
+                option.textContent = role;
+
+                // Disable roles that are higher privilege than current (except for Admins)
+                if (currentRole !== 'Administrador' && roleLevel < currentLevel) {
+                    option.disabled = true;
+                    option.textContent = role + ' (No disponible)';
+                }
+
+                if (role === currentRole) {
+                    option.selected = true;
+                }
+
+                roleSelect.appendChild(option);
+            });
+
+            // Listen for role changes
+            roleSelect.addEventListener('change', (e) => {
+                const newRole = e.target.value;
+                if (newRole !== originalRole) {
+                    e.preventDefault();
+                    pendingRoleChange = newRole;
+                    document.getElementById('modal-new-role').textContent = newRole;
+                    document.getElementById('role-change-modal').classList.add('active');
+                    // Reset to original until confirmed
+                    roleSelect.value = originalRole;
+                }
+            });
+        }
+
+        window.cancelRoleChange = function () {
+            pendingRoleChange = null;
+            document.getElementById('role-change-modal').classList.remove('active');
+        };
+
+        window.confirmRoleChange = function () {
+            if (pendingRoleChange) {
+                document.getElementById('role').value = pendingRoleChange;
+                originalRole = pendingRoleChange; // Prevent re-triggering modal
+            }
+            document.getElementById('role-change-modal').classList.remove('active');
+        };
+
+        // Avatar Upload
+        document.getElementById('avatar-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const preview = document.getElementById('avatar-preview');
+
+            // Show preview immediately
+            const reader = new FileReader();
+            reader.onload = (e) => preview.src = e.target.result;
+            reader.readAsDataURL(file);
+
+            // Upload to Supabase Storage
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
+            const filePath = `avatars/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) {
+                alert('Error subiendo imagen: ' + uploadError.message);
+                return;
+            }
+
+            const { data: publicUrl } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            // Update profile
+            await supabase.from('profiles').update({ avatar_url: publicUrl.publicUrl }).eq('id', currentUser.id);
+        });
+
+        // Form Submit
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const firstName = document.getElementById('first_name').value;
+            const middleName = document.getElementById('middle_name').value;
+            const lastName1 = document.getElementById('last_name_1').value;
+            const lastName2 = document.getElementById('last_name_2').value;
+            const fullName = `${firstName} ${middleName} ${lastName1} ${lastName2}`.replace(/\s+/g, ' ').trim();
+
+            const addrStreet = document.getElementById('addr_street').value;
+            const addrNumber = document.getElementById('addr_number').value;
+            const addrUnit = document.getElementById('addr_unit').value;
+            const fullAddress = `${addrStreet} #${addrNumber} ${addrUnit}`;
+
+            const payload = {
+                rut: document.getElementById('rut').value,
+                username: document.getElementById('username').value,
+                full_name: fullName,
+                first_name: firstName,
+                middle_name: middleName,
+                last_name_1: lastName1,
+                last_name_2: lastName2,
+
+                phone: document.getElementById('phone').value,
+                commune: document.getElementById('commune').value,
+
+                address: fullAddress, // Legacy
+                address_street: addrStreet,
+                address_number: addrNumber,
+                address_unit: addrUnit,
+
+                team: document.getElementById('team').value,
+                tica_status: document.getElementById('tica_status').value,
+                role: document.getElementById('role').value,
+
+                // Fix: DB columns are course_*, form is cert_* (need to match what I created in DB)
+                // db_update_users.sql used 'course_golf', 'course_duplex', 'course_oruga'
+                course_golf: document.getElementById('cert_golf').checked,
+                course_duplex: document.getElementById('cert_duplex').checked,
+                course_oruga: document.getElementById('cert_oruga').checked
+            };
+
+            const { error } = await supabase
+                .from('profiles')
+                .update(payload)
+                .eq('id', currentUser.id);
+
+            if (error) {
+                alert('Error al guardar: ' + error.message);
+            } else {
+                alert('Perfil actualizado correctamente.');
+                window.location.reload();
+            }
+        });
+        // RUT Formatter
+        window.formatRut = function (input) {
+            let val = input.value.replace(/[^0-9kK]/g, '');
+            if (val.length === 0) return;
+
+            // Limit length
+            if (val.length > 9) val = val.substring(0, 9);
+
+            // Format
+            const dv = val.slice(-1);
+            let body = val.slice(0, -1);
+
+            if (val.length > 1) {
+                input.value = body.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv.toUpperCase();
+            } else {
+                input.value = val.toUpperCase();
+            }
+        };
+
+    </script>
+</body>
+
+</html>

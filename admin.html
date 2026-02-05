@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administración | PMRQR</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --sidebar-width: 240px;
+            --header-height: 80px;
+            --sidebar-bg: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
+        }
+
+        [data-theme="dark"] {
+            --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-color);
+            min-height: 100vh;
+            display: flex;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            /* Prevent horizontal scroll */
+            overflow-y: auto;
+            /* Allow vertical scroll naturally */
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 1000;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            padding: 1.5rem 1rem;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            scrollbar-width: thin;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 2.5rem;
+            text-align: center;
+        }
+
+        .sidebar-logo img {
+            width: 200px;
+            height: auto;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+        }
+
+        .sidebar-logo span {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            gap: 0.5rem;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 15px;
+            text-decoration: none;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            text-align: left;
+            margin-bottom: 0.2rem;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            backdrop-filter: blur(5px);
+            transform: translateY(-2px);
+        }
+
+        .nav-item i {
+            font-size: 1.2rem;
+            width: 25px;
+            text-align: center;
+        }
+
+        .nav-item span {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0 10px;
+            box-sizing: border-box;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 1rem;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+            width: calc(100% - var(--sidebar-width));
+            box-sizing: border-box;
+        }
+
+        /* Header */
+        .mini-table {
+            width: 100%;
+            font-size: 0.8rem;
+            border-collapse: collapse;
+        }
+
+        .mini-table th {
+            text-align: left;
+            padding: 12px 8px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mini-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            vertical-align: middle;
+        }
+
+        .mini-table tr:hover {
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+        }
+
+        [data-theme="dark"] .admin-header {
+            background: rgba(17, 24, 39, 0.8);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .menu-toggle {
+            display: none;
+            /* Desktop default */
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--primary-color);
+        }
+
+        /* --- CARDS & GRID --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-info h3 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1;
+            background: linear-gradient(135deg, var(--text-color), var(--primary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        /* --- CERTIFICATION BADGES --- */
+        .cert-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            user-select: none;
+            margin: 2px;
+            white-space: nowrap;
+        }
+
+        .cert-badge.inactive {
+            background: rgba(156, 163, 175, 0.1);
+            color: #9ca3af;
+            border-color: rgba(156, 163, 175, 0.2);
+            opacity: 0.5;
+        }
+
+        .cert-badge.inactive:hover {
+            opacity: 1;
+            background: rgba(156, 163, 175, 0.2);
+        }
+
+        /* Golf: Emerald */
+        .cert-badge.cert-golf.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Duplex: Amber */
+        .cert-badge.cert-duplex.active {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+        }
+
+        /* Oruga: Indigo */
+        .cert-badge.cert-oruga.active {
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.1);
+        }
+
+        .cert-badge:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .cert-badge:active {
+            transform: translateY(0);
+        }
+
+        /* --- POPUP MODAL STYLES --- */
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.75) !important;
+            backdrop-filter: blur(8px) !important;
+            -webkit-backdrop-filter: blur(8px) !important;
+            z-index: 10000 !important;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex !important;
+            opacity: 1;
+        }
+
+        .modal-card {
+            background: white !important;
+            color: #1f2937 !important;
+            width: 95% !important;
+            max-width: 500px !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+            padding: 2rem !important;
+            border-radius: 24px !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        /* Scrollbar personalizada para el modal */
+        .modal-card::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .modal-card::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-card::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 10px;
+        }
+
+        [data-theme="dark"] .modal-card::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
+        }
+
+        [data-theme="dark"] .modal-card {
+            background: #111827 !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        [data-theme="dark"] .modal-card label {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        [data-theme="dark"] .modal-card .input-style {
+            background: #1f2937 !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+
+        [data-theme="dark"] .modal-card h3 {
+            color: #818cf8 !important;
+            /* Lighter indigo for better contrast in dark */
+        }
+
+        [data-theme="dark"] .modal-card .btn-secondary {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: white !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* --- USER DROPDOWN STYLES --- */
+        .user-dropdown {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 30px;
+            transition: background 0.2s ease;
+        }
+
+        .user-dropdown:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 120%;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            min-width: 260px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            animation: fadeInDown 0.2s ease-out;
+            padding: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-content a,
+        .dropdown-content button {
+            color: var(--text-color);
+            padding: 14px 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            background: transparent;
+            border: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+        }
+
+        .dropdown-content a:hover,
+        .dropdown-content button:hover {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            transform: translateX(5px);
+            color: var(--primary-color);
+        }
+
+        .dropdown-content .logout-btn:hover {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, rgba(244, 63, 94, 0.1) 100%);
+            color: #ef4444;
+        }
+
+        .dropdown-icon {
+            font-size: 1.2rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .user-dropdown.active .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.05);
+            margin: 8px 10px;
+        }
+
+        [data-theme="dark"] .dropdown-divider {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* --- RESPONSIVE MOBILE & TABLET FIXES --- */
+        @media (max-width: 1024px) {
+
+            /* 1. ANIMATION NUKE (Performance) */
+            *,
+            *::before,
+            *::after {
+                animation: none !important;
+                transition: none !important;
+            }
+
+            .float-anim {
+                transform: none !important;
+            }
+
+            /* 2. SIDEBAR BEHAVIOR */
+            .sidebar {
+                transform: translateX(-100%);
+                width: 260px;
+                z-index: 9999;
+                box-shadow: none;
+                /* Perf */
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 10px 0 50px rgba(0, 0, 0, 0.5);
+                /* Keep shadow only when open */
+            }
+
+            /* Sidebar Logo fix */
+            .sidebar-logo {
+                flex-direction: row;
+                gap: 1rem;
+            }
+
+            .sidebar-logo span {
+                font-size: 1.2rem;
+            }
+
+            /* Nav Items */
+            .nav-menu {
+                padding: 0;
+            }
+
+            .nav-item {
+                flex-direction: row;
+                justify-content: flex-start;
+                gap: 1rem;
+                padding: 1rem;
+                text-align: left;
+            }
+
+            .nav-item i {
+                margin-bottom: 0;
+            }
+
+            .nav-item span {
+                font-size: 1rem;
+            }
+
+            /* 3. MAIN CONTENT LAYOUT */
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+                padding: 1rem;
+            }
+
+            /* Header Controls */
+            .admin-header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .header-left {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            /* 4. REPORTS PAGE FIXES */
+            /* Force stacked grid for reports */
+            #view-reports .stats-grid {
+                grid-template-columns: 1fr 1fr;
+                /* 2 cols for stats is fine on mobile usually */
+                gap: 1rem;
+            }
+
+            /* The 2-column layout for "Agentes Ranking" vs "Equipos No Devueltos" */
+            #view-reports>.glass.content-section>div[style*="grid-template-columns"] {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 2rem !important;
+            }
+
+            /* Top Controls Wraps */
+            #view-reports .glass.content-section>div[style*="justify-content: space-between"] {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            #view-reports .glass.content-section>div>div[style*="display: flex"] {
+                flex-wrap: wrap;
+                width: 100%;
+            }
+
+            #view-reports select,
+            #view-reports button {
+                width: 100% !important;
+                /* Full width controls on mobile */
+                margin-bottom: 0.5rem;
+            }
+
+            /* 5. GENERIC TABLE FIXES */
+            .table-container,
+            div[style*="overflow-x: auto"] {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* 6. USER PAGE FIXES */
+            #view-users .glass.content-section {
+                padding: 1rem !important;
+            }
+
+            /* 7. SETTINGS FIXES */
+            .settings-nav-cards {
+                justify-content: flex-start;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+                /* Stack settings cards */
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .admin-header {
+                padding: 0.8rem 1rem;
+                top: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .admin-header h1 {
+                font-size: 1.1rem !important;
+            }
+
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                min-width: 32px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Mobile Overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-logo">
+            <img src="../assets/imagenes/logoclaro.png" alt="Logo">
+            <span>PMRQR</span>
+        </div>
+
+        <div class="nav-menu">
+            <a href="#" class="nav-item active" onclick="switchTab('dashboard')">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('operations')">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Monitor</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('assets')">
+                <i class="fas fa-wheelchair"></i>
+                <span>Equipo</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('users')">
+                <i class="fas fa-users"></i>
+                <span>Usuarios</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('reports')">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reportes</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('registros')">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Registros</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('rosters')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Rol / Turnos</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('movilizacion')">
+                <i class="fas fa-bus-alt"></i>
+                <span>Movilización</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('settings')">
+                <i class="fas fa-cog"></i>
+                <span>Ajustes</span>
+            </a>
+        </div>
+
+        <div class="sidebar-footer">
+            <a href="../index.html" class="nav-item">
+                <i class="fas fa-arrow-left"></i>
+                <span>App Principal</span>
+            </a>
+            <a href="#" class="nav-item" id="logout-btn"
+                style="background: linear-gradient(135deg, #ef4444 0%, #f97316 100%); color: white; border: none; font-weight: 700; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); margin-top: 1rem;">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Salir</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Header -->
+        <header class="admin-header glass">
+            <div class="header-left">
+                <button class="menu-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-title">
+                    <h1 style="font-size: 1.5rem; margin:0;" id="page-title">Dashboard</h1>
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn-action" onclick="document.getElementById('admin-guide-modal').style.display='flex'"
+                    style="background:transparent; border:none; color:var(--text-color); font-size:1.2rem; cursor:pointer;"
+                    title="Guía Admin">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+                <div class="user-dropdown" id="admin-user-dropdown">
+                    <!-- Name -->
+                    <div style="text-align: right;">
+                        <span id="admin-name"
+                            style="display: block; font-weight: 700; color: var(--primary-color); font-size: 0.9rem;">Admin</span>
+                    </div>
+
+                    <!-- Avatar -->
+                    <img id="admin-avatar" src="../assets/imagenes/avatarcargo.png" alt="Avatar"
+                        style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;">
+
+                    <!-- Dropdown Menu -->
+                    <div class="dropdown-content">
+                        <a href="perfil.html"><span class="dropdown-icon">😎</span>Mi Perfil</a>
+                        <a href="../index.html"><span class="dropdown-icon">🏠</span>Ir a Inicio</a>
+                        <button id="admin-theme-toggle"><span class="dropdown-icon">🌓</span> Cambiar Tema</button>
+                        <div class="dropdown-divider"></div>
+                        <button id="admin-logout-btn" class="logout-btn" style="color: #ef4444;"><span
+                                class="dropdown-icon">🚪</span> Cerrar Sesión</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ADMIN GUIDE MODAL -->
+        <div id="admin-guide-modal"
+            style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+            <div class="glass"
+                style="max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; padding: 2rem; position: relative; background: var(--card-bg);">
+                <button onclick="document.getElementById('admin-guide-modal').style.display='none'"
+                    style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--text-color); font-size: 1.5rem; cursor: pointer;">&times;</button>
+                <h2
+                    style="color: var(--primary-color); margin-top: 0; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">
+                    🛡️ Guía de Administración Maestros</h2>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #a855f7; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-users"></i> Gestión de Usuarios</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 10px;">En la sección "Usuarios", tienes
+                        tres herramientas principales:</p>
+
+                    <ul style="list-style: none; padding-left: 0; font-size: 0.9rem;">
+                        <li
+                            style="margin-bottom: 12px; background: rgba(16, 185, 129, 0.1); padding: 10px; border-radius: 8px;">
+                            <strong>1. Importar Usuarios (Excel Maestro):</strong><br>
+                            Use este botón (Verde) para cargar la base de datos completa de agentes.<br>
+                            <em style="opacity: 0.7;">El sistema usa "Smart Match" para actualizar perfiles existentes
+                                buscando por RUT > Email > Usuario > Nombre. Si no existen, los guarda como "Pre-Data"
+                                para que el registro sea automático.</em>
+                        </li>
+                        <li
+                            style="margin-bottom: 12px; background: rgba(139, 92, 246, 0.1); padding: 10px; border-radius: 8px;">
+                            <strong>2. Reporte Diario (Botón Violeta):</strong><br>
+                            Suba aquí el Excel de asistencia diaria u operaciones.<br>
+                            - <strong>Actualiza TICA:</strong> Busca palabras como "VIGENTE", "VENCIDA", "POR
+                            VENCER".<br>
+                            - <strong>Asistencia Hoy:</strong> Registra "AUSENTE", "PRESENTE", "LICENCIA"
+                            automáticamente para el día actual.
+                        </li>
+                        <li
+                            style="margin-bottom: 12px; background: rgba(59, 130, 246, 0.1); padding: 10px; border-radius: 8px;">
+                            <strong>3. Edición Manual:</strong><br>
+                            Haga clic en el lápiz de cualquier usuario para editar nombres detallados (Primer/Segundo
+                            Nombre y Apellidos), dirección exacta (Calle, Número, Depto) y las certificaciones (Golf,
+                            Duplex, Oruga).
+                        </li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #3b82f6; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-chart-line"></i> Dashboard y Monitor</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        <strong>Monitor en vivo:</strong> Vea todas las operaciones activas. Use las pestañas para
+                        filtrar por "En Curso" o "Incidencias".<br>
+                        <strong>Alertas:</strong> El sistema marcará en rojo operaciones que excedan el tiempo promedio
+                        o reportes de daños graves.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-calendar-alt"></i> Turnos y Asistencia</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        Vaya a la sección <strong>Rol / Turnos</strong> para ver la matriz de asistencia.<br>
+                        - <strong>Carga de Turnos:</strong> Importe la malla de turnos mensual en Excel.<br>
+                        - <strong>Gestión Diaria:</strong> Puede cambiar manualmente el estado de asistencia (Presente,
+                        Ausente, etc.) desde la tabla unificada.
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #10b981; display: flex; align-items: center; gap: 8px;"><i
+                            class="fas fa-cubes"></i> Activos y Configuración</h3>
+                    <p style="font-size: 0.9rem; opacity: 0.9;">
+                        En <strong>Ajustes</strong>, gestione las opciones del sistema:<br>
+                        - <strong>Aerolíneas y Puentes:</strong> Configure las opciones que ven los agentes.<br>
+                        - <strong>Activos (Sillas/Carros):</strong> Cree nuevos equipos y genere sus códigos QR listos
+                        para imprimir.
+                    </p>
+                </div>
+
+                <button class="btn" style="width: 100%; margin-top: 1rem;"
+                    onclick="document.getElementById('admin-guide-modal').style.display='none'">Entendido, volver al
+                    panel</button>
+            </div>
+
+            <button class="btn" onclick="document.getElementById('admin-guide-modal').style.display='none'">Cerrar
+                Guía</button>
+        </div>
+        </div>
+
+        <!-- 1. DASHBOARD -->
+        <div id="view-dashboard" class="content-view">
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+                <!-- Agents On Shift (Present) -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('on-shift')" style="cursor:pointer;">
+                    <div class="stat-info">
+                        <h3 id="stat-on-shift">0</h3>
+                        <p style="margin:0;">🟢 En Turno</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Presentes</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                </div>
+
+                <!-- Agents Upcoming (Next 4 hours) -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('upcoming')" style="cursor:pointer;">
+                    <div class="stat-info">
+                        <h3 id="stat-upcoming">0</h3>
+                        <p style="margin:0;">⏰ Por Ingresar</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Próximas 4 hrs</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                        <i class="fas fa-hourglass-start"></i>
+                    </div>
+                </div>
+
+                <!-- TICA Activa (Present + Vigente) -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('tica-active')" style="cursor:pointer;">
+                    <div class="stat-info">
+                        <h3 id="stat-tica-active">0</h3>
+                        <p style="margin:0;">✅ TICA Activa</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Presentes Vigente</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                </div>
+
+                <!-- Sin TICA -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('sin-tica')" style="cursor:pointer;">
+                    <div class="stat-info">
+                        <h3 id="stat-sin-tica">0</h3>
+                        <p style="margin:0;">❌ Sin TICA</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Agentes sin TICA</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #6b7280, #4b5563);">
+                        <i class="fas fa-user-slash"></i>
+                    </div>
+                </div>
+
+                <!-- Ausencias del Día -->
+                <div class="glass stat-card float-anim" onclick="showStatDetail('ausencias')" style="cursor:pointer;">
+                    <div class="stat-info">
+                        <h3 id="stat-ausencias">0</h3>
+                        <p style="margin:0;">🚫 Ausencias</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Del día</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+                        <i class="fas fa-user-times"></i>
+                    </div>
+                </div>
+
+                <!-- Active Operations -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-active-ops">0</h3>
+                        <p style="margin:0;">🏃 Activas</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Operaciones</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
+                        <i class="fas fa-running"></i>
+                    </div>
+                </div>
+
+                <!-- Available Assets -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-available-assets">0</h3>
+                        <p style="margin:0;">🛠️ Disponibles</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Equipos</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #34d399);">
+                        <i class="fas fa-wheelchair"></i>
+                    </div>
+                </div>
+
+                <!-- Total Hoy -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-total-today">0</h3>
+                        <p style="margin:0;">📊 Total Hoy</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Operaciones</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                </div>
+
+                <!-- Con Falla -->
+                <div class="glass stat-card float-anim">
+                    <div class="stat-info">
+                        <h3 id="stat-faulty">0</h3>
+                        <p style="margin:0;">⚠️ Con Falla</p>
+                        <small style="opacity:0.6; font-size:0.7rem;">Equipos</small>
+                    </div>
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #f87171);">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal for Stat Details -->
+            <div id="stat-detail-modal"
+                style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
+                <div class="glass"
+                    style="max-width:700px; width:90%; max-height:80vh; overflow-y:auto; padding:2rem; position:relative;">
+                    <button onclick="document.getElementById('stat-detail-modal').style.display='none'"
+                        style="position:absolute; top:1rem; right:1rem; background:none; border:none; color:var(--text-color); font-size:1.5rem; cursor:pointer;">&times;</button>
+                    <h3 id="stat-detail-title" style="margin-top:0; color:var(--primary-color);"></h3>
+                    <div id="stat-detail-content" style="margin-top:1rem;"></div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content Split -->
+            <!-- Split Section: Faulty & Recent Activity -->
+            <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; align-items: start;">
+                <!-- Faulty Assets -->
+                <div class="glass content-section" style="padding: 1.5rem; height: 100%;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.1rem;">⚠️ Equipos con Falla</h3>
+                        <button class="btn btn-secondary"
+                            style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.75rem;"
+                            onclick="switchTab('reports')">Ver Detalles</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="faulty-assets-dashboard-table" class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Estado</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" style="text-align: center; padding: 1rem; opacity: 0.5;">Cargando...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="glass content-section" style="padding: 1.5rem; height: 100%;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.1rem;">📋 Actividad Reciente</h3>
+                        <button class="btn btn-secondary"
+                            style="width: auto; padding: 0.4rem 0.8rem; font-size: 0.75rem;"
+                            onclick="switchTab('activity-history')">Ver Todo</button>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table id="recent-ops-table">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Agente</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="3" style="text-align: center; padding: 2rem;">Cargando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass content-section" style="padding: 1.5rem; margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <h3>📅 Turnos del Día (Agentes Programados)</h3>
+                        <span id="shifts-count-badge" class="badge"
+                            style="background:var(--primary-color); color:white; display:none;">0</span>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 6px 16px; font-size: 0.85rem;"
+                        onclick="switchTab('rosters'); setTimeout(() => document.getElementById('daily-roster-container')?.scrollIntoView({behavior:'smooth'}), 500);">
+                        Ver más agentes <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+                    </button>
+                </div>
+
+                <!-- Search Bar -->
+                <div style="margin-bottom: 1rem; position: relative;">
+                    <i class="fas fa-search"
+                        style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                    <input type="text" id="today-shifts-search" placeholder="Buscar por Nombre o Rut..."
+                        style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.05); color: var(--text-color);">
+                </div>
+
+                <div id="shifts-grouped-container">
+                    <!-- Tables will be injected here by JS -->
+                    <div style="text-align: center; padding: 2rem; opacity: 0.5;">Cargando turnos desplegados...</div>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div id="shifts-pagination"
+                    style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1rem;">
+                    <!-- Auto-generated via JS -->
+                </div>
+            </div>
+
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3>⚡ Acciones Rápidas</h3>
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                    <button class="btn" onclick="switchTab('settings')">🔧 Configuración General</button>
+                    <button class="btn btn-secondary" onclick="switchTab('assets')">➕ Gestión de Equipo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1.1 ACTIVITY HISTORY (View All) -->
+        <div id="view-activity-history" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h3>📜 Historial de Operaciones Completadas</h3>
+                    <button class="btn btn-secondary" style="width: auto;" onclick="switchTab('dashboard')">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="history-ops-table">
+                        <thead>
+                            <tr>
+                                <th>Equipo</th>
+                                <th>Agente</th>
+                                <th style="min-width: 200px;">Recorrido</th>
+                                <th>Fecha y Hora Fin</th>
+                                <th>Duración</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="text-center" style="padding: 2rem;">Cargando historial...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="history-pagination"
+                    style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 2rem;"></div>
+            </div>
+        </div>
+
+        <!-- 2. LIVE MONITOR (Operations) -->
+        <div id="view-operations" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3>📡 Monitor de Operaciones en Vivo</h3>
+                <p style="margin-bottom: 2rem; opacity: 0.7;">Visualización en tiempo real de todos los traslados en
+                    curso.</p>
+
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="live-ops-table" style="width: 100%; min-width: 1000px;">
+                        <thead>
+                            <tr>
+                                <th>Agente</th>
+                                <th>Team</th>
+                                <th>Servicio</th>
+                                <th>Tipo</th>
+                                <th>Terminal</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Gate</th>
+                                <th>Aerolínea</th>
+                                <th>Vuelo</th>
+                                <th>Tiempo</th>
+                                <th>Acción</th>
+                                <th>Devolución</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Javascript will inject rows here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. EQUIPO (ASSETS) MANAGEMENT -->
+        <div id="view-assets" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>♿ Gestión de Equipo</h3>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-secondary" style="width: auto;"
+                            onclick="window.location.href='../Generador.html'">
+                            <i class="fas fa-qrcode"></i> Generador QRs
+                        </button>
+                        <button class="btn" style="width: auto;" onclick="openAssetModal()">+ Crear Equipo</button>
+                    </div>
+                </div>
+
+                <!-- ASSET STATS DASHBOARD -->
+                <div id="assets-stats-container" class="stats-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin-bottom: 2rem; gap: 1rem;">
+                    <!-- Category Counts (Generated by JS) -->
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #6366f1;">
+                        <h4 id="asset-stat-total" style="font-size: 1.8rem; margin: 0;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">Total Equipos</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #22c55e;">
+                        <h4 id="asset-stat-available" style="font-size: 1.8rem; margin: 0; color: #22c55e;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">✅ Disponibles</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #3b82f6;">
+                        <h4 id="asset-stat-inuse" style="font-size: 1.8rem; margin: 0; color: #3b82f6;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">🏃 En Uso</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #f59e0b;">
+                        <h4 id="asset-stat-maintenance" style="font-size: 1.8rem; margin: 0; color: #f59e0b;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">🛠️ Mantención</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #ef4444;">
+                        <h4 id="asset-stat-damaged" style="font-size: 1.8rem; margin: 0; color: #ef4444;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">⚠️ Dañados</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto; border-left: 3px solid #a855f7;">
+                        <h4 id="asset-stat-lost" style="font-size: 1.8rem; margin: 0; color: #a855f7;">0</h4>
+                        <p style="font-size: 0.75rem; opacity: 0.7; margin: 0;">❌ Extraviados</p>
+                    </div>
+                </div>
+
+                <!-- Category Breakdown -->
+                <div id="assets-category-stats"
+                    style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+                    <!-- JS will inject category pills here -->
+                </div>
+
+                <!-- Gallery Section -->
+                <div class="glass"
+                    style="padding: 1.5rem; margin-bottom: 2rem; border-left: 4px solid var(--primary-color);">
+                    <h4 style="margin-top: 0; margin-bottom: 0.5rem;"><i class="fas fa-camera"></i> Galería de
+                        Devoluciones</h4>
+                    <p style="font-size: 0.9rem; opacity: 0.7; margin-bottom: 1rem;">Confirmación visual de las últimas
+                        entregas de equipo.</p>
+                    <div id="asset-gallery-grid"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+                        <div style="grid-column: 1/-1; text-align: center; padding: 2rem; opacity: 0.5;">Cargando
+                            fotos...</div>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="assets-table">
+                        <thead>
+                            <tr>
+                                <th>Código / QR</th>
+                                <th>Tipo</th>
+                                <th>Estado</th>
+                                <th>Ubicación</th>
+
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. USERS -->
+        <div id="view-users" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>👥 Usuarios y Permisos</h3>
+                </div>
+
+                <!-- SEARCH & EXPORT TOOLS -->
+                <div
+                    style="display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 12px;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <div style="position: relative;">
+                            <i class="fas fa-search"
+                                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: 0.5;"></i>
+                            <input type="text" id="user-search-input"
+                                placeholder="Buscar agente (Nombre, Email, Team)..." class="input-style"
+                                style="width: 100%; padding-left: 35px; border: 1px solid rgba(255,255,255,0.2);">
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <!-- IMPORT EXCEL BUTTON -->
+                        <input type="file" id="users-import-file" accept=".xlsx,.xls" style="display:none;"
+                            onchange="importUsersExcel(this)">
+                        <button class="btn" onclick="document.getElementById('users-import-file').click()"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem; background: linear-gradient(135deg, #8b5cf6, #6366f1);">
+                            <i class="fas fa-file-import"></i> Importar Excel
+                        </button>
+                        <div style="width: 1px; background: rgba(255,255,255,0.2); margin: 0 0.25rem;"></div>
+                        <button class="btn btn-secondary" onclick="exportUsers('xlsx')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-excel" style="color: #10b981;"></i> XLSX
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportUsers('xls')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-excel" style="color: #10b981;"></i> XLS
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportUsers('csv')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-csv" style="color: #3b82f6;"></i> CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportUsers('odt')"
+                            style="width: auto; font-size: 0.8rem; padding: 0.5rem 0.8rem;">
+                            <i class="fas fa-file-alt" style="color: #f59e0b;"></i> ODT
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="users-table" class="mini-table" style="width: 100%; font-size: 0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Foto</th>
+                                <th>Nombre Completo</th>
+                                <th>Rol / Cargo</th>
+                                <th>Team</th>
+                                <th>Cursos y Permisos</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Comuna</th>
+                                <th>Dirección</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="10" style="text-align: center; padding: 2rem; opacity: 0.5;">Cargando
+                                    usuarios...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. REPORTS -->
+        <div id="view-reports" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                    <h3>📊 Centro de Reportes y Estadísticas</h3>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="report-period" class="input-style" style="width: auto; padding: 0.5rem;">
+                            <option value="today">Hoy</option>
+                            <option value="weekly">Esta Semana</option>
+                            <option value="monthly">Este Mes</option>
+                            <option value="all">Todo el Historial</option>
+                        </select>
+                        <select id="export-format" class="input-style"
+                            style="width: auto; padding: 0.5rem; background: var(--secondary-color); color: white; border:none;">
+                            <option value="xlsx">Formato XLSX (Excel)</option>
+                            <option value="xls">Formato XLS (Antiguo)</option>
+                            <option value="csv">Formato CSV (Comas)</option>
+                            <option value="ods">Formato ODS (LibreOffice)</option>
+                        </select>
+                        <button class="btn" style="width: auto; padding: 0.5rem 1rem;" onclick="exportReports()">
+                            <i class="fas fa-download"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Summary Row -->
+                <div class="stats-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 2rem;">
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-total">0</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Operaciones</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-avg">0 min</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Tiempo Promedio</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-manual" style="color: var(--secondary-color);">0</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Dev. Manuales</p>
+                    </div>
+                    <div class="glass stat-card" style="padding: 1rem; height: auto;">
+                        <h4 id="rep-stat-diff" style="color: #ef4444;">0</h4>
+                        <p style="font-size: 0.7rem; opacity: 0.7;">Lugar Diferente</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                    <!-- Ranking Agents -->
+                    <div class="glass" style="padding: 1rem;">
+                        <h5 style="margin-top:0;"><i class="fas fa-hourglass-half"></i> Agentes con mayor demora
+                            (Promedio)</h5>
+                        <div style="overflow-x: auto;">
+                            <table id="table-slowest-agents" class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Agente</th>
+                                        <th>Tiempo Promedio</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Non Returned -->
+                    <div class="glass" style="padding: 1rem;">
+                        <h5 style="margin-top:0;"><i class="fas fa-exclamation-circle"></i> Equipos no devueltos
+                            (Activos)</h5>
+                        <div style="overflow-x: auto;">
+                            <table id="table-unreturned" class="mini-table">
+                                <thead>
+                                    <tr>
+                                        <th>Equipo</th>
+                                        <th>Agente</th>
+                                        <th>Inicio</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Faulty / Lost Assets -->
+                <div class="glass" style="padding: 1rem; margin-bottom: 2rem;">
+                    <h5 style="margin-top:0;"><i class="fas fa-tools"></i> Informe de Fallas y Equipos Extraviados</h5>
+                    <div style="overflow-x: auto;">
+                        <table id="table-faulty-assets" class="mini-table">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Categoría</th>
+                                    <th>Estado Actual</th>
+                                    <th>Última Actividad</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <h5 style="margin-bottom: 1rem;">Detalle de Operaciones en el Periodo</h5>
+                    <table id="table-reports-detail">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Agente</th>
+                                <th>Team</th>
+                                <th>Equipo</th>
+                                <th>Tipo</th>
+                                <th>Terminal</th>
+                                <th>Origen</th>
+                                <th>Destino</th>
+                                <th>Puerta</th>
+                                <th>Aerolínea</th>
+                                <th>Vuelo</th>
+                                <th>🕒 min</th>
+                                <th>Método</th>
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="8" style="text-align:center; padding: 2rem;">Generando reporte...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. SETTINGS -->
+        <div id="view-settings" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3>⚙️ Ajustes de Base de Datos</h3>
+                <p style="margin-bottom: 2rem;">Gestiona las listas desplegables y configuraciones globales.</p>
+
+                <!-- Settings Sub-Nav Card Grid -->
+                <div class="settings-nav-cards">
+                    <div class="nav-card active" onclick="loadSettingTable('airlines', 'Aerolíneas')">
+                        <span class="nav-card-emoji">✈️</span>
+                        <span class="nav-card-label">Aerolíneas</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('origin', 'Orígenes')">
+                        <span class="nav-card-emoji">🛫</span>
+                        <span class="nav-card-label">Orígenes</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('destination', 'Destinos')">
+                        <span class="nav-card-emoji">🛬</span>
+                        <span class="nav-card-label">Destinos</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('gate', 'Gates Salida')">
+                        <span class="nav-card-emoji">🚪</span>
+                        <span class="nav-card-label">Gates Salida</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('gate_arrival', 'Gates Arribo')">
+                        <span class="nav-card-emoji">📥</span>
+                        <span class="nav-card-label">Gates Arribo</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('bridge', 'Puentes')">
+                        <span class="nav-card-emoji">🌉</span>
+                        <span class="nav-card-label">Puentes</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('assets', 'Equipo')">
+                        <span class="nav-card-emoji">♿</span>
+                        <span class="nav-card-label">Equipo</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('asset_categories', 'Categorías Equipo')">
+                        <span class="nav-card-emoji">🏷️</span>
+                        <span class="nav-card-label">Categorías</span>
+                    </div>
+                    <div class="nav-card" onclick="loadSettingTable('shift_codes', 'Códigos de Turno')">
+                        <span class="nav-card-emoji">⏱️</span>
+                        <span class="nav-card-label">Turnos</span>
+                    </div>
+                    <div class="nav-card" onclick="switchTab('users')" style="border-color: #8b5cf633;">
+                        <span class="nav-card-emoji">👥</span>
+                        <span class="nav-card-label">Usuarios</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic CRUD Section -->
+                <div id="settings-crud-container">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 id="crud-title">Aerolíneas</h4>
+                        <button class="btn" style="width: auto; padding: 0.5rem 1rem;" onclick="openCrudModal()">+
+                            Agregar Nuevo</button>
+                    </div>
+                    <div id="settings-cards-container" class="cards-grid">
+                        <!-- Javascript will inject cards here -->
+                        <div style="text-align: center; grid-column: 1/-1; padding: 2rem; opacity: 0.5;">Cargando
+                            ajustes...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. REGISTROS (Incidentes) -->
+        <div id="view-registros" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="margin:0;">📋 Registros de Incidencias</h3>
+                        <p style="margin:0; opacity: 0.7; font-size: 0.9rem;">Equipos reportados por agentes (Dañados,
+                            Extraviados, etc.)</p>
+                    </div>
+                    <button class="btn btn-secondary" style="width: auto; padding: 0.5rem 1rem;"
+                        onclick="loadRegistros()">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="mini-table" id="registros-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Agente</th>
+                                <th>Categoría</th>
+                                <th>Equipo</th>
+                                <th>Terminal</th>
+                                <th>Ubicación</th>
+                                <th>Detalle</th>
+                                <th>Evidencia</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registros-body">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 3rem; opacity: 0.5;">Cargando
+                                    registros...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. ROSTERS (Turns/Rol) -->
+        <div id="view-rosters" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h3 style="margin:0;">📅 Gestión de Roles y Turnos</h3>
+                        <p style="margin:0; opacity: 0.7; font-size: 0.9rem;">Sube y consulta la planificación mensual
+                            de turnos.</p>
+                    </div>
+                </div>
+
+                <!-- Upload Section -->
+                <div class="glass"
+                    style="padding: 2rem; margin-bottom: 2rem; border: 2px dashed rgba(255,255,255,0.2); text-align: center;">
+                    <i class="fas fa-cloud-upload-alt"
+                        style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                    <h4 style="margin: 0 0 1rem 0;">Cargar Nuevo Rol Mensual</h4>
+
+                    <div
+                        style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+                        <input type="month" id="roster-month" class="input-style" style="width: auto;">
+                        <input type="file" id="roster-file" accept=".xlsx, .xls" class="input-style"
+                            style="width: auto; padding: 0.5rem;">
+                        <button class="btn" onclick="uploadRoster()" style="width: auto;">
+                            <i class="fas fa-upload"></i> Subir Archivo
+                        </button>
+                    </div>
+                    <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 1rem;">Formatos soportados: Excel (.xlsx,
+                        .xls)</p>
+                </div>
+
+                <!-- Rosters List -->
+                <h4 style="margin-bottom: 1rem;">📁 Roles Disponibles</h4>
+                <div style="overflow-x: auto; margin-bottom: 2rem;">
+                    <table class="mini-table" id="rosters-table">
+                        <thead>
+                            <tr>
+                                <th>Mes / Año</th>
+                                <th>Nombre del Archivo</th>
+                                <th>Subido Por</th>
+                                <th>Fecha Carga</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosters-body">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem; opacity: 0.5;">Cargando
+                                    historial...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Roster Detail View (Hidden by default) -->
+                <div id="roster-detail-view" style="display:none; animation: fadeIn 0.3s ease;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <h3 id="roster-detail-title" style="margin:0;">📅 Detalle del Rol</h3>
+                        <button class="btn btn-secondary" onclick="closeRosterDetail()" style="width:auto;">
+                            <i class="fas fa-times"></i> Cerrar
+                        </button>
+                    </div>
+
+                    <div style="overflow-x: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <table class="roster-grid-table" id="roster-grid">
+                            <!-- JS will inject header and body -->
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. MOVILIZACION -->
+        <div id="view-movilizacion" class="content-view hidden">
+            <div class="glass content-section" style="padding: 1.5rem;">
+                <h3 style="margin-top:0; color: var(--primary-color);">🚌 Gestión Triage Movilización (Nocturno)</h3>
+                <p style="opacity: 0.8; margin-bottom: 2rem;">Generación de planilla de transporte para Zarpes
+                    (Salientes) y Recogidas (Entrantes) en horario inhábil (21:00 - 07:00).</p>
+
+                <div
+                    style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">📅 Fecha de Operación
+                            (Noche)</label>
+                        <input type="date" id="movil-date" class="input-style"
+                            style="width: 100%; padding: 12px; border-radius: 8px;">
+                        <small style="opacity: 0.7;">Selecciona el día "base" (ej: Hoy). Se buscarán recogidas para esta
+                            noche y zarpes para mañana temprano.</small>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">👤 Solicitante</label>
+                        <select id="movil-requester" class="input-style"
+                            style="width: 100%; padding: 12px; border-radius: 8px;">
+                            <option value="">Cargando...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; flex-wrap: wrap;">
+                    <button onclick="toggleAgentPanel()" class="btn"
+                        style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #3b82f6;">
+                        <i class="fas fa-search"></i> Gestionar Agentes
+                    </button>
+
+                    <button onclick="generateMovilExcel()" class="btn"
+                        style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #10b981;">
+                        <i class="fas fa-file-excel"></i> Descargar Planilla (.xlsx)
+                    </button>
+
+                    <button onclick="document.getElementById('movil-db-upload').click()" class="btn"
+                        style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #6366f1;">
+                        <i class="fas fa-upload"></i> Cargar Base Maestra
+                    </button>
+                    <input type="file" id="movil-db-upload" accept=".xlsx, .xls" style="display: none;"
+                        onchange="handleMovilDatabaseUpload(this)">
+                </div>
+
+                <!-- INLINE AGENT MANAGEMENT PANEL -->
+                <div id="agent-management-panel"
+                    style="display: none; margin-top: 1rem; background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <h3 style="margin-top: 0; color: #3b82f6; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-users-cog"></i> Gestión de Agentes
+                    </h3>
+
+                    <!-- Search -->
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                        <input type="text" id="agent-search-input" class="input-style"
+                            placeholder="Buscar por Nombre, RUT o Email..."
+                            style="flex: 1; padding: 12px; border-radius: 8px;"
+                            onkeypress="if(event.key === 'Enter') searchAgents()">
+                        <button onclick="searchAgents()" class="btn-primary"
+                            style="width: auto; padding: 0 20px;">Buscar</button>
+                    </div>
+
+                    <!-- Results -->
+                    <div id="agent-search-results"
+                        style="max-height: 250px; overflow-y: auto; margin-bottom: 1.5rem; padding-right: 5px;">
+                        <!-- Results via JS -->
+                    </div>
+
+                    <!-- Edit Form -->
+                    <div id="agent-edit-form"
+                        style="display: none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                        <h4 style="margin-bottom: 1rem; color: #a855f7;">✏️ Editar Información</h4>
+                        <input type="hidden" id="edit-agent-id">
+                        <input type="hidden" id="edit-agent-source">
+
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <!-- Fields -->
+                            <div><label>Nombre Completo</label><input type="text" id="edit-full-name"
+                                    class="input-style" style="width: 100%;"></div>
+                            <div><label>RUT</label><input type="text" id="edit-rut" class="input-style"
+                                    style="width: 100%; opacity: 0.6;" disabled></div>
+                            <div><label>Email</label><input type="email" id="edit-email" class="input-style"
+                                    style="width: 100%;"></div>
+                            <div><label>Teléfono</label><input type="text" id="edit-phone" class="input-style"
+                                    style="width: 100%;"></div>
+                            <div style="grid-column: span 2;"><label>Dirección</label><input type="text"
+                                    id="edit-address" class="input-style" style="width: 100%;"></div>
+                            <div><label>Número</label><input type="text" id="edit-number" class="input-style"
+                                    style="width: 100%;"></div>
+                            <div><label>Comuna</label><input type="text" id="edit-commune" class="input-style"
+                                    style="width: 100%;"></div>
+                        </div>
+
+                        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+                            <button onclick="cancelAgentEdit()" class="btn"
+                                style="background: rgba(255,255,255,0.1);">Cancelar</button>
+                            <button onclick="saveAgentChanges()" class="btn-primary"
+                                style="background: #10b981;">Guardar Cambios</button>
+                        </div>
+                    </div>
+                </div>
+                <p id="movil-msg" style="margin-top: 1rem; color: #f59e0b; display: none; text-align: right;">
+                    Generando...</p>
+
+                <!-- Progress Bar -->
+                <div id="movil-progress-container"
+                    style="display: none; margin-top: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; height: 10px;">
+                    <div id="movil-progress-bar"
+                        style="width: 0%; height: 100%; background: #6366f1; transition: width 0.3s;"></div>
+                </div>
+                <p id="movil-progress-text"
+                    style="text-align: right; font-size: 0.8rem; opacity: 0.8; display: none; margin-top: 5px;">0%</p>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            CREADO CON <span>❤️</span> POR IAN SAAVEDRA PARA CARGOMOBILITY
+        </footer>
+    </main>
+
+    <!-- CRUD MODAL (Generic) -->
+    <div id="crud-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h3 id="modal-title" style="margin-top:0; color: var(--primary-color); font-weight: 800;">Editar Item</h3>
+            <form id="crud-form">
+                <input type="hidden" id="crud-id">
+                <input type="hidden" id="crud-type">
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Nombre</label>
+                    <input type="text" id="crud-name" class="input-style" style="border: 1px solid #ccc;" required>
+                </div>
+
+                <!-- Dynamic Field (IATA or Terminal or Hidden) -->
+                <div id="crud-extra-field" class="form-group" style="margin-bottom: 1rem;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Código IATA</label>
+                    <input type="text" id="crud-extra" class="input-style" style="border: 1px solid #ccc;">
+                </div>
+
+                <!-- Logo Field (Only for Airlines) -->
+                <div id="crud-logo-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Logo de la Aerolínea (URL o
+                        Archivo)</label>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <input type="url" id="crud-logo" class="input-style" style="border: 1px solid #ccc;"
+                            placeholder="Pegar URL del logo...">
+                        <div style="text-align: center; font-size: 0.8rem; opacity: 0.6;">— O —</div>
+                        <input type="file" id="crud-logo-file" class="input-style"
+                            style="border: 1px solid #ccc; padding: 0.5rem;" accept="image/*">
+                    </div>
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <img id="crud-logo-preview" src="" alt="Preview"
+                            style="display: none; max-height: 80px; max-width: 100%; object-fit: contain; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; margin: 0 auto;">
+                    </div>
+                </div>
+
+                <!-- Asset Type Field (Only for Equipo) -->
+                <div id="crud-asset-type-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Categoría de Equipo</label>
+                    <select id="crud-asset-type" class="input-style" style="border: 1px solid #ccc;">
+                        <option value="silla">Silla de Ruedas</option>
+                        <option value="carrito">Carrito de Golf</option>
+                        <option value="oruga">Silla Oruga</option>
+                    </select>
+                </div>
+
+                <!-- Asset Quantity Field (For Bulk Creation) -->
+                <div id="crud-quantity-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Cantidad a Crear</label>
+                    <input type="number" id="crud-quantity" class="input-style" style="border: 1px solid #ccc;" min="1"
+                        value="1" placeholder="1">
+                    <small style="opacity: 0.7; font-size: 0.8rem; display: block; margin-top: 4px;">
+                        Se generarán automáticamente (Ej: SILLA-01, SILLA-02...)
+                    </small>
+                </div>
+
+                <!-- Asset Status Field (Only for Equipo) -->
+                <div id="crud-asset-status-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Estado del Equipo</label>
+                    <select id="crud-asset-status" class="input-style" style="border: 1px solid #ccc;">
+                        <option value="available">✅ Disponible</option>
+                        <option value="maintenance">🛠️ Mantenimiento / Inoperativo</option>
+                        <option value="damaged">⚠️ Dañado / Falla (Inoperativo)</option>
+                        <option value="lost">❌ Extraviado / Perdido</option>
+                        <option value="in_use" disabled>🏃 En Uso (Bloqueado)</option>
+                    </select>
+                </div>
+
+                <!-- User Specific Fields -->
+                <div id="crud-user-fields" style="display: none;">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Correo
+                            Electrónico</label>
+                        <input type="email" id="crud-user-email" class="input-style" style="border: 1px solid #ccc;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Teléfono</label>
+                        <input type="text" id="crud-user-phone" class="input-style" style="border: 1px solid #ccc;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Comuna</label>
+                            <input type="text" id="crud-user-commune" class="input-style"
+                                style="border: 1px solid #ccc;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1rem;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Rol / Cargo</label>
+                            <select id="crud-user-role" class="input-style" style="border: 1px solid #ccc;">
+                                <option value="Agente">Agente</option>
+                                <option value="Supervisor">Supervisor</option>
+                                <option value="CDO">CDO</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Dirección</label>
+                        <textarea id="crud-user-address" class="input-style"
+                            style="border: 1px solid #ccc; height: 60px;"></textarea>
+                    </div>
+                </div>
+
+                <!-- QR Upload Field (Only for Assets) -->
+                <div id="crud-qr-field" class="form-group" style="margin-bottom: 1rem; display: none;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 0.5rem;">Imagen Código QR</label>
+                    <input type="file" id="crud-qr-file" class="input-style"
+                        style="border: 1px solid #ccc; padding: 0.5rem;" accept="image/*">
+                    <div style="margin-top: 1rem; text-align: center;">
+                        <img id="crud-qr-preview" src="" alt="QR Preview"
+                            style="display: none; max-height: 150px; max-width: 100%; object-fit: contain; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; margin: 0 auto;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCrudModal()">Cancelar</button>
+                    <button type="submit" class="btn">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Debugging Script -->
+    <script>
+        window.onerror = function (msg, url, lineNo, columnNo, error) {
+            alert('Error Global: ' + msg + '\nURL: ' + url + '\nLine: ' + lineNo);
+            return false;
+        };
+    </script>
+    <!-- Scripts -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script type="module" src="../assets/js/client.js"></script>
+    <script type="module" src="../assets/js/common.js"></script>
+    <script type="module" src="js/admin.js?v=7"></script>
+    <script type="module" src="js/crud_logic.js?v=1"></script>
+    <script type="module" src="js/movilizacion.js?v=17"></script>
+    <script type="module" src="js/admin_rosters.js?v=11"></script>
+    <!-- Fallback Script -->
+    <script>
+        console.log("Loading Fallback Script...");
+
+        // Define immediately to override any module issues
+
+
+</body >
+</html >
