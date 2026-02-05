@@ -409,14 +409,8 @@
                     </div>
                 </div>
 
-                <div id="camera-preview-container"
-                    style="display: none; width: 100%; max-width: 400px; position: relative;">
-                    <video id="camera-video" style="width: 100%; border-radius: 12px;"></video>
-                    <canvas id="camera-canvas" style="display: none;"></canvas>
-                    <button class="btn btn-secondary" onclick="stopCameraScan()"
-                        style="position: absolute; top: 10px; right: 10px; width: auto; padding: 5px 10px; font-size: 0.7rem;">Cerrar</button>
-                </div>
             </div>
+
 
 
         </div>
@@ -788,6 +782,14 @@
             </form>
         </div>
 
+    </div>
+
+    <!-- MOVED CAMERA CONTAINER TO ROOT FOR GLOBAL ACCESS -->
+    <div id="camera-preview-container" style="display: none; width: 100%; max-width: 400px; position: relative;">
+        <video id="camera-video" style="width: 100%; border-radius: 12px;"></video>
+        <canvas id="camera-canvas" style="display: none;"></canvas>
+        <button class="btn btn-secondary" onclick="stopCameraScan()"
+            style="position: absolute; top: 10px; right: 10px; width: auto; padding: 5px 10px; font-size: 0.7rem; z-index: 10000;">Cerrar</button>
     </div>
 
     <footer class="app-footer">
