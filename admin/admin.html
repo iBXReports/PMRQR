@@ -658,6 +658,31 @@
                 height: 32px;
                 min-width: 32px;
             }
+
+            /* --- NEW FIXES FOR USER REQUEST --- */
+            /* 1. Dashboard Split Stacking */
+            .dashboard-split {
+                grid-template-columns: 1fr !important;
+                gap: 1.5rem !important;
+            }
+
+            /* 3. & 4. Flex Button Stacking */
+            .flex-stack-mobile {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 1rem !important;
+            }
+
+            .flex-stack-mobile>div,
+            .flex-stack-mobile>button {
+                width: 100% !important;
+            }
+
+            /* Ensure inputs in stacked flex are full width */
+            .flex-stack-mobile input,
+            .flex-stack-mobile select {
+                width: 100% !important;
+            }
         }
     </style>
 </head>
@@ -982,11 +1007,11 @@
 
             <!-- Dashboard Content Split -->
             <!-- Split Section: Faulty & Recent Activity -->
-            <div
+            <div class="dashboard-split"
                 style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; align-items: start;">
                 <!-- Faulty Assets -->
                 <div class="glass content-section" style="padding: 1.5rem; height: 100%;">
-                    <div
+                    <div class="flex-stack-mobile"
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3 style="font-size: 1.1rem;">⚠️ Equipos con Falla</h3>
                         <button class="btn btn-secondary"
@@ -1041,7 +1066,8 @@
             </div>
 
             <div class="glass content-section" style="padding: 1.5rem; margin-bottom: 2rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="flex-stack-mobile"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <h3>📅 Turnos del Día (Agentes Programados)</h3>
                         <span id="shifts-count-badge" class="badge"
@@ -1061,7 +1087,7 @@
                         style="width: 100%; padding: 0.8rem 1rem 0.8rem 2.5rem; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(255,255,255,0.05); color: var(--text-color);">
                 </div>
 
-                <div id="shifts-grouped-container">
+                <div id="shifts-grouped-container" class="table-container">
                     <!-- Tables will be injected here by JS -->
                     <div style="text-align: center; padding: 2rem; opacity: 0.5;">Cargando turnos desplegados...</div>
                 </div>
@@ -1154,7 +1180,8 @@
         <!-- 3. EQUIPO (ASSETS) MANAGEMENT -->
         <div id="view-assets" class="content-view hidden">
             <div class="glass content-section" style="padding: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div class="flex-stack-mobile"
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3>♿ Gestión de Equipo</h3>
                     <div style="display:flex; gap:10px;">
                         <button class="btn btn-secondary" style="width: auto;"
@@ -1564,7 +1591,7 @@
                         style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
                     <h4 style="margin: 0 0 1rem 0;">Cargar Nuevo Rol Mensual</h4>
 
-                    <div
+                    <div class="flex-stack-mobile"
                         style="display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
                         <input type="month" id="roster-month" class="input-style" style="width: auto;">
                         <input type="file" id="roster-file" accept=".xlsx, .xls" class="input-style"
@@ -1643,7 +1670,8 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; flex-wrap: wrap;">
+                <div class="flex-stack-mobile"
+                    style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem; flex-wrap: wrap;">
                     <button onclick="toggleAgentPanel()" class="btn"
                         style="width: auto; padding: 12px 24px; display: inline-flex; align-items: center; gap: 8px; background: #3b82f6;">
                         <i class="fas fa-search"></i> Gestionar Agentes
