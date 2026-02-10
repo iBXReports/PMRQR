@@ -12,50 +12,6 @@
         body {
             font-family: 'Outfit', sans-serif;
         }
-
-        .recovery-card {
-            max-width: 450px;
-            width: 90%;
-            margin: 5rem auto;
-            padding: 2.5rem;
-            text-align: center;
-        }
-
-        .result-box {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px dashed var(--primary-color);
-            border-radius: 15px;
-            display: none;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @media (max-width: 1024px) {
-
-            /* 1. ANIMATION NUKE */
-            *,
-            *::before,
-            *::after {
-                animation: none !important;
-                transition: none !important;
-            }
-
-            .float-anim {
-                transform: none !important;
-            }
-
-            .result-box {
-                animation: none !important;
-            }
-
-            /* 2. LAYOUT FIXES */
-            .recovery-card {
-                margin: 2rem auto;
-                padding: 1.5rem;
-                width: 95%;
-            }
-        }
     </style>
 </head>
 

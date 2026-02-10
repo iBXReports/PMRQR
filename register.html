@@ -12,25 +12,6 @@
         body {
             font-family: 'Outfit', sans-serif;
         }
-
-        .register-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        @media (max-width: 1024px) {
-            .register-grid {
-                grid-template-columns: 1fr;
-            }
-
-            *,
-            *::before,
-            *::after {
-                animation: none !important;
-                transition: none !important;
-            }
-        }
     </style>
 </head>
 
@@ -64,7 +45,7 @@
                 </div>
 
                 <!-- 2-5. Nombres Separados -->
-                <div class="register-grid">
+                <div class="grid-2">
                     <div class="form-group">
                         <label>📝 Primer Nombre</label>
                         <input type="text" name="first_name" placeholder="Juan" required>
@@ -74,7 +55,7 @@
                         <input type="text" name="middle_name" placeholder="Andrés">
                     </div>
                 </div>
-                <div class="register-grid">
+                <div class="grid-2">
                     <div class="form-group">
                         <label>📝 Primer Apellido</label>
                         <input type="text" name="last_name_1" placeholder="Pérez" required>
@@ -116,7 +97,7 @@
                 </div>
 
                 <!-- 11-12. Numero y Depto -->
-                <div class="register-grid">
+                <div class="grid-2">
                     <div class="form-group">
                         <label>🔢 Número</label>
                         <input type="text" name="addr_number" placeholder="Ej: 1234">

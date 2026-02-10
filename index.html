@@ -213,44 +213,6 @@
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
-
-        /* Mobile Specifics */
-        @media (max-width: 1024px) {
-
-            /* 1. ANIMATION NUKE */
-            *,
-            *::before,
-            *::after {
-                animation: none !important;
-                transition: none !important;
-            }
-
-            .float-anim {
-                transform: none !important;
-            }
-
-            /* 2. LAYOUT */
-            .hero-title {
-                font-size: 2rem;
-            }
-
-            .container {
-                padding: 1rem;
-            }
-
-            .grid-2 {
-                grid-template-columns: 1fr;
-            }
-
-            /* Override inline padding for glass containers */
-            .glass[style*="padding: 3rem"] {
-                padding: 1.5rem !important;
-            }
-
-            .desktop-only {
-                display: none !important;
-            }
-        }
     </style>
 </head>
 
