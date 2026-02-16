@@ -6,9 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración | PMRQR</title>
     <link rel="stylesheet" href="../assets/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <!-- FontAwesome for Icons -->
+    <!-- PWA & Optimization -->
+    <link rel="manifest" href="../manifest.json">
+    <link rel="preload" href="../assets/css/style.css" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap"
+        as="style">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('../service-worker.js')
+                    .then(reg => console.log('SW Registered in Admin!', reg.scope))
+                    .catch(err => console.log('SW Fail:', err));
+            });
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --sidebar-width: 240px;
@@ -497,6 +510,70 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
+        /* --- SETTINGS NAV CARDS --- */
+        .settings-nav-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .nav-card {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 1rem;
+            min-width: 120px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .nav-card:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .nav-card.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+            border: none;
+        }
+
+        .nav-card-emoji {
+            font-size: 2rem;
+        }
+
+        .nav-card-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        [data-theme="dark"] .nav-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        [data-theme="dark"] .nav-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        [data-theme="dark"] .nav-card.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
         /* --- RESPONSIVE MOBILE & TABLET FIXES --- */
         @media (max-width: 1024px) {
 
@@ -683,6 +760,88 @@
             .flex-stack-mobile select {
                 width: 100% !important;
             }
+        }
+
+        /* --- ACTION BUTTONS --- */
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin: 0 4px;
+            font-size: 1rem;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-edit {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        .btn-edit:hover {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .btn-delete:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Whatsapp Button */
+        .btn-whatsapp {
+            width: auto;
+            padding: 0 12px;
+            gap: 6px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .btn-whatsapp:hover {
+            background: #22c55e;
+            color: white;
+        }
+
+        .btn-return {
+            width: auto;
+            padding: 0 12px;
+            gap: 6px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .btn-return:hover {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .action-group {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
         }
     </style>
 </head>
@@ -885,110 +1044,119 @@
         <div id="view-dashboard" class="content-view">
             <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
                 <!-- Agents On Shift (Present) -->
-                <div class="glass stat-card float-anim" onclick="showStatDetail('on-shift')" style="cursor:pointer;">
+                <div class="glass stat-card float-anim" onclick="showStatDetail('on-shift')"
+                    style="cursor:pointer; background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%); border: 1px solid rgba(16, 185, 129, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-on-shift">0</h3>
                         <p style="margin:0;">🟢 En Turno</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Presentes</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
-                        <i class="fas fa-user-check"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-user-check" style="color: #10b981; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- Agents Upcoming (Next 4 hours) -->
-                <div class="glass stat-card float-anim" onclick="showStatDetail('upcoming')" style="cursor:pointer;">
+                <div class="glass stat-card float-anim" onclick="showStatDetail('upcoming')"
+                    style="cursor:pointer; background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.05) 100%); border: 1px solid rgba(245, 158, 11, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-upcoming">0</h3>
                         <p style="margin:0;">⏰ Por Ingresar</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Próximas 4 hrs</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-                        <i class="fas fa-hourglass-start"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-hourglass-start" style="color: #f59e0b; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- TICA Activa (Present + Vigente) -->
-                <div class="glass stat-card float-anim" onclick="showStatDetail('tica-active')" style="cursor:pointer;">
+                <div class="glass stat-card float-anim" onclick="showStatDetail('tica-active')"
+                    style="cursor:pointer; background: linear-gradient(135deg, rgba(14, 165, 233, 0.2) 0%, rgba(14, 165, 233, 0.05) 100%); border: 1px solid rgba(14, 165, 233, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-tica-active">0</h3>
                         <p style="margin:0;">✅ TICA Activa</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Presentes Vigente</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">
-                        <i class="fas fa-id-card"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-id-card" style="color: #0ea5e9; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- Sin TICA -->
-                <div class="glass stat-card float-anim" onclick="showStatDetail('sin-tica')" style="cursor:pointer;">
+                <div class="glass stat-card float-anim" onclick="showStatDetail('sin-tica')"
+                    style="cursor:pointer; background: linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(107, 114, 128, 0.05) 100%); border: 1px solid rgba(107, 114, 128, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-sin-tica">0</h3>
                         <p style="margin:0;">❌ Sin TICA</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Agentes sin TICA</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #6b7280, #4b5563);">
-                        <i class="fas fa-user-slash"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-user-slash" style="color: #9ca3af; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- Ausencias del Día -->
-                <div class="glass stat-card float-anim" onclick="showStatDetail('ausencias')" style="cursor:pointer;">
+                <div class="glass stat-card float-anim" onclick="showStatDetail('ausencias')"
+                    style="cursor:pointer; background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.05) 100%); border: 1px solid rgba(239, 68, 68, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-ausencias">0</h3>
                         <p style="margin:0;">🚫 Ausencias</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Del día</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                        <i class="fas fa-user-times"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-user-times" style="color: #ef4444; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- Active Operations -->
-                <div class="glass stat-card float-anim">
+                <div class="glass stat-card float-anim"
+                    style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0.05) 100%); border: 1px solid rgba(99, 102, 241, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-active-ops">0</h3>
                         <p style="margin:0;">🏃 Activas</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Operaciones</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
-                        <i class="fas fa-running"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-running" style="color: #6366f1; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- Available Assets -->
-                <div class="glass stat-card float-anim">
+                <div class="glass stat-card float-anim"
+                    style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%); border: 1px solid rgba(16, 185, 129, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-available-assets">0</h3>
                         <p style="margin:0;">🛠️ Disponibles</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Equipos</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #34d399);">
-                        <i class="fas fa-wheelchair"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-wheelchair" style="color: #10b981; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- Total Hoy -->
-                <div class="glass stat-card float-anim">
+                <div class="glass stat-card float-anim"
+                    style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(245, 158, 11, 0.05) 100%); border: 1px solid rgba(245, 158, 11, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-total-today">0</h3>
                         <p style="margin:0;">📊 Total Hoy</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Operaciones</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">
-                        <i class="fas fa-clock"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-clock" style="color: #f59e0b; font-size: 2rem;"></i>
                     </div>
                 </div>
 
                 <!-- Con Falla -->
-                <div class="glass stat-card float-anim">
+                <div class="glass stat-card float-anim"
+                    style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.05) 100%); border: 1px solid rgba(239, 68, 68, 0.3);">
                     <div class="stat-info">
                         <h3 id="stat-faulty">0</h3>
                         <p style="margin:0;">⚠️ Con Falla</p>
                         <small style="opacity:0.6; font-size:0.7rem;">Equipos</small>
                     </div>
-                    <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #f87171);">
-                        <i class="fas fa-tools"></i>
+                    <div class="stat-icon" style="background: transparent; box-shadow: none;">
+                        <i class="fas fa-tools" style="color: #ef4444; font-size: 2rem;"></i>
                     </div>
                 </div>
             </div>
@@ -1103,7 +1271,7 @@
                 <h3>⚡ Acciones Rápidas</h3>
                 <div
                     style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-                    <button class="btn" onclick="switchTab('settings')">🔧 Configuración General</button>
+                    <button class="btn btn-secondary" onclick="switchTab('settings')">🔧 Configuración General</button>
                     <button class="btn btn-secondary" onclick="switchTab('assets')">➕ Gestión de Equipo</button>
                 </div>
             </div>
@@ -1242,8 +1410,8 @@
                     </div>
                 </div>
 
-                <div style="overflow-x: auto;">
-                    <table id="assets-table">
+                <div class="table-container" style="overflow-x: auto;">
+                    <table id="assets-table" class="mini-table" style="width: 100%;">
                         <thead>
                             <tr>
                                 <th>Código / QR</th>

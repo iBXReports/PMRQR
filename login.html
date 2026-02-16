@@ -6,6 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | PMRQR</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <!-- PWA & Optimization -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="preload" href="assets/css/style.css" as="style">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         body {

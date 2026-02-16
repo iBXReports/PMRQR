@@ -257,7 +257,7 @@ window.loadDailyRosterManagement = async function (targetDateStr) {
 
         // Fetch profiles
         // Fetch profiles with extended fields for matching
-        const { data: pData } = await supabase.from('profiles').select('rut, id, tica_status, full_name, email, phone, address, address_street, first_name, last_name_1, last_name_2');
+        const { data: pData } = await supabase.from('profiles').select('rut, id, tica_status, full_name, email, phone, address, address_street, first_name, last_name_1, last_name_2, status');
         const profiles = pData || [];
 
         // Helper to normalize RUT - handles all variations:
@@ -326,7 +326,7 @@ window.loadDailyRosterManagement = async function (targetDateStr) {
         // Fetch agent_predata for TICA status fallback (for agents without profile)
         const { data: predataData } = await supabase
             .from('agent_predata')
-            .select('rut, tica_status, full_name');
+            .select('rut, tica_status, full_name, status');
 
         const predataMap = {};
         if (predataData) {
@@ -480,12 +480,31 @@ window.loadDailyRosterManagement = async function (targetDateStr) {
             return false;
         });
 
-        if (filteredUserKeys.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;">No hay agentes con turnos activos para hoy.</td></tr>';
+        // SECONDARY FILTER: Hide inactive users (Status = inactive)
+        // We need to resolve profile first to check status
+        const activeUserKeys = filteredUserKeys.filter(key => {
+            const u = groupedUsers[key];
+            const cleanKey = cleanRut(u.rut || '') || u.name;
+
+            // Check Profile Status
+            let profile = profileMap[cleanKey] || profiles.find(p => p.full_name === u.name); // Simple match
+
+            // If linked profile is inactive, hide
+            if (profile && profile.status === 'inactive') return false;
+
+            // Check Predata Status (if no profile)
+            const pre = predataMap[cleanKey];
+            if (pre && pre.status === 'inactive') return false;
+
+            return true;
+        });
+
+        if (activeUserKeys.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;">No hay agentes activos con turnos para hoy.</td></tr>';
             return;
         }
 
-        filteredUserKeys.forEach(key => {
+        activeUserKeys.forEach(key => {
             const u = groupedUsers[key];
             let profile = profileMap[u.cleanRut];
             let autoLinked = false;
@@ -640,7 +659,7 @@ window.loadDailyRosterManagement = async function (targetDateStr) {
             const obsColor = currentObsData?.color || '#6b7280';
             const obsBg = currentObsData?.bg || 'rgba(107,114,128,0.15)';
             const observationOptsHtml = observationOpts.map(o =>
-                `<option value="${o.val}" data-color="${o.color}" data-bg="${o.bg}" ${o.val === currentObservation ? 'selected' : ''}>${o.label}</option>`
+                `<option value="${o.val}" style="background:var(--bg-color); color:var(--text-color);" data-color="${o.color}" data-bg="${o.bg}" ${o.val === currentObservation ? 'selected' : ''}>${o.label}</option>`
             ).join('');
 
             // COLATION Select Options
@@ -676,7 +695,21 @@ window.loadDailyRosterManagement = async function (targetDateStr) {
             if (currentTica === 'vencida') selectBorder = '#ef4444';
 
             // Determine which shift to display (today's or overnight from yesterday)
-            const displayShiftCode = u.isOvernightFromYesterday ? u.activeShiftCode : (u.shifts[today] || '-');
+            let displayShiftCode = u.shifts[today] || '-';
+
+            // LOGIC FOR "SALIENTE" (Role S)
+            // If today's role is 'S', check yesterday's shift to display "SALIENTE [Yesterday]"
+            if (displayShiftCode.trim().toUpperCase() === 'S') {
+                const yesterdayShift = (u.shifts[yesterday] || '').trim().toUpperCase();
+                if (yesterdayShift && yesterdayShift !== '-') {
+                    displayShiftCode = `SALIENTE ${yesterdayShift}`;
+                }
+            }
+
+            if (u.isOvernightFromYesterday) {
+                displayShiftCode = u.activeShiftCode;
+            }
+
             const isOvernight = u.isOvernightFromYesterday || false;
 
             // Render shift cell with overnight indicator if applicable
@@ -912,6 +945,55 @@ window.updateAttendance = async function (rut, userName, shiftDate, field, value
                 .insert(insertData);
 
             if (error) throw error;
+        }
+
+        // --- SPECIFIC LOGIC: RENUNCIA ---
+        if (field === 'observation' && value === 'RENUNCIA') {
+            if (confirm(`⚠ ATENCIÓN: Al marcar "RENUNCIA", el agente ${userName} será desactivado del sistema.\n\n- No aparecerá en planificaciones futuras.\n- No aparecerá en reportes.\n- Se marcará como INACTIVO en la base de datos.\n\n¿Estás seguro de proceder?`)) {
+
+                // 1. Deactivate Profile
+                const { error: profErr } = await supabase
+                    .from('profiles')
+                    .update({ status: 'inactive' })
+                    .eq('rut', rut); // Assuming RUT is reliable
+
+                if (profErr) console.error("Error deactivating profile:", profErr);
+
+                // 2. Deactivate Predata (if exists)
+                const clean = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+                const { error: preErr } = await supabase
+                    .from('agent_predata')
+                    .update({ status: 'inactive' })
+                    .eq('rut', clean);
+
+                if (preErr) console.error("Error deactivating predata:", preErr);
+
+                alert(`✅ El agente ${userName} ha sido desactivado correctamente.`);
+
+                // Remove row from UI immediately
+                const row = selectElement.closest('tr');
+                if (row) {
+                    row.style.transition = 'all 0.5s';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 500);
+                }
+                return; // Stop here
+            } else {
+                // Revert selection if cancelled
+                selectElement.value = 'SIN OBS'; // Or fetch previous value?
+                // Update DB back to 'SIN OBS' to be safe? 
+                // Actually we already updated it above (lines 892-915).
+                // So we need to undo that update.
+
+                await supabase
+                    .from('attendance')
+                    .update({ observation: 'SIN OBS' }) // Revert to default
+                    .eq('rut', rut)
+                    .eq('shift_date', shiftDate);
+
+                selectElement.value = 'SIN OBS';
+                return;
+            }
         }
 
         // Visual feedback - flash green border
@@ -1796,11 +1878,11 @@ window.exportDailyAttendanceExcel = async function (targetDate) {
             // Shifts for target date
             supabase.from('user_shifts').select('*').eq('shift_date', targetDate),
             // Profiles
-            supabase.from('profiles').select('id, rut, full_name, tica_status, email, phone'),
+            supabase.from('profiles').select('id, rut, full_name, tica_status, email, phone, status'),
             // Attendance for target date
             supabase.from('attendance').select('*').eq('shift_date', targetDate),
             // Predata
-            supabase.from('agent_predata').select('rut, full_name, tica_status')
+            supabase.from('agent_predata').select('rut, full_name, tica_status, status')
         ]);
 
         if (shiftsRes.error) throw shiftsRes.error;
@@ -1846,6 +1928,10 @@ window.exportDailyAttendanceExcel = async function (targetDate) {
             if (!profile && s.user_name) {
                 profile = profileByName[s.user_name.trim().toUpperCase()];
             }
+
+            // FILTER: Skip Inactive Users
+            if (profile && profile.status === 'inactive') continue;
+            if (!profile && predataMap[sRutClean]?.status === 'inactive') continue;
 
             // Resolve Attendance
             // Primary key is RUT, fallback to name if absolutely necessary but RUT is standard here

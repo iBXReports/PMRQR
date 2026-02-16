@@ -1014,10 +1014,11 @@ async function loadUsers() {
         const { data, error } = await supabase.from('profiles').select('*').order('full_name');
         if (error) throw error;
 
-        // Filter hidden admins
+        // Filter hidden admins AND inactive users
         allUsersCache = (data || []).filter(u =>
             !['administrador', 'stbck'].includes(u.username?.toLowerCase()) &&
-            !['administrador sistema', 'administrador stbck'].includes(u.full_name?.toLowerCase())
+            !['administrador sistema', 'administrador stbck'].includes(u.full_name?.toLowerCase()) &&
+            u.status !== 'inactive'
         );
 
         renderUsers(allUsersCache);
@@ -2274,7 +2275,24 @@ async function renderUnifiedShifts(list, todayDate) {
         }
 
         // Colorize Shift Code
-        const shiftCode = u.shifts[todayDate] || '-';
+        let shiftCode = u.shifts[todayDate] || '-';
+
+        // Fix for "SALIENTE" (S)
+        if (shiftCode.trim().toUpperCase() === 'S') {
+            const [y, m, d] = todayDate.split('-').map(Number);
+            const dObj = new Date(y, m - 1, d);
+            dObj.setDate(dObj.getDate() - 1);
+            const y2 = dObj.getFullYear();
+            const m2 = String(dObj.getMonth() + 1).padStart(2, '0');
+            const d2 = String(dObj.getDate()).padStart(2, '0');
+            const yesterdayDate = `${y2}-${m2}-${d2}`;
+
+            const prevShift = (u.shifts[yesterdayDate] || '').trim().toUpperCase();
+            if (prevShift && prevShift !== '-' && prevShift !== 'SIN TURNO') {
+                shiftCode = `SALIENTE ${prevShift}`;
+            }
+        }
+
         let codeStyle = 'background:#374151; color:white;';
         if (shiftCode.startsWith('M')) codeStyle = 'background:#ea580c; color:white;';
         else if (shiftCode.startsWith('T')) codeStyle = 'background:#eab308; color:black;';
@@ -2287,6 +2305,9 @@ async function renderUnifiedShifts(list, todayDate) {
         const currentAttendance = att.attendance_status || 'pending';
         const currentObs = att.observation || 'SIN OBS';
         const currentColation = att.colation_status || 'pendiente';
+        const currentObsData = observationOpts.find(o => o.val === currentObs);
+        const obsBg = currentObsData?.bg || 'rgba(107,114,128,0.15)';
+        const obsColor = currentObsData?.color || '#6b7280';
 
         // Get TICA status: first from profile, then from predataMap
         const predata = predataMap[userCleanRut] || predataMap[u.rut] || {};
@@ -2299,12 +2320,10 @@ async function renderUnifiedShifts(list, todayDate) {
         ).join('');
         const attendanceColor = attendanceOpts.find(o => o.val === currentAttendance)?.color || '#6b7280';
 
+        // Fix visibility for Oservations
         const obsOptsHtml = observationOpts.map(o =>
-            `<option value="${o.val}" ${o.val === currentObs ? 'selected' : ''}>${o.label}</option>`
+            `<option value="${o.val}" style="background:var(--bg-color); color:var(--text-color);" data-color="${o.color}" data-bg="${o.bg}" ${o.val === currentObs ? 'selected' : ''}>${o.label}</option>`
         ).join('');
-        const currentObsData = observationOpts.find(o => o.val === currentObs);
-        const obsColor = currentObsData?.color || '#6b7280';
-        const obsBg = currentObsData?.bg || 'rgba(107,114,128,0.15)';
 
         const ticaOptsHtml = ticaOpts.map(o =>
             `<option value="${o.val}" ${o.val === currentTica ? 'selected' : ''}>${o.label}</option>`
@@ -2343,7 +2362,7 @@ async function renderUnifiedShifts(list, todayDate) {
                 <select onchange="updateDashboardAttendance('${safeRut}', '${safeName}', '${todayDate}', 'observation', this.value, this); this.style.borderColor=this.options[this.selectedIndex].dataset.color; this.style.background=this.options[this.selectedIndex].dataset.bg;" 
                         style="width:100%; max-width:145px; padding:5px 6px; border-radius:6px; border:2px solid ${obsColor}; 
                                background:${obsBg}; color:var(--text-color); font-size:0.65rem; cursor:pointer; font-weight:500;">
-                    ${observationOpts.map(o => `<option value="${o.val}" data-color="${o.color}" data-bg="${o.bg}" ${o.val === currentObs ? 'selected' : ''}>${o.label}</option>`).join('')}
+                    ${obsOptsHtml}
                 </select>
             </td>
             <td style="padding:6px; text-align:center; background:rgba(59,130,246,0.05);">

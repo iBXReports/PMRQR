@@ -478,3 +478,32 @@ textarea:focus,
         padding: 2px;
     }
 }
+
+/* --- PERFORMANCE OPTIMIZATIONS (PWA/Mobile) --- */
+@media (max-width: 768px),
+(prefers-reduced-motion: reduce) {
+
+    /* 1. Global Animation Nuke for Mobile */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    /* 2. Glassmorphism Optimization (Solid/Opaque backgrounds for speed) */
+    .glass {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background: var(--card-bg);
+    }
+
+    /* 3. Disable Infinite Gradient on Body */
+    body {
+        animation: none !important;
+        background-size: cover !important;
+        /* Static background */
+    }
+}

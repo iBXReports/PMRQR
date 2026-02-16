@@ -6,7 +6,25 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Operaciones | PMRQR</title>
+
+    <!-- PWA & Optimization -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="preload" href="assets/css/style.css" as="style">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap"
+        as="style">
     <link rel="stylesheet" href="assets/css/style.css">
+
+    <!-- Verify SW Support -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('SW Registered!', reg.scope))
+                    .catch(err => console.log('SW Fail:', err));
+            });
+        }
+    </script>
+
     <!-- Check Performance Mode Immediately - Default is LITE for all users -->
     <script>
         (function () {
@@ -221,7 +239,8 @@
     <nav class="glass" style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;">
         <!-- 1. LOGO -->
         <div class="logo">
-            <a href="index.html"><img src="assets/imagenes/logoclaro.png" alt="PMRQR Logo" style="height: 50px;"></a>
+            <a href="index.html"><img src="assets/imagenes/logoclaro.png" alt="PMRQR Logo" style="height: 50px;"
+                    loading="lazy"></a>
         </div>
 
         <!-- 2. USER SESSION INFO -->
@@ -243,7 +262,8 @@
 
                 <!-- Avatar -->
                 <img id="nav-user-avatar" src="assets/imagenes/avatarcargo.png" alt="Avatar"
-                    style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;">
+                    style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary-color); object-fit: cover;"
+                    loading="lazy">
 
                 <!-- Dropdown Menu -->
                 <div class="dropdown-content">
